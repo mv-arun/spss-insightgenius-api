@@ -53,7 +53,7 @@ User identity = `key.name`. NEVER accept user_id from client input.
 | Library | POST/GET/PATCH/DELETE /v1/library/*, GET /v1/library/search/files |
 | Metadata | POST /v1/metadata |
 | Analysis | /v1/frequency, /v1/crosstab, /v1/anova, /v1/correlation, /v1/gap-analysis, /v1/satisfaction-summary |
-| Tabulation | POST /v1/tabulate (sync + async webhook), POST /v1/auto-analyze |
+| Tabulation | POST /v1/tabulate (sync + async webhook; `output_mode: "displayr"` = Total / By banner / Stat sheets, `services/displayr_workbook.py`), POST /v1/auto-analyze |
 | Export | POST /v1/convert, POST /v1/exports/data-workbook (FULL DATA + category sheets from the codebook) |
 | AI | POST /v1/smart-spec, /v1/parse-ticket, /v1/chat, /v1/chat-stream |
 | Weighting | POST /v1/weight/preview, /v1/weight/compute |
@@ -81,7 +81,7 @@ Sidebar sections and the pages behind them:
 - Home: `/home`
 - Datasets: `/datasets`, `/datasets/upload`, `/datasets/{id}`
 - Transformations: `/review`
-- Workflows: `/workflows` → `/export` (tabulation), `/express`, `/wizard`, `/export-mcp` (AI chat)
+- Workflows: `/workflows` → `/export` (tabulation: Upload → Review data → Banners + respondent filter → Tables → Options → Custom groups → Generate), `/express`, `/wizard`, `/export-mcp` (AI chat)
 - Settings: `/settings`
 
 Sign-in:

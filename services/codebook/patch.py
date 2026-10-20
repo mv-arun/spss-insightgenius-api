@@ -119,7 +119,8 @@ def _needs_codes(var: Variable):
 # ── operations ───────────────────────────────────────────────────────────────
 
 def _set_label(cb, op, df):
-    _var(cb, op["var"]).label = str(op["label"]).strip() or _var(cb, op["var"]).label
+    target = cb.find_derived(op["var"]) or _var(cb, op["var"])  # a derived variable can be renamed too
+    target.label = str(op["label"]).strip() or target.label
 
 
 def _set_measure(cb, op, df):

@@ -445,3 +445,11 @@ def test_set_codes_by_code_ignores_numeric_labels():
     # a string is still matched by label
     relabelled = apply_ops(cb, [{"op": "relabel_code", "var": "Q5", "code": "MISSING", "label": "No answer"}], df)
     assert relabelled.variable("Q5").codes[-1].label == "No answer"
+
+
+def test_derived_variable_can_be_renamed(client, auth_headers):
+    edits = SPSS_EDITS + [{"op": "set_label", "var": "AGE", "label": "S6ABC: Age group"}]
+    response = _post(client, auth_headers, "/v1/codebook", {"edits": json.dumps(edits)},
+                     file=SAV, mime="application/octet-stream")
+    assert response.status_code == 200, response.text
+    assert next(d for d in response.json()["data"]["codebook"]["derived"] if d["name"] == "AGE")["label"] == "S6ABC: Age group"

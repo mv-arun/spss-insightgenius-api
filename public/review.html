@@ -296,6 +296,7 @@
               <option value="flags">One column per answer</option>
               <option value="coalesce">Combine multi-select questions</option>
               <option value="combine">Combine a question asked of different groups (e.g. age per condition)</option>
+              <option value="combine-grid">Combine grids asked of different groups, item by item (e.g. Q20 / Q21 / Q22)</option>
               <option value="priority">Priority groups — first match wins (advanced)</option>
               <option value="combination">Exact combinations of options (advanced)</option>
             </select></label>
@@ -675,6 +676,10 @@ function details(item) {
     const src = derivedSourceVar(d);
     box.append(el('div', { class: 'edit-only gap-1' },
       src ? el('button', { class: 'ic-btn ic-btn--primary ic-btn--sm', onclick: () => openRecoder(src, 'new', d) }, 'Edit…') : null,
+      el('button', { class: 'ic-btn ic-btn--secondary ic-btn--sm', onclick: () => {
+        const label = prompt('Label', d.label);
+        if (label && label.trim() && label !== d.label) edit([{ op: 'set_label', var: d.name, label: label.trim() }]);
+      } }, '✎ Rename'),
       el('button', { class: 'ic-btn ic-btn--danger ic-btn--sm', onclick: () => edit([{ op: 'remove_derived', name: d.name }]) }, 'Remove variable')));
     return box;
   }
@@ -1893,8 +1898,10 @@ function renderBuilderForm(reset = true) {
   } else if (rule === 'flags') {
     parts.push(field('From question', varSelect(coded, 'b-src')));
     parts.push(el('p', { class: 'text-sm text-gray-500' }, 'Creates one 0/1 column per answer (like the analysts\' 1-5 score columns).'));
-  } else if (rule === 'combine') {
-    parts.push(el('p', { class: 'text-sm text-gray-500' }, 'Pick the versions of the question (same answers, each asked of one group). For each respondent the first one they answered is used, so everyone is in one table.'));
+  } else if (rule === 'combine' || rule === 'combine-grid') {
+    parts.push(el('p', { class: 'text-sm text-gray-500' }, rule === 'combine'
+      ? 'Pick the versions of the question (same answers, each asked of one group). For each respondent the first one they answered is used, so everyone is in one table.'
+      : 'Tick every item of every version (e.g. Q_20_1-3, Q_21_1-3, Q_22_1-3). Items are paired by position within each question, and each pair becomes one combined variable: Name_1, Name_2, …'));
     const filter = el('input', { id: 'b-filter', class: 'ic-input', placeholder: 'Filter by name or label', type: 'search' });
     const list = el('div', { id: 'b-sources', class: 'space-y-1 max-h-64 overflow-y-auto' }, ...coded.map(v =>
       el('label', { class: 'text-sm flex items-center gap-2', 'data-text': `${ref(v)} ${v.label}`.toLowerCase() },
@@ -1943,6 +1950,25 @@ function fillSourceDetails() {
   }
 }
 
+// Ticked items grouped by question (Q_20_1 → Q_20) and paired by position: one combine per item
+function combineGridOps(label) {
+  const picked = [...document.querySelectorAll('#b-sources input:checked')].map(x => x.value);
+  const stems = {};
+  for (const name of picked) {
+    const stem = name.includes('_') ? name.slice(0, name.lastIndexOf('_')) : name;
+    (stems[stem] ||= []).push(name);
+  }
+  const versions = Object.values(stems);
+  if (versions.length < 2) throw new Error('Tick the items of at least two questions (e.g. Q_20_1-3 and Q_21_1-3).');
+  const n = versions[0].length;
+  if (versions.some(v => v.length !== n)) throw new Error(`Each question needs the same number of items (${versions.map(v => v.length).join(' / ')}).`);
+  const base = label.replace(/[^A-Za-z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'Combined';
+  const byLabel = Object.fromEntries(state.codebook.variables.map(v => [ref(v), v.label]));
+  return Array.from({ length: n }, (_, k) => ({ op: 'add_derived', derived: {
+    name: `${base}_${k + 1}`, label: `${label} ${k + 1}: ${byLabel[versions[0][k]] || versions[0][k]}`.slice(0, 250),
+    rule: 'coalesce', params: { from: versions.map(v => v[k]) } } }));
+}
+
 function builderSpec() {
   const rule = $('b-rule').value, label = $('b-label').value.trim();
   const src = $('b-src')?.value;
@@ -1962,6 +1988,7 @@ function builderSpec() {
     params = { from: src, exclude: [...document.querySelectorAll('#b-exclude input:checked')].map(x => x.value) };
     if ($('b-usebands').checked) params.bands = readBands();
   } else if (rule === 'flags') params = { from: src };
+  else if (rule === 'combine-grid') return { label, rule: 'combine-grid', ops: combineGridOps(label) };
   else if (rule === 'coalesce' || rule === 'combine') {
     params = { from: [...document.querySelectorAll('#b-sources input:checked')].map(x => x.value) };
     if (rule === 'combine' && params.from.length < 2) throw new Error('Pick at least two versions of the question.');
@@ -1980,6 +2007,15 @@ async function builderRun(commit) {
     if (!$('b-label').value.trim()) throw new Error('Give the new variable a name.');
     spec = builderSpec();
   } catch (e) { $('b-preview').replaceChildren(el('p', { class: 'text-danger' }, e.message)); return; }
+  if (spec.rule === 'combine-grid') {
+    if (commit) {
+      if (await edit(spec.ops)) { builder.close(); toast(`Added ${spec.ops.length} variables`); }
+    } else {
+      $('b-preview').replaceChildren(el('p', { class: 'text-sm' }, `Creates ${spec.ops.length} variables:`),
+        ...spec.ops.map(o => el('p', { class: 'text-xs text-gray-500' }, `${o.derived.name} = first answered of ${o.derived.params.from.join(', ')}`)));
+    }
+    return;
+  }
   const op = [{ op: 'add_derived', derived: spec }];
   if (commit) {
     if (await edit(op)) { builder.close(); toast(`Added "${spec.label}"`); }
