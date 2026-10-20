@@ -10,14 +10,41 @@ Bonferroni: alpha_adjusted = alpha / n_comparisons
 Where n_comparisons = K*(K-1)/2 for K columns (all pairwise).
 """
 
+import contextvars
 import logging
 import math
+from contextlib import contextmanager
 from typing import Any
 
 import numpy as np
 from scipy import stats
 
 logger = logging.getLogger(__name__)
+
+
+# Whether pairwise tests correct for multiple comparisons when the caller doesn't say.
+# A tabulation run sets it from its spec (Displayr's column comparisons don't correct).
+_BONFERRONI = contextvars.ContextVar("bonferroni", default=True)
+
+
+@contextmanager
+def multiple_comparison_correction(bonferroni: bool):
+    """Within this block, tests that don't pass `apply_bonferroni` use `bonferroni`."""
+    token = _BONFERRONI.set(bonferroni)
+    try:
+        yield
+    finally:
+        _BONFERRONI.reset(token)
+
+
+def bonferroni_on() -> bool:
+    """The run's default for multiple-comparison correction."""
+    return _BONFERRONI.get()
+
+
+def _adjusted(alpha: float, n_columns: int, apply_bonferroni: bool | None) -> float:
+    on = _BONFERRONI.get() if apply_bonferroni is None else apply_bonferroni
+    return bonferroni_alpha(alpha, n_columns) if on else alpha
 
 
 def bonferroni_alpha(alpha: float, n_columns: int) -> float:
@@ -33,7 +60,7 @@ def bonferroni_alpha(alpha: float, n_columns: int) -> float:
 
 
 def significant_at(
-    p_val: float, alpha: float | None, n_columns: int, higher: bool, apply_bonferroni: bool = True,
+    p_val: float, alpha: float | None, n_columns: int, higher: bool, apply_bonferroni: bool | None = None,
 ) -> bool:
     """Whether a pairwise test's p-value passes a (secondary) level, e.g. 90% after 95% failed.
 
@@ -42,7 +69,7 @@ def significant_at(
     """
     if alpha is None or not higher:
         return False
-    return p_val < (bonferroni_alpha(alpha, n_columns) if apply_bonferroni else alpha)
+    return p_val < _adjusted(alpha, n_columns, apply_bonferroni)
 
 
 def low_base_marker(base: float, warn: int = 100, flag: int = 30) -> str:
@@ -57,7 +84,7 @@ def low_base_marker(base: float, warn: int = 100, flag: int = 30) -> str:
 def z_test_proportions(
     p1: float, n1: float, p2: float, n2: float,
     alpha: float, n_columns: int,
-    apply_bonferroni: bool = True,
+    apply_bonferroni: bool | None = None,
     variable: str = "", col_a: str = "", col_b: str = "",
     warnings_list: list | None = None,
 ) -> tuple[float, bool]:
@@ -68,7 +95,7 @@ def z_test_proportions(
         p2, n2: proportion and base for column B
         alpha: raw significance level (e.g., 0.05)
         n_columns: total number of banner columns (for Bonferroni)
-        apply_bonferroni: whether to adjust alpha
+        apply_bonferroni: whether to adjust alpha (None: the run's setting, Bonferroni by default)
         variable: variable name (for logging)
         col_a, col_b: column labels (for logging)
         warnings_list: optional list to append warnings to
@@ -79,7 +106,7 @@ def z_test_proportions(
     if n1 <= 0 or n2 <= 0:
         return 1.0, False
 
-    adjusted_alpha = bonferroni_alpha(alpha, n_columns) if apply_bonferroni else alpha
+    adjusted_alpha = _adjusted(alpha, n_columns, apply_bonferroni)
 
     try:
         p_pool = (p1 * n1 + p2 * n2) / (n1 + n2)
@@ -104,7 +131,7 @@ def t_test_means(
     mean1: float, std1: float, n1: float,
     mean2: float, std2: float, n2: float,
     alpha: float, n_columns: int,
-    apply_bonferroni: bool = True,
+    apply_bonferroni: bool | None = None,
     variable: str = "", col_a: str = "", col_b: str = "",
     warnings_list: list | None = None,
 ) -> tuple[float, bool]:
@@ -118,7 +145,7 @@ def t_test_means(
     if n1 <= 1 or n2 <= 1:
         return 1.0, False
 
-    adjusted_alpha = bonferroni_alpha(alpha, n_columns) if apply_bonferroni else alpha
+    adjusted_alpha = _adjusted(alpha, n_columns, apply_bonferroni)
 
     try:
         se = math.sqrt((std1 ** 2 / n1) + (std2 ** 2 / n2))

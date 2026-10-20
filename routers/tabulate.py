@@ -186,6 +186,7 @@ async def tabulate(
             weight=spec_dict.get("weight"),
             significance_level=spec_dict.get("significance_level", 0.95),
             significance_levels=spec_dict.get("significance_levels"),
+            bonferroni=bool(spec_dict.get("bonferroni", True)),
             low_base_warn=int(spec_dict.get("low_base_warn", 100)),
             low_base_flag=int(spec_dict.get("low_base_flag", 30)),
             nets=cb.table_nets(spec_dict.get("nets")) if cb is not None else spec_dict.get("nets"),

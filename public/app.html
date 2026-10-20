@@ -443,6 +443,14 @@
                 </div>
                 <input type="checkbox" id="opt-means" checked class="ic-checkbox">
               </label>
+              <label class="ic-option" for="opt-bonferroni">
+                <span class="ic-option-icon"><ic-icon name="check" size="16"></ic-icon></span>
+                <div class="option-text">
+                  <div class="ic-option-title">Correct for multiple comparisons</div>
+                  <div class="ic-option-desc">Bonferroni: stricter letters when there are many columns. Turn off to match Displayr and Q, which don't correct.</div>
+                </div>
+                <input type="checkbox" id="opt-bonferroni" checked class="ic-checkbox">
+              </label>
             </div>
           </div>
 
@@ -915,6 +923,14 @@ function populateUI() {
     _showAutoDetectBadge('grid-groups', `${scaleGroups.length} grid(s) auto-detected`);
   }
 
+  // ── Rankings: one table per item, % of respondents at each rank ──
+  const rankingGroups = detectedGroups.filter(g => g.question_type === 'ranking');
+  for (const g of rankingGroups) {
+    const name = g.display_name || g.name || 'Ranking';
+    if ((g.variables || []).length >= 2) gridGroups[name] = { variables: g.variables, show: ['rank'] };
+  }
+  if (rankingGroups.length > 0) renderGridGroups();
+
   // ── Auto-select first suggested banner (or first available) ──
   const firstSuggested = suggested.length > 0 ? suggested[0] : (rest.length > 0 ? rest[0] : null);
   if (firstSuggested) {
@@ -1066,7 +1082,7 @@ function renderGridGroups() {
   const entries = Object.entries(gridGroups);
   if (entries.length === 0) { el.innerHTML = ''; return; }
   el.innerHTML = entries.map(([name, cfg]) => {
-    const metrics = cfg.show.map(s => ({t2b:'T2B', b2b:'B2B', mean:'Mean', median:'Median'}[s] || s)).join(', ');
+    const metrics = cfg.show.map(s => ({t2b:'T2B', b2b:'B2B', mean:'Mean', median:'Median', rank:'% at each rank'}[s] || s)).join(', ');
     return `<div class="group-row">
       <div class="group-row-main">
         <span class="group-row-title">${name}</span>
@@ -1255,6 +1271,7 @@ async function generate() {
     stubs,
     significance_level: parseFloat(document.getElementById('sig-select').value),
     include_means: document.getElementById('opt-means').checked,
+    bonferroni: document.getElementById('opt-bonferroni').checked,
     include_total_column: true,
     output_mode: outputMode,
     title: document.getElementById('title-input').value || undefined,
