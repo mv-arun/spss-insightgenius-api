@@ -405,6 +405,8 @@
                 <option value="0.90">90%</option>
                 <option value="0.95" selected>95%</option>
                 <option value="0.99">99%</option>
+                <option value="0.999,0.95">99.9% CAPITALS + 95% lowercase (Displayr)</option>
+                <option value="0.95,0.90">95% CAPITALS + 90% lowercase</option>
               </select>
             </div>
             <div>
@@ -473,6 +475,22 @@
                 </div>
                 <input type="radio" name="output-mode" value="single_sheet" class="ic-checkbox">
               </label>
+              <label class="ic-option">
+                <span class="ic-option-icon"><ic-icon name="table" size="16"></ic-icon></span>
+                <div class="option-text">
+                  <div class="ic-option-title">Displayr-style tables</div>
+                  <div class="ic-option-desc">A Total sheet, then one sheet per banner and its (Stat) sheet with significance letters. Group names are the table titles.</div>
+                </div>
+                <input type="radio" name="output-mode" value="displayr" class="ic-checkbox">
+              </label>
+              <label class="ic-option" for="opt-sort">
+                <span class="ic-option-icon"><ic-icon name="sliders" size="16"></ic-icon></span>
+                <div class="option-text">
+                  <div class="ic-option-title">Sort answers by Total</div>
+                  <div class="ic-option-desc">Displayr-style tables: highest first; "Other" and "None" stay at the bottom.</div>
+                </div>
+                <input type="checkbox" id="opt-sort" class="ic-checkbox">
+              </label>
             </div>
           </div>
         </div>
@@ -490,6 +508,12 @@
         </div>
         <div class="ic-card-body">
           <p class="ic-muted" style="font-size:12.5px;margin-bottom:14px">Example: "London + Uber users" = region is London AND aware of Uber. Each group becomes a column with significance testing.</p>
+
+          <div class="ic-field" style="max-width:320px">
+            <label class="ic-label" for="cg-banner-name">Banner name</label>
+            <input type="text" id="cg-banner-name" placeholder="Custom Groups" class="ic-input">
+            <p class="ic-help">Shown above the group columns, and in sheet names ("By Data Cut").</p>
+          </div>
 
           <div id="custom-groups-list" class="list-stack" style="margin-bottom:12px"></div>
 
@@ -899,7 +923,7 @@ function populateUI() {
   const awarenessGroups = detectedGroups.filter(g => g.question_type === 'awareness');
   if (awarenessGroups.length > 0) {
     for (const g of awarenessGroups) {
-      const name = g.display_name || g.name || 'MRS Group';
+      const name = uniqueGroupName(mrsGroups, g.display_name || g.name || 'MRS Group');
       const vars = g.variables || [];
       if (vars.length >= 2) {
         mrsGroups[name] = vars;
@@ -913,7 +937,7 @@ function populateUI() {
   const scaleGroups = detectedGroups.filter(g => g.question_type === 'scale');
   if (scaleGroups.length > 0) {
     for (const g of scaleGroups) {
-      const name = g.display_name || g.name || 'Grid';
+      const name = uniqueGroupName(gridGroups, g.display_name || g.name || 'Grid');
       const vars = g.variables || [];
       if (vars.length >= 2) {
         gridGroups[name] = { variables: vars, show: ['t2b', 'b2b', 'mean'] };
@@ -923,13 +947,15 @@ function populateUI() {
     _showAutoDetectBadge('grid-groups', `${scaleGroups.length} grid(s) auto-detected`);
   }
 
-  // ── Rankings: one table per item, % of respondents at each rank ──
-  const rankingGroups = detectedGroups.filter(g => g.question_type === 'ranking');
-  for (const g of rankingGroups) {
-    const name = g.display_name || g.name || 'Ranking';
-    if ((g.variables || []).length >= 2) gridGroups[name] = { variables: g.variables, show: ['rank'] };
+  // ── Rankings and other grids of single questions: one table, items side by side ──
+  const numeric = new Set(metadata.variables.filter(v => v.type === 'numeric').map(v => v.name));
+  const itemGroups = detectedGroups.filter(g => ['ranking', 'grid_single'].includes(g.question_type)
+    && (g.variables || []).length >= 2 && g.variables.every(v => numeric.has(v)));  // not open-text grids
+  for (const g of itemGroups) {
+    const name = uniqueGroupName(gridGroups, g.display_name || g.name || 'Ranking');
+    gridGroups[name] = { variables: g.variables, show: [g.question_type === 'ranking' ? 'rank' : 'answers'] };
   }
-  if (rankingGroups.length > 0) renderGridGroups();
+  if (itemGroups.length > 0) renderGridGroups();
 
   // ── Auto-select first suggested banner (or first available) ──
   const firstSuggested = suggested.length > 0 ? suggested[0] : (rest.length > 0 ? rest[0] : null);
@@ -1033,12 +1059,28 @@ function updateMrsCount() {
 }
 
 function renderMrsGroups() {
-  const el = document.getElementById('mrs-groups');
-  const entries = Object.entries(mrsGroups);
-  if (entries.length === 0) { el.innerHTML = ''; return; }
-  el.innerHTML = entries.map(([name, members]) =>
-    `<div class="ic-row"><span class="pill pill-purple">${name} <span class="ic-help">(${members.length} vars)</span> <span class="remove" onclick="removeMrsGroup('${name}')">&times;</span></span></div>`
-  ).join('');
+  renderGroupRows('mrs-groups', mrsGroups, members => `${members.length} variables`, renderMrsGroups);
+}
+
+// A group's name is its table title (Displayr-style tables), so it can be renamed in place
+function renameGroup(groups, oldName, newName) {
+  newName = newName.trim();
+  if (!newName || newName === oldName) return false;
+  if (newName in groups) { IC.toast(`There is already a group called "${newName}"`, 'danger'); return false; }
+  const entries = Object.entries(groups).map(([k, v]) => [k === oldName ? newName : k, v]);
+  for (const k of Object.keys(groups)) delete groups[k];
+  for (const [k, v] of entries) groups[k] = v;
+  return true;
+}
+function renderGroupRows(containerId, groups, describe, rerender) {
+  const box = document.getElementById(containerId);
+  box.replaceChildren(...Object.entries(groups).map(([name, cfg]) => IC.el('div', { class: 'group-row' },
+    IC.el('div', { class: 'group-row-main' },
+      IC.el('input', { class: 'ic-input ic-input--sm', value: name, 'aria-label': 'Group name (table title)',
+        onchange: (e) => { if (renameGroup(groups, name, e.target.value)) { rerender(); updateSummary(); } else e.target.value = name; } }),
+      IC.el('p', { class: 'ic-help' }, describe(cfg))),
+    IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': 'Remove',
+      onclick: () => { delete groups[name]; rerender(); updateSummary(); } }, IC.icon('x', 16)))));
 }
 
 // ── Grid/Battery Groups ──
@@ -1078,19 +1120,10 @@ function addGridGroup() {
 function removeGridGroup(name) { delete gridGroups[name]; renderGridGroups(); updateSummary(); }
 
 function renderGridGroups() {
-  const el = document.getElementById('grid-groups');
-  const entries = Object.entries(gridGroups);
-  if (entries.length === 0) { el.innerHTML = ''; return; }
-  el.innerHTML = entries.map(([name, cfg]) => {
-    const metrics = cfg.show.map(s => ({t2b:'T2B', b2b:'B2B', mean:'Mean', median:'Median', rank:'% at each rank'}[s] || s)).join(', ');
-    return `<div class="group-row">
-      <div class="group-row-main">
-        <span class="group-row-title">${name}</span>
-        <p class="ic-help">${cfg.variables.length} variables | Metrics: ${metrics}</p>
-      </div>
-      <button type="button" onclick="removeGridGroup('${name}')" class="ic-icon-btn" aria-label="Remove"><ic-icon name="x" size="16"></ic-icon></button>
-    </div>`;
-  }).join('');
+  renderGroupRows('grid-groups', gridGroups, cfg => {
+    const metrics = cfg.show.map(s => ({t2b:'T2B', b2b:'B2B', mean:'Mean', median:'Median', rank:'% at each rank', answers:'% per answer'}[s] || s)).join(', ');
+    return `${cfg.variables.length} variables | Metrics: ${metrics}`;
+  }, renderGridGroups);
 }
 
 // ── Custom Groups ──
@@ -1153,7 +1186,7 @@ function onCgVarChange(selectEl) {
     for (const [code, label] of Object.entries(v.value_labels)) {
       const opt = document.createElement('option');
       opt.value = code;
-      opt.textContent = `${label} (${code})`;
+      opt.textContent = `${label} (${Number.isInteger(Number(code)) ? Number(code) : code})`;  // 1.0 → 1
       valSelect.appendChild(opt);
     }
   } else {
@@ -1247,6 +1280,20 @@ function detectScaleVars() {
   }).map(v => ({ name: v.name, values: Object.keys(v.value_labels).map(Number).filter(x => !isNaN(x)).sort((a,b) => a-b) }));
 }
 
+// Two questions can share a label (e.g. the same question about two products): keep both groups
+function uniqueGroupName(groups, name) {
+  if (!(name in groups)) return name;
+  let i = 2;
+  while (`${name} (${i})` in groups) i++;
+  return `${name} (${i})`;
+}
+
+// "0.95" → one level; "0.999,0.95" → two (CAPITAL letters at the first, lowercase at the second)
+function sigLevels(value) {
+  const levels = value.split(',').map(Number);
+  return levels.length > 1 ? { significance_level: levels[0], significance_levels: levels } : { significance_level: levels[0] };
+}
+
 // Variables (and derived variables) given nets in Review data
 function reviewedNetNames() {
   const cb = reviewedCodebook;
@@ -1276,11 +1323,13 @@ async function generate() {
   const outputMode = document.querySelector('input[name="output-mode"]:checked')?.value || 'multi_sheet';
   const spec = {
     stubs,
-    significance_level: parseFloat(document.getElementById('sig-select').value),
+    ...sigLevels(document.getElementById('sig-select').value),
     include_means: document.getElementById('opt-means').checked,
     bonferroni: document.getElementById('opt-bonferroni').checked,
     include_total_column: true,
     output_mode: outputMode,
+    sort_rows: document.getElementById('opt-sort').checked,
+    custom_groups_label: document.getElementById('cg-banner-name').value.trim() || undefined,
     title: document.getElementById('title-input').value || undefined,
   };
 

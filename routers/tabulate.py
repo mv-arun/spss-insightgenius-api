@@ -196,6 +196,8 @@ async def tabulate(
             include_means=spec_dict.get("include_means", False),
             include_total_column=spec_dict.get("include_total_column", True),
             output_mode=spec_dict.get("output_mode", "multi_sheet"),
+            custom_groups_label=spec_dict.get("custom_groups_label") or "Custom Groups",
+            sort_rows=bool(spec_dict.get("sort_rows", False)),
             show_counts=spec_dict.get("show_counts", True),
             show_percentages=spec_dict.get("show_percentages", True),
             show_chi2=spec_dict.get("show_chi2", True),

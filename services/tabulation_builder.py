@@ -129,7 +129,9 @@ class TabulateSpec:
     grid_mode: str = "individual"  # "individual" (each var as crosstab) or "summary" (compact T2B/Mean table)
     include_means: bool = False
     include_total_column: bool = True  # Total as first column (T2-5)
-    output_mode: str = "multi_sheet"  # "multi_sheet" or "single_sheet"
+    output_mode: str = "multi_sheet"  # "multi_sheet", "single_sheet" or "displayr" (services.displayr_workbook)
+    custom_groups_label: str = "Custom Groups"  # banner name of the custom groups ("By Data Cut")
+    sort_rows: bool = False  # displayr: answers by Total, highest first ("Other" / "None" stay last)
     show_counts: bool = True
     show_percentages: bool = True
     show_chi2: bool = True  # Chi-square p-value in Excel headers (Story #9)
@@ -235,6 +237,7 @@ class SheetResult:
     mrs_members: list[str] | None = None
     is_grid: bool = False
     grid_data: dict[str, Any] | None = None  # {"variables": [...], "metrics": {...}}
+    group: str | None = None  # grid group this variable's table belongs to (individual mode)
 
 
 @dataclass
@@ -323,12 +326,12 @@ def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulat
             codes[mask] = float(gi + 1)
         df[cg_col] = codes
         vvl[cg_col] = {float(gi + 1): cg.name for gi, cg in enumerate(spec.parsed_custom_groups)}
-        cnl[cg_col] = "Custom Groups"
+        cnl[cg_col] = spec.custom_groups_label
         banners = list(banners) + [cg_col]
         for gi, cg in enumerate(spec.parsed_custom_groups):
             banner_columns.append(BannerColumn(
                 banner_var=cg_col,
-                banner_label="Custom Groups",
+                banner_label=spec.custom_groups_label,
                 value=str(float(gi + 1)),
                 value_label=cg.name,
                 letter=all_letters[letter_idx],
@@ -344,7 +347,7 @@ def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulat
         banners = list(banners) + [cg_col]
         banner_columns.append(BannerColumn(
             banner_var=cg_col,
-            banner_label="Custom Groups",
+            banner_label=spec.custom_groups_label,
             value="1.0",
             value_label=cg.name,
             letter=all_letters[letter_idx],
@@ -564,7 +567,7 @@ def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulat
         else:
             # Individual mode: each variable gets its own crosstab with auto-nets
             from services.quantipy_engine import _strip_common_label_prefix
-            grid_labels = [col_labels.get(v, v) for v in gvars if v in df.columns]
+            grid_labels = [col_labels.get(v) or v for v in gvars if v in df.columns]
             stripped = _strip_common_label_prefix(grid_labels)
             label_map = dict(zip([v for v in gvars if v in df.columns], stripped))
 
@@ -580,7 +583,7 @@ def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulat
                     var_label = label_map.get(gvar, col_labels.get(gvar, gvar))
                     sheet = SheetResult(
                         variable=gvar, label=var_label, status="success",
-                        crosstab_data=all_banner_results,
+                        crosstab_data=all_banner_results, group=grid_name,
                     )
                     # Auto-add T2B/B2B nets for this variable
                     gvar_vl = getattr(meta, "variable_value_labels", {}).get(gvar, {})
@@ -663,7 +666,7 @@ def _mrs_crosstab(
 
     # Strip common label prefix for MRS (e.g., "What treatments...? -Otezla" → "Otezla")
     from services.quantipy_engine import _strip_common_label_prefix
-    raw_labels = [col_labels.get(m, m) for m in valid_members]
+    raw_labels = [col_labels.get(m) or m for m in valid_members]
     stripped_labels = _strip_common_label_prefix(raw_labels)
     _member_label_map = dict(zip(valid_members, stripped_labels))
 
@@ -1024,6 +1027,10 @@ def _compute_means_by_column(
 # ── Excel builder ──
 
 def _build_excel(result: TabulationResult, spec: TabulateSpec, data: Any) -> bytes:
+    if spec.output_mode == "displayr":
+        from services.displayr_workbook import build_displayr_workbook
+        return build_displayr_workbook(result, spec, data)
+
     wb = Workbook()
 
     # Executive Summary sheet (Story #4) — before Summary if available

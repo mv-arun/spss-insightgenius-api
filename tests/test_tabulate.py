@@ -1,6 +1,8 @@
 """Tests for POST /v1/tabulate endpoint — including Tier 1 features."""
 
 import json
+
+import pytest
 import io
 from openpyxl import load_workbook
 
@@ -497,3 +499,58 @@ def test_tabulate_unlabelled_codes_print_as_whole_numbers(client, auth_headers, 
     _, wb = _tabulate(client, auth_headers, sav, {"banner": "g", "grid_groups": {"Rank": {"variables": ["rank_a"], "show": ["rank"]}}, "stubs": ["g"]})
     rows, _ = _crosstab_rows(wb["rank_a"])
     assert {"1", "2", "3"} <= set(rows), list(rows)
+
+
+def _block(ws, title):
+    """Rows of one table in a Displayr-style sheet, from its title to its footer."""
+    rows = [list(r) for r in ws.iter_rows(values_only=True)]
+    start = next(i for i, r in enumerate(rows) if r[0] == title)
+    end = next(i for i in range(start + 1, len(rows)) if rows[i][0] in (title, f"{title} SUMMARY"))  # Total: "… SUMMARY"
+    return rows[start:end + 2]
+
+
+def test_tabulate_displayr_layout(client, auth_headers, tmp_path):
+    """Total / By <banner> / Stat sheets; fractions, NET, Column Sample Size, letters, empty columns."""
+    sav = _sav(tmp_path, _three_groups_df(), _LABELS)
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "stubs": ["barrier", "only_b"], "custom_groups": _THREE_GROUPS, "bonferroni": False,
+        "output_mode": "displayr", "custom_groups_label": "Data Cut"})
+    assert wb.sheetnames == ["Total", "By Data Cut", "By Data Cut (Stat)"]
+
+    block = _block(wb["By Data Cut"], "barrier by Data Cut")
+    assert block[1][:5] == ["Column %", "Cut 1", "Cut 2", "Cut 3", "Total"]
+    rows = {r[0]: r[1:5] for r in block[2:] if r[0]}
+    assert rows["Yes"] == pytest.approx([4 / 30, 11 / 30, 8 / 30, 23 / 90])   # fractions, not "13.3%"
+    assert rows["NET"] == [1, 1, 1, 1]
+    assert rows["Column Sample Size"] == [30, 30, 30, 90]
+    assert block[-1][0] == "sample size = 90"
+
+    empty = {r[0]: r[1:5] for r in _block(wb["By Data Cut"], "only_b by Data Cut")[2:] if r[0]}
+    assert empty["One"][0] is None and empty["Column Sample Size"] == [0, 30, 0, 30]
+
+    stat = _block(wb["By Data Cut (Stat)"], "barrier by Data Cut")
+    yes = next(i for i, r in enumerate(stat) if r[0] == "Yes")
+    assert [v or "" for v in stat[yes + 1][1:5]] == ["", "A", "", "-"]   # Cut 2 > Cut 1; Total untested
+    assert any(r[0] == "Column Names" for r in stat)
+
+    total = {r[0]: r[1] for r in _block(wb["Total"], "barrier")[2:] if r[0]}
+    assert total["Yes"] == pytest.approx(23 / 90) and total["NET"] == 1
+
+
+def test_tabulate_displayr_merged_nets_and_grids(client, auth_headers, tmp_path):
+    """Nets that split every answer replace the answers; a grid group is one table with its items side by side."""
+    import pandas as pd
+    df = _three_groups_df().assign(r1=[1.0, 2.0, 3.0] * 30, r2=[3.0, 3.0, 1.0] * 30)
+    labels = {**_LABELS, "r1": {1.0: "Low", 2.0: "Mid", 3.0: "High"}, "r2": {1.0: "Low", 2.0: "Mid", 3.0: "High"}}
+    sav = _sav(tmp_path, df, labels)
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "stubs": ["barrier"], "custom_groups": _THREE_GROUPS, "output_mode": "displayr",
+        "grid_groups": {"Ratings": {"variables": ["r1", "r2"], "show": []}},
+        "nets": {"r1": {"Low + Mid": [1, 2], "High": [3]}, "r2": {"Low + Mid": [1, 2], "High": [3]}}})
+    block = _block(wb["By Custom Groups"], "Ratings by Custom Groups")
+    labels_col = [r[0] for r in block]
+    assert "Low + Mid" in labels_col and "High" in labels_col and "Low" not in labels_col   # merge
+    header_items = [v for v in block[1][1:] if v]
+    assert len(header_items) == 2                                       # r1 and r2 as column groups
+    low_mid = next(r for r in block if r[0] == "Low + Mid")
+    assert low_mid[4] == pytest.approx(2 / 3) and low_mid[8] == pytest.approx(1 / 3)   # Total of r1, r2
