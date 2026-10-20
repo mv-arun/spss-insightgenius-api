@@ -312,6 +312,15 @@
           <div id="banner-chips" class="chips" style="margin-bottom:16px"></div>
           <p class="ic-label">Selected</p>
           <div id="selected-banners" class="selected-row"></div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <label class="ic-section-title" style="font-size:14px">Respondents</label>
+              <button type="button" onclick="addConditionRow('filter-conditions')" class="ic-btn ic-btn--secondary ic-btn--sm"><ic-icon name="filter" size="14"></ic-icon>Add condition</button>
+            </div>
+            <p class="ic-help" style="margin-bottom:10px">Everyone is tabulated unless you add conditions. With conditions (all must be true), only those respondents are, and Total is their total &mdash; e.g. Survey Finish State = completed.</p>
+            <div id="filter-conditions" class="list-stack"></div>
+          </div>
         </div>
         <div class="ic-card-footer step-footer">
           <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
@@ -801,6 +810,7 @@ async function loadMetadata() {
     infoText.textContent = `${metadata.file_name} — ${metadata.n_cases.toLocaleString()} cases × ${metadata.n_variables} variables`;
     // Reset ALL state from previous file
     selectedBanners = []; mrsGroups = {}; gridGroups = {}; customGroups = []; resetTables();
+    document.getElementById('filter-conditions').replaceChildren();
     for (const k of Object.keys(detectedNotes)) delete detectedNotes[k];
     resultBlob = null; resultFilename = '';
     smartSpec = null;
@@ -955,12 +965,8 @@ function populateUI() {
   }
   if (itemGroups.length > 0) { renderGridGroups(); _showAutoDetectBadge('items', `${itemGroups.length} ranking or answer grid${itemGroups.length > 1 ? 's' : ''}`); }
 
-  // ── Auto-select first suggested banner (or first available) ──
-  const firstSuggested = suggested.length > 0 ? suggested[0] : (rest.length > 0 ? rest[0] : null);
-  if (firstSuggested) {
-    const chip = chipsEl.querySelector(`.chip[data-varname="${firstSuggested.name}"]`);
-    if (chip) toggleBanner(firstSuggested.name, chip);
-  }
+  // Banners are the analyst's choice: suggestions are shown as "Recommended", none is picked
+  // (an unwanted banner adds sheets and takes its question out of the Tables list)
   updateSummary();
 }
 
@@ -1227,78 +1233,59 @@ function cancelCustomGroup() {
   document.getElementById('cg-add-btn').classList.remove('hidden');
 }
 
-function addConditionRow() {
-  const container = document.getElementById('cg-conditions');
-  const row = document.createElement('div');
-  row.className = 'cg-row';
-
-  // Variable select
-  let varOpts = '<option value="">-- Variable --</option>';
-  for (const v of metadata.variables) {
-    const label = v.label ? `${v.name} - ${v.label}` : v.name;
-    varOpts += `<option value="${v.name}">${label}</option>`;
-  }
-
-  row.innerHTML = `
-    <select class="cg-var ic-select ic-select--sm" onchange="onCgVarChange(this)">${varOpts}</select>
-    <select class="cg-op ic-select ic-select--sm">
-      <option value="eq">=</option>
-      <option value="ne">!=</option>
-      <option value="gt">&gt;</option>
-      <option value="gte">&gt;=</option>
-      <option value="lt">&lt;</option>
-      <option value="lte">&lt;=</option>
-      <option value="in">in</option>
-    </select>
-    <select class="cg-val ic-select ic-select--sm">
-      <option value="">-- Select variable first --</option>
-    </select>
-    <button type="button" onclick="this.parentElement.remove()" class="ic-icon-btn" aria-label="Remove condition"><ic-icon name="x" size="16"></ic-icon></button>
-  `;
-  container.appendChild(row);
+// A condition row (variable, operator, value) in a custom group or the respondent filter
+function addConditionRow(containerId = 'cg-conditions') {
+  const varSel = IC.el('select', { class: 'cg-var ic-select ic-select--sm', 'aria-label': 'Variable',
+    onchange: (e) => onCgVarChange(e.target) },
+    IC.el('option', { value: '' }, '-- Variable --'),
+    ...metadata.variables.map(v => IC.el('option', { value: v.name }, v.label ? `${v.name} - ${v.label}` : v.name)));
+  const ops = [['eq', '='], ['ne', '!='], ['gt', '>'], ['gte', '>='], ['lt', '<'], ['lte', '<='], ['in', 'in']];
+  const row = IC.el('div', { class: 'cg-row' }, varSel,
+    IC.el('select', { class: 'cg-op ic-select ic-select--sm', 'aria-label': 'Operator' },
+      ...ops.map(([value, label]) => IC.el('option', { value }, label))),
+    IC.el('select', { class: 'cg-val ic-select ic-select--sm', 'aria-label': 'Value' },
+      IC.el('option', { value: '' }, '-- Select variable first --')),
+    IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': 'Remove condition',
+      onclick: () => { row.remove(); updateSummary(); } }, IC.icon('x', 16)));
+  document.getElementById(containerId).appendChild(row);
+  return row;
 }
 
 function onCgVarChange(selectEl) {
-  const varName = selectEl.value;
   const row = selectEl.parentElement;
-  const valSelect = row.querySelector('.cg-val');
-  valSelect.innerHTML = '';
+  const old = row.querySelector('.cg-val');
+  const v = metadata.variables.find(x => x.name === selectEl.value);
+  const labels = v && v.value_labels ? Object.entries(v.value_labels) : [];
+  const val = !selectEl.value
+    ? IC.el('select', { class: 'cg-val ic-select ic-select--sm', 'aria-label': 'Value' }, IC.el('option', { value: '' }, '--'))
+    : labels.length
+      ? IC.el('select', { class: 'cg-val ic-select ic-select--sm', 'aria-label': 'Value' },
+          ...labels.map(([code, label]) => IC.el('option', { value: code },
+            `${label} (${Number.isInteger(Number(code)) ? Number(code) : code})`)))  // 1.0 → 1
+      : IC.el('input', { type: 'number', step: 'any', class: 'cg-val ic-input ic-input--sm', placeholder: 'Value', 'aria-label': 'Value' });
+  old.replaceWith(val);
+  updateSummary();
+}
 
-  if (!varName) { valSelect.innerHTML = '<option value="">--</option>'; return; }
-
-  const v = metadata.variables.find(x => x.name === varName);
-  if (v && v.value_labels) {
-    for (const [code, label] of Object.entries(v.value_labels)) {
-      const opt = document.createElement('option');
-      opt.value = code;
-      opt.textContent = `${label} (${Number.isInteger(Number(code)) ? Number(code) : code})`;  // 1.0 → 1
-      valSelect.appendChild(opt);
-    }
-  } else {
-    // Numeric input fallback
-    valSelect.outerHTML = `<input type="number" step="any" class="cg-val ic-input ic-input--sm" placeholder="Value">`;
+// Conditions of one container (AND-ed), numbers as numbers
+function readConditions(containerId) {
+  const out = [];
+  for (const row of document.querySelectorAll(`#${containerId} > .cg-row`)) {
+    const variable = row.querySelector('.cg-var').value;
+    if (!variable) continue;
+    let value = row.querySelector('.cg-val')?.value;
+    const num = parseFloat(value);
+    if (!isNaN(num)) value = num;
+    out.push({ variable, operator: row.querySelector('.cg-op').value, value });
   }
+  return out;
 }
 
 function saveCustomGroup() {
   const name = document.getElementById('cg-name').value.trim();
   if (!name) { alert('Enter a group name'); return; }
 
-  const rows = document.querySelectorAll('#cg-conditions > div');
-  const conditions = [];
-  for (const row of rows) {
-    const varSel = row.querySelector('.cg-var');
-    const opSel = row.querySelector('.cg-op');
-    const valEl = row.querySelector('.cg-val');
-    if (!varSel?.value) continue;
-
-    let value = valEl?.value;
-    // Try to parse as number
-    const num = parseFloat(value);
-    if (!isNaN(num)) value = num;
-
-    conditions.push({ variable: varSel.value, operator: opSel.value, value });
-  }
+  const conditions = readConditions('cg-conditions');
 
   if (conditions.length === 0) { alert('Add at least one condition'); return; }
 
@@ -1343,6 +1330,8 @@ function updateSummary() {
   const nCg = customGroups.length;
   const parts = [];
   if (selectedBanners.length > 0) parts.push(`Banners: ${selectedBanners.join(' + ')}`);
+  const nFilter = readConditions('filter-conditions').length;
+  if (nFilter) parts.push(`Filter: ${nFilter} condition${nFilter > 1 ? 's' : ''}`);
   parts.push(`Tables: ${included.length}`);
   renderTables();  // a question chosen as a banner leaves the Tables list
   if (nCg > 0) parts.push(`Custom: ${nCg}`);
@@ -1416,6 +1405,8 @@ async function generate() {
   };
 
   if (selectedBanners.length > 0) spec.banners = selectedBanners;
+  const filters = readConditions('filter-conditions');
+  if (filters.length) spec.filters = filters;
   if (customGroups.length > 0) spec.custom_groups = customGroups;
   if (Object.keys(includedGrids).length > 0) spec.grid_groups = includedGrids;
 
