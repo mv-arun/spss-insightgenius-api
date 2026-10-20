@@ -4,7 +4,7 @@
 
 ## Vision
 
-The **Stripe of market research** — a deterministic statistical engine that developers integrate to build their own Displayr-like products. The product IS the API. Frontends are convenience wrappers and starter templates.
+The **Stripe of market research** — a deterministic statistical engine that developers integrate to build their own tabulation products. The product IS the API. Frontends are convenience wrappers and starter templates.
 
 ---
 
@@ -158,4 +158,4 @@ Score: 6.5/10 → 7.5/10 after fixes:
 
 ## Competitive Position
 
-> "Displayr charges $175/mo per seat. WinCross charges $3-5K/year. SPSS $99/mo per seat. All are closed monoliths. We are the **Stripe of market research** — an API that anyone can integrate. A developer with Lovable builds their own Displayr in a weekend using our engine."
+> "Desktop tabulation tools charge per seat. WinCross charges $3-5K/year. SPSS $99/mo per seat. All are closed monoliths. We are the **Stripe of market research** — an API that anyone can integrate. A developer with Lovable builds their own tabulation product in a weekend using our engine."

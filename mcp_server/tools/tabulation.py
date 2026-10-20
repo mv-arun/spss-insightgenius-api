@@ -112,7 +112,7 @@ async def create_tabulation(
         title:                Report title in the Summary sheet.
         include_means:        Add means row with T-test significance.
         include_total_column: Include Total as first column.
-        output_mode:          'multi_sheet' or 'single_sheet'.
+        output_mode:          'multi_sheet', 'single_sheet', or 'banner_sheets'.
         nets:                 Net definitions per stub.
         mrs_groups:           MRS group definitions.
         grid_groups:          Grid/battery summary definitions.
@@ -232,7 +232,7 @@ async def auto_analyze(
     Args:
         api_key:            Your API key (sk_test_... or sk_live_...). REQUIRED.
         max_banners:        Maximum number of banner variables to use (default 3).
-        output_mode:        Output mode — "multi_sheet" or "single_sheet".
+        output_mode:        Output mode — "multi_sheet", "single_sheet", or "banner_sheets".
         significance_level: Confidence threshold (0.90, 0.95, 0.99). By default 90% is added as
                             a second level (lowercase letters).
         significance_levels: Explicit levels, e.g. [0.95] for a single level.

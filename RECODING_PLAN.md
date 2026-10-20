@@ -4,7 +4,7 @@
 
 ## 1. Goal
 
-1. Give analysts a **proper recode tool** in *Review data*, matching what they know from Displayr,
+1. Give analysts a **proper recode tool** in *Review data*, matching what they know from
    Forsta Reportal and Datasmoothie: change a question's coding, or build a new variable from it,
    without writing rules by hand.
 2. Make the **hard-coded HubSpot / CX rules configurable in the UI**: job-role group, NPS groups,
@@ -15,7 +15,7 @@
 
 | Tool | How recoding works | What we take from it |
 |---|---|---|
-| **Displayr** — *Recode into existing or new variables* | **Into existing:** change Structure (e.g. Nominal → Numeric) and the **Values** in *Values & Labels* to get a mean (reverse a scale, mid-points); **merge categories** by dragging one onto another (undo = *Split*); **add Top/Bottom K NET** categories to tables without changing values; turn a grid into **Binary** with a *Count this value* column (Top 2 Box). **Into new:** one-click scripts — *Top/Bottom K Box*, *Recode NPS*, *numeric from mid-points*, *capping*; anything else via R / JavaScript | Two clear modes (**edit this question** vs **create a new variable**); one-click **quick recodes**; **nets** as table categories; editable **values** (scores) separate from labels |
+| **Typical tabulation UI** — *Recode into existing or new variables* | **Into existing:** change Structure (e.g. Nominal → Numeric) and the **Values** in *Values & Labels* to get a mean (reverse a scale, mid-points); **merge categories** by dragging one onto another (undo = *Split*); **add Top/Bottom K NET** categories to tables without changing values; turn a grid into **Binary** with a *Count this value* column (Top 2 Box). **Into new:** one-click scripts — *Top/Bottom K Box*, *Recode NPS*, *numeric from mid-points*, *capping*; anything else via R / JavaScript | Two clear modes (**edit this question** vs **create a new variable**); one-click **quick recodes**; **nets** as table categories; editable **values** (scores) separate from labels |
 | **Forsta Reportal** — *Recoding a Variable* | Right-click a question → *Recode Variable* → page with **Categories** (name, ID) on the right and **Answers** on the left; select answers, click **»** to assign; *Add / Remove* categories; *Clear selected*; question gets a **(1R)** badge; a question can be recoded several times (rec0, rec1…). **Numeric:** *From / To* ranges, **“N equal categories”** + *Go*, change operators, no gaps allowed, **Mask** a category | The **category builder** (answers → new categories) is the core UI; **badge** showing a question has recodes; several recodes per question; numeric **ranges with equal-split**, **mask** |
 | **Datasmoothie** (video, Quantipy-based like our engine) | Datasources → dataset → variable list (Name / Type / Label / Values) → click a variable → panel with a **Missing** tab: every answer with a checkbox; tick *Don't know* → it disappears from charts | A visible **“Exclude from base”** checkbox column per answer — clearer than our hover-icon |
 
@@ -31,10 +31,10 @@ for priority & combination), codebook sent with every analysis.
 
 | Gap | Why it matters |
 |---|---|
-| No **Recode** entry point on a question — editing is scattered (hover icons, “Treat as”, a separate builder) | Analysts expect *Recode Variable* on the question, as in Forsta / Displayr |
+| No **Recode** entry point on a question — editing is scattered (hover icons, “Treat as”, a separate builder) | Analysts expect *Recode Variable* on the question, as in Forsta |
 | No **category builder** (answers → named categories, drag or »), only a text-field “group name” form | The single most used recode; must be fast and visual |
 | **Existing derived variables can't be edited** in the UI (only removed) | NPS bands, job-role priority etc. can't be changed → the core of "make rules configurable" |
-| No **values / scores** separate from codes (reverse a scale, mid-points for means) | Displayr's main “recode into existing” use |
+| No **values / scores** separate from codes (reverse a scale, mid-points for means) | The main “recode into existing” use |
 | No **nets** (Top 2 Box / “Any agree” categories in tables without a new variable) | Standard tables expect them; today only auto T2B on grids |
 | Priority / combination rules only as **JSON** | Not usable by an analyst |
 | **Missing** is a hover icon | Datasmoothie / SPSS show it as a visible checkbox column |
@@ -68,7 +68,7 @@ recodes get a **badge** (“2 recodes”, like Forsta's *(2R)*). Recode opens a 
 └──────────────────────────────────────────── [Cancel] [Apply] ────────┘
 ```
 
-- **Edit this question** (Displayr “into existing” + Datasmoothie “Missing”): one table with
+- **Edit this question** (“into existing” + Datasmoothie “Missing”): one table with
   drag-to-reorder, multi-select rows → *Merge* / *Rename*, an editable **Value** (score) column, a
   visible **Exclude from base** checkbox column, **nets**, quick actions. Changes are staged in the
   drawer and applied together (one Undo step).
@@ -233,7 +233,7 @@ R1–R3 are front-end heavy on top of the existing rule engine; R4 is mostly mov
 ## 11. Open questions
 
 1. **Recode into existing vs new by default?** Forsta always creates a new recoded variable;
-   Displayr edits in place. Proposal: *Edit this question* for cleanup, *Create new variable* for
+   some tools edit in place. Proposal: *Edit this question* for cleanup, *Create new variable* for
    analysis groupings (keeps the original question intact).
 2. **Setup scope:** per client, per survey (Pulse vs Exam Stage), or per organisation?
 3. **Auto-apply** a matching setup or always ask? (Proposal: ask, with “always apply for this

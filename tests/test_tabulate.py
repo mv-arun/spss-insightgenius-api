@@ -502,19 +502,19 @@ def test_tabulate_unlabelled_codes_print_as_whole_numbers(client, auth_headers, 
 
 
 def _block(ws, title):
-    """Rows of one table in a Displayr-style sheet, from its title to its footer."""
+    """Rows of one table in a Total/banner sheet, from its title to its footer."""
     rows = [list(r) for r in ws.iter_rows(values_only=True)]
     start = next(i for i, r in enumerate(rows) if r[0] == title)
     end = next(i for i in range(start + 1, len(rows)) if rows[i][0] in (title, f"{title} SUMMARY"))  # Total: "… SUMMARY"
     return rows[start:end + 2]
 
 
-def test_tabulate_displayr_layout(client, auth_headers, tmp_path):
+def test_tabulate_banner_sheets_layout(client, auth_headers, tmp_path):
     """Total / By <banner> / Stat sheets; fractions, NET, Column Sample Size, letters, empty columns."""
     sav = _sav(tmp_path, _three_groups_df(), _LABELS)
     _, wb = _tabulate(client, auth_headers, sav, {
         "stubs": ["barrier", "only_b"], "custom_groups": _THREE_GROUPS, "bonferroni": False,
-        "output_mode": "displayr", "custom_groups_label": "Data Cut"})
+        "output_mode": "banner_sheets", "custom_groups_label": "Data Cut"})
     assert wb.sheetnames == ["Total", "By Data Cut", "By Data Cut (Stat)"]
 
     block = _block(wb["By Data Cut"], "barrier by Data Cut")
@@ -537,14 +537,14 @@ def test_tabulate_displayr_layout(client, auth_headers, tmp_path):
     assert total["Yes"] == pytest.approx(23 / 90) and total["NET"] == 1
 
 
-def test_tabulate_displayr_merged_nets_and_grids(client, auth_headers, tmp_path):
+def test_tabulate_banner_sheets_merged_nets_and_grids(client, auth_headers, tmp_path):
     """Nets that split every answer replace the answers; a grid group is one table with its items side by side."""
     import pandas as pd
     df = _three_groups_df().assign(r1=[1.0, 2.0, 3.0] * 30, r2=[3.0, 3.0, 1.0] * 30)
     labels = {**_LABELS, "r1": {1.0: "Low", 2.0: "Mid", 3.0: "High"}, "r2": {1.0: "Low", 2.0: "Mid", 3.0: "High"}}
     sav = _sav(tmp_path, df, labels)
     _, wb = _tabulate(client, auth_headers, sav, {
-        "stubs": ["barrier"], "custom_groups": _THREE_GROUPS, "output_mode": "displayr",
+        "stubs": ["barrier"], "custom_groups": _THREE_GROUPS, "output_mode": "banner_sheets",
         "grid_groups": {"Ratings": {"variables": ["r1", "r2"], "show": []}},
         "nets": {"r1": {"Low + Mid": [1, 2], "High": [3]}, "r2": {"Low + Mid": [1, 2], "High": [3]}}})
     block = _block(wb["By Custom Groups"], "Ratings by Custom Groups")
@@ -556,12 +556,41 @@ def test_tabulate_displayr_merged_nets_and_grids(client, auth_headers, tmp_path)
     assert low_mid[4] == pytest.approx(2 / 3) and low_mid[8] == pytest.approx(1 / 3)   # Total of r1, r2
 
 
-def test_tabulate_displayr_table_order_and_titles(client, auth_headers, tmp_path):
+def test_tabulate_banner_sheets_table_order_and_titles(client, auth_headers, tmp_path):
     """Tables follow table_order (variables and group names) and take table_titles."""
     sav = _sav(tmp_path, _three_groups_df(), _LABELS)
     _, wb = _tabulate(client, auth_headers, sav, {
-        "stubs": ["barrier", "only_b"], "custom_groups": _THREE_GROUPS, "output_mode": "displayr",
+        "stubs": ["barrier", "only_b"], "custom_groups": _THREE_GROUPS, "output_mode": "banner_sheets",
         "table_order": ["only_b", "barrier"], "table_titles": {"barrier": "Q10: Barriers"}})
     titles = [r[0] for r in wb["Total"].iter_rows(values_only=True)
               if r[0] and r[1] is None and not str(r[0]).startswith(("sample size", "Total")) and "SUMMARY" not in str(r[0])]
     assert titles == ["only_b", "Q10: Barriers"]
+
+
+def test_banner_sheets_excel_names_and_wide_grid(client, auth_headers, tmp_path):
+    import pandas as pd
+    df = pd.DataFrame({"banner": [float(i) for i in range(1, 27)] * 2,
+                       "q1": [1.0, 2.0] * 26, "q2": [2.0, 1.0] * 26})
+    sav = _sav(tmp_path, df, {"q1": {1.0: "Yes", 2.0: "No"},
+                              "q2": {1.0: "Yes", 2.0: "No"}})
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "banners": ["banner"], "stubs": [], "output_mode": "banner_sheets",
+        "grid_groups": {"Grid": {"variables": ["q1", "q2"], "show": []}}})
+    assert any("AA" in row for row in wb["By banner (Stat)"].iter_rows(values_only=True))
+    from services.banner_workbook import _sheet
+    first = _sheet(wb, "By age/gender: " + "x" * 40)
+    second = _sheet(wb, "By age/gender: " + "x" * 40)
+    assert first.title != second.title
+    assert all(len(s) <= 31 and not any(c in s for c in "\\/*?:[]") for s in wb.sheetnames)
+
+
+def test_banner_sheets_weighted_multi_net(client, auth_headers, tmp_path):
+    import pandas as pd
+    df = pd.DataFrame({"a": [1.0, 0.0, 0.0], "b": [0.0, 1.0, 0.0],
+                       "weight": [1.25, 2.5, 0.5]})
+    sav = _sav(tmp_path, df, {})
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "stubs": [], "mrs_groups": {"Choices": ["a", "b"]},
+        "weight": "weight", "output_mode": "banner_sheets"})
+    rows = {r[0]: r[1] for r in _block(wb["Total"], "Choices")[2:] if r[0]}
+    assert rows["NET"] == pytest.approx(3.75 / 4.25)

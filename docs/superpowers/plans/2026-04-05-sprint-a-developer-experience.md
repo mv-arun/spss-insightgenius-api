@@ -88,7 +88,7 @@ indico-crosstab-nextjs-template/
 ├── .env.example                  # INDICO_CROSSTAB_API_KEY=sk_test_...
 ├── app/
 │   ├── layout.tsx
-│   ├── page.tsx                  # Landing: "Your Displayr, your rules"
+│   ├── page.tsx                  # Landing: "Your tables, your rules"
 │   ├── upload/
 │   │   └── page.tsx              # File upload → metadata display
 │   ├── analyze/
@@ -1288,7 +1288,7 @@ try {
 2. Create a key
 3. Use it: `new IndicoCrosstab("sk_live_...")`
 
-## Build Your Own Displayr
+## Build Your Own Tabulation Product
 
 See the [Next.js template](https://github.com/quack2025/insightgenius-nextjs-template) for a complete example of building a survey analysis platform using this SDK.
 

@@ -218,7 +218,7 @@ Esta es la versión autenticada del procesador SPSS. Reemplaza el frontend embeb
 - **Tipografía:** Inter
 - **Componentes:** shadcn/ui (Button, Card, Dialog, DropdownMenu, Input, Select, Table, Tabs, Badge, Avatar, Sidebar)
 - **Iconos:** Lucide (consistente con shadcn/ui)
-- **Estilo:** Limpio, profesional, data-focused. NO startup/tech-bro. Similar a Displayr.com o Linear.app pero para investigadores de mercado.
+- **Estilo:** Limpio, profesional, data-focused. NO startup/tech-bro. Similar a Linear.app pero para investigadores de mercado.
 - **Sin ilustraciones abstractas de IA.** En su lugar: screenshots reales del producto, mockups de Excel output, diagramas de flujo.
 
 ---

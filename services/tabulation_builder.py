@@ -117,7 +117,7 @@ class TabulateSpec:
     # Two-level testing (Decipher style): e.g. [0.95, 0.90] → CAPITAL letters at 95%,
     # lowercase at 90%. When set, significance_level becomes the highest level.
     significance_levels: list[float] | None = None
-    # Bonferroni-correct pairwise column tests. Displayr/Q don't, so their letters need False.
+    # Bonferroni-correct pairwise column tests. Turn off to match uncorrected column letters.
     bonferroni: bool = True
     # Low-sample markers on bases: "*" below low_base_warn, "**" below low_base_flag (0 = off)
     low_base_warn: int = 100
@@ -129,10 +129,10 @@ class TabulateSpec:
     grid_mode: str = "individual"  # "individual" (each var as crosstab) or "summary" (compact T2B/Mean table)
     include_means: bool = False
     include_total_column: bool = True  # Total as first column (T2-5)
-    output_mode: str = "multi_sheet"  # "multi_sheet", "single_sheet" or "displayr" (services.displayr_workbook)
+    output_mode: str = "multi_sheet"  # "multi_sheet", "single_sheet" or "banner_sheets"
     custom_groups_label: str = "Custom Groups"  # banner name of the custom groups ("By Data Cut")
-    sort_rows: bool = False  # displayr: answers by Total, highest first ("Other" / "None" stay last)
-    # displayr: tables in this order (stub variables and group names; others follow) and their titles
+    sort_rows: bool = False  # banner_sheets: answers by Total, highest first ("Other" / "None" stay last)
+    # banner_sheets: tables in this order (stub variables and group names; others follow) and their titles
     table_order: list[str] | None = None
     table_titles: dict[str, str] | None = None
     show_counts: bool = True
@@ -304,7 +304,7 @@ def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulat
         for cv in col_values:
             banner_columns.append(BannerColumn(
                 banner_var=banner_var,
-                banner_label=col_labels.get(banner_var, banner_var),
+                banner_label=col_labels.get(banner_var) or banner_var,
                 value=str(cv),
                 value_label=vl.get(cv, value_text(cv)),
                 letter="" if is_total else all_letters[letter_idx],
@@ -741,7 +741,7 @@ def _mrs_crosstab(
         "col_variable": col,
         "total_responses": len(valid),
         "is_mrs": True,
-        "col_bases": {str(cv): int(col_bases[cv]) for cv in col_values},
+        "col_bases": {str(cv): col_bases[cv] for cv in col_values},
         "table": table,
         "col_labels": col_letter_map,
         "col_value_labels": {str(v): col_vl.get(v, value_text(v)) for v in col_values},
@@ -1030,9 +1030,9 @@ def _compute_means_by_column(
 # ── Excel builder ──
 
 def _build_excel(result: TabulationResult, spec: TabulateSpec, data: Any) -> bytes:
-    if spec.output_mode == "displayr":
-        from services.displayr_workbook import build_displayr_workbook
-        return build_displayr_workbook(result, spec, data)
+    if spec.output_mode == "banner_sheets":
+        from services.banner_workbook import build_banner_workbook
+        return build_banner_workbook(result, spec, data)
 
     wb = Workbook()
 

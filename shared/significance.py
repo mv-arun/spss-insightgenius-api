@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 # Whether pairwise tests correct for multiple comparisons when the caller doesn't say.
-# A tabulation run sets it from its spec (Displayr's column comparisons don't correct).
+# A tabulation run sets it from its spec (uncorrected column comparisons need False).
 _BONFERRONI = contextvars.ContextVar("bonferroni", default=True)
 
 

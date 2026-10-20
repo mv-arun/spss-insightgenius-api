@@ -1,4 +1,4 @@
-"""Tables workbook laid out like a Displayr / Q export (TabulateSpec.output_mode = "displayr").
+"""Tables workbook with Total / By banner / Stat sheets (TabulateSpec.output_mode = "banner_sheets").
 
 Sheets:
   Total              every table, Total column only
@@ -9,7 +9,7 @@ Each table: title, header ("Column %" + columns; a grid gets one column group pe
 answer rows, nets, NET (anyone answering), Column Sample Size, then the title again and
 "sample size = …". Values are fractions formatted as percentages, so the cells stay numeric.
 
-Displayr conventions followed:
+Conventions:
   - nets that split all of a question's answers (1 + 2 / 3 + 4 + 5 / 6 + 7) are a merge:
     they replace the answers instead of being added under them
   - rows nobody gave (Total 0 across the table) are left out
@@ -18,13 +18,14 @@ Displayr conventions followed:
 """
 
 import io
-import string
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
 
 from services.data_loader import is_non_substantive
 from shared.significance import significant_at, z_test_proportions
@@ -100,7 +101,7 @@ def _nets(spec, sheet) -> dict[str, list]:
 
 
 def _is_merge(nets: dict[str, list], answer_codes: set) -> bool:
-    """Nets that don't overlap and cover every answer given replace the answers (Displayr's merge)."""
+    """Nets that don't overlap and cover every answer given replace the answers."""
     if not nets or not answer_codes:
         return False
     seen = [float(c) for codes in nets.values() for c in codes]
@@ -132,7 +133,7 @@ def _layout_rows(table: Table, spec, calc) -> None:
         for r in candidates:
             if all(r.key != x.key for x in rows):
                 rows.append(r)
-    # A row nobody gave (Total) in any item is left out, as Displayr does
+    # A row nobody gave (Total) in any item is left out
     rows = [r for r in rows if any(calc.count(item, calc.total, r) > 0 for item in table.items)]
     if spec.sort_rows:
         answers = [r for r in rows if r.kind == "answer"]
@@ -198,7 +199,10 @@ class Calc:
         in_col = col == _value(bc.value)
         answered = self.df[members].notna().any(axis=1)
         ticked = (self.df[members].fillna(0) > 0).any(axis=1)
-        return float((in_col & answered & ticked).sum())
+        selected = in_col & answered & ticked
+        if self.spec.weight and self.spec.weight in self.df.columns:
+            return float(self.df.loc[selected, self.spec.weight].sum())
+        return float(selected.sum())
 
     def value(self, item, bc, row: Row) -> float | None:
         base = self.base(item, bc) if bc else 0
@@ -210,7 +214,7 @@ class Calc:
             return "-"
         if sum(1 for c in cols if self.base(item, c)) < 2:
             return "-"
-        sheet_letter = {c.value: string.ascii_uppercase[i] for i, c in enumerate(cols)}
+        sheet_letter = {c.value: get_column_letter(i + 1) for i, c in enumerate(cols)}
         if row.kind == "answer":
             cell = self._cell(item, bc, row.key) or {}
             ct = self._ct(item, bc)
@@ -232,9 +236,9 @@ class Calc:
             p2, n2 = self.value(item, other, row) or 0, self.base(item, other)
             p, sig = z_test_proportions(p1, n1, p2, n2, alpha, len(cols))
             if sig:
-                hi.append(string.ascii_uppercase[i])
+                hi.append(get_column_letter(i + 1))
             elif significant_at(p, alpha2, len(cols), p1 > p2):
-                lo.append(string.ascii_uppercase[i])
+                lo.append(get_column_letter(i + 1))
         return hi, lo
 
 
@@ -301,7 +305,7 @@ def _write_table(ws, r, table: Table, calc, cols, stat: bool, banner: str | None
                 v = calc.value(item, bc, row)
                 _put(ws, r, 2 + k * width + j, v, fmt="0%")
                 if names:
-                    _put(ws, r + 1, 2 + k * width + j, string.ascii_uppercase[j], align=CENTER)
+                    _put(ws, r + 1, 2 + k * width + j, get_column_letter(j + 1), align=CENTER)
                 if stat:
                     _put(ws, r + 1 + names, 2 + k * width + j, calc.letters(item, tested, bc, row) if v is not None else "-")
         if stat:
@@ -317,7 +321,7 @@ def _write_table(ws, r, table: Table, calc, cols, stat: bool, banner: str | None
         if stat:
             _put(ws, r, 1, "Column Names", font=LABEL, align=LEFT)
             for j in range(width):
-                _put(ws, r, 2 + j, string.ascii_uppercase[j], align=CENTER)
+                _put(ws, r, 2 + j, get_column_letter(j + 1), align=CENTER)
             r += 1
     _put(ws, r, 1, title if banner else f"{table.title} SUMMARY", font=TITLE, align=None, fill=None)
     footer = _sample_line(calc, table, n_cases)
@@ -343,7 +347,13 @@ def _stat_note(spec) -> str:
 
 
 def _sheet(wb, title: str):
-    ws = wb.create_sheet(title=title[:31])
+    safe = re.sub(r"[\\/*?:\[\]]", "_", title).strip("'") or "Tables"
+    name, suffix = safe[:31], 1
+    while name.casefold() in {s.casefold() for s in wb.sheetnames}:
+        suffix += 1
+        ending = f" ({suffix})"
+        name = safe[:31 - len(ending)] + ending
+    ws = wb.create_sheet(title=name)
     _put(ws, 1, 1, title, font=SHEET_TITLE, align=None, fill=None)
     ws.column_dimensions["A"].width = 60
     return ws
@@ -355,7 +365,7 @@ def _widths(ws, n_cols: int):
         ws.column_dimensions[get_column_letter(c)].width = 13
 
 
-def build_displayr_workbook(result, spec, data) -> bytes:
+def build_banner_workbook(result, spec, data) -> bytes:
     calc = Calc(result, spec, data)
     tables = _tables(result, spec)
     for table in tables:

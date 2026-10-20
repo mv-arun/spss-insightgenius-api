@@ -128,7 +128,7 @@ Connect to `https://crosstab.indicolabs.io/mcp/sse` and use any of the 12 tools.
 | `weight` | string | `null` | Weight variable name |
 | `include_means` | bool | `false` | Add Mean row with T-test sig letters |
 | `include_total_column` | bool | `true` | Total as first column |
-| `output_mode` | string | `"multi_sheet"` | `"multi_sheet"` or `"single_sheet"` |
+| `output_mode` | string | `"multi_sheet"` | `"multi_sheet"`, `"single_sheet"`, or `"banner_sheets"` (Total / By banner / Stat) |
 | `nets` | object | `null` | Per-variable net definitions |
 | `mrs_groups` | object | `null` | MRS groups: `{"name": ["var1", "var2"]}` |
 | `grid_groups` | object | `null` | Grid groups: `{"name": {"variables": [...], "show": ["t2b","mean"]}}` |

@@ -101,7 +101,7 @@ What would a market researcher expect that isn't here?
 Compare the UX to:
 - PSPP (free, desktop)
 - SPSS Statistics (paid, desktop)
-- Displayr (web, paid)
+- Web tabulation platforms (paid)
 - Q Research Software (web, paid)
 
 What does Indico Crosstab do better? What does it do worse?

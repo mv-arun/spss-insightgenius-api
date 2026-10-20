@@ -418,7 +418,7 @@
                 <option value="0.90">90%</option>
                 <option value="0.95" selected>95%</option>
                 <option value="0.99">99%</option>
-                <option value="0.999,0.95">99.9% CAPITALS + 95% lowercase (Displayr)</option>
+                <option value="0.999,0.95">99.9% CAPITALS + 95% lowercase</option>
                 <option value="0.95,0.90">95% CAPITALS + 90% lowercase</option>
               </select>
             </div>
@@ -462,7 +462,7 @@
                 <span class="ic-option-icon"><ic-icon name="check" size="16"></ic-icon></span>
                 <div class="option-text">
                   <div class="ic-option-title">Correct for multiple comparisons</div>
-                  <div class="ic-option-desc">Bonferroni: stricter letters when there are many columns. Turn off to match Displayr and Q, which don't correct.</div>
+                  <div class="ic-option-desc">Bonferroni: stricter letters when there are many columns. Turn off for uncorrected column comparisons.</div>
                 </div>
                 <input type="checkbox" id="opt-bonferroni" checked class="ic-checkbox">
               </label>
@@ -491,16 +491,16 @@
               <label class="ic-option">
                 <span class="ic-option-icon"><ic-icon name="table" size="16"></ic-icon></span>
                 <div class="option-text">
-                  <div class="ic-option-title">Displayr-style tables</div>
+                  <div class="ic-option-title">Total and banner sheets</div>
                   <div class="ic-option-desc">A Total sheet, then one sheet per banner and its (Stat) sheet with significance letters. Group names are the table titles.</div>
                 </div>
-                <input type="radio" name="output-mode" value="displayr" class="ic-checkbox">
+                <input type="radio" name="output-mode" value="banner_sheets" class="ic-checkbox">
               </label>
               <label class="ic-option" for="opt-sort">
                 <span class="ic-option-icon"><ic-icon name="sliders" size="16"></ic-icon></span>
                 <div class="option-text">
                   <div class="ic-option-title">Sort answers by Total</div>
-                  <div class="ic-option-desc">Displayr-style tables: highest first; "Other" and "None" stay at the bottom.</div>
+                  <div class="ic-option-desc">Highest first; "Other" and "None" stay at the bottom.</div>
                 </div>
                 <input type="checkbox" id="opt-sort" class="ic-checkbox">
               </label>
@@ -1061,7 +1061,7 @@ function updateMrsCount() {
 
 function renderMrsGroups() { renderTables(); }
 
-// A group's name is its table title (Displayr-style tables), so it can be renamed in place
+// A group's name is its table title (Total and banner sheets), so it can be renamed in place
 function renameGroup(groups, oldName, newName) {
   newName = newName.trim();
   if (!newName || newName === oldName) return false;
