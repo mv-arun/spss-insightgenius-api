@@ -61,6 +61,7 @@ class Item:
 
 @dataclass
 class Table:
+    key: str                 # stub variable or group name (TabulateSpec.table_order / table_titles)
     title: str
     items: list[Item]
     rows: list[Row] = field(default_factory=list)
@@ -75,16 +76,22 @@ def _tables(result, spec) -> list[Table]:
             continue
         if sheet.group:
             if sheet.group not in grids:
-                grids[sheet.group] = Table(title=sheet.group, items=[])
+                grids[sheet.group] = Table(key=sheet.group, title=sheet.group, items=[])
                 tables.append(grids[sheet.group])
             grids[sheet.group].items.append(Item(label=sheet.label or sheet.variable, sheet=sheet))
         else:
-            tables.append(Table(title=sheet.label or sheet.variable, items=[Item(label="", sheet=sheet)]))
+            tables.append(Table(key=sheet.variable, title=sheet.label or sheet.variable, items=[Item(label="", sheet=sheet)]))
     for table in grids.values():  # items whose labels were cut to the same text: say which variable
         labels = [i.label for i in table.items]
         for item in table.items:
             if labels.count(item.label) > 1:
                 item.label = f"{item.label} ({item.sheet.variable})"
+    titles = spec.table_titles or {}
+    for table in tables:
+        table.title = titles.get(table.key) or table.title
+    if spec.table_order:
+        rank = {key: i for i, key in enumerate(spec.table_order)}
+        tables.sort(key=lambda t: rank.get(t.key, len(rank)))  # stable: unlisted tables keep their order
     return tables
 
 

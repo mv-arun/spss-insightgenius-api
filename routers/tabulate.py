@@ -198,6 +198,8 @@ async def tabulate(
             output_mode=spec_dict.get("output_mode", "multi_sheet"),
             custom_groups_label=spec_dict.get("custom_groups_label") or "Custom Groups",
             sort_rows=bool(spec_dict.get("sort_rows", False)),
+            table_order=spec_dict.get("table_order"),
+            table_titles=spec_dict.get("table_titles"),
             show_counts=spec_dict.get("show_counts", True),
             show_percentages=spec_dict.get("show_percentages", True),
             show_chi2=spec_dict.get("show_chi2", True),

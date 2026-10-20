@@ -554,3 +554,14 @@ def test_tabulate_displayr_merged_nets_and_grids(client, auth_headers, tmp_path)
     assert len(header_items) == 2                                       # r1 and r2 as column groups
     low_mid = next(r for r in block if r[0] == "Low + Mid")
     assert low_mid[4] == pytest.approx(2 / 3) and low_mid[8] == pytest.approx(1 / 3)   # Total of r1, r2
+
+
+def test_tabulate_displayr_table_order_and_titles(client, auth_headers, tmp_path):
+    """Tables follow table_order (variables and group names) and take table_titles."""
+    sav = _sav(tmp_path, _three_groups_df(), _LABELS)
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "stubs": ["barrier", "only_b"], "custom_groups": _THREE_GROUPS, "output_mode": "displayr",
+        "table_order": ["only_b", "barrier"], "table_titles": {"barrier": "Q10: Barriers"}})
+    titles = [r[0] for r in wb["Total"].iter_rows(values_only=True)
+              if r[0] and r[1] is None and not str(r[0]).startswith(("sample size", "Total")) and "SUMMARY" not in str(r[0])]
+    assert titles == ["only_b", "Q10: Barriers"]

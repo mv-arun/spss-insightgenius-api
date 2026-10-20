@@ -132,6 +132,9 @@ class TabulateSpec:
     output_mode: str = "multi_sheet"  # "multi_sheet", "single_sheet" or "displayr" (services.displayr_workbook)
     custom_groups_label: str = "Custom Groups"  # banner name of the custom groups ("By Data Cut")
     sort_rows: bool = False  # displayr: answers by Total, highest first ("Other" / "None" stay last)
+    # displayr: tables in this order (stub variables and group names; others follow) and their titles
+    table_order: list[str] | None = None
+    table_titles: dict[str, str] | None = None
     show_counts: bool = True
     show_percentages: bool = True
     show_chi2: bool = True  # Chi-square p-value in Excel headers (Story #9)
@@ -439,7 +442,7 @@ def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulat
             })
 
     # ── Resolve stubs ──
-    if spec.stubs == ["_all_"] or not spec.stubs:
+    if spec.stubs == ["_all_"]:  # an empty list means no single-question tables (only groups)
         value_labels = getattr(meta, "variable_value_labels", {})
         banner_set = set(banners)
         # Collect variables that belong to MRS or Grid groups — they're exported as group sheets
