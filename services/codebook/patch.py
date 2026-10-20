@@ -13,6 +13,7 @@ multi-select's / ignored column's header):
   {"op": "reorder_codes",  "var": v, "order": [codes or labels]}        # renumbers 1..n
   {"op": "set_codes",      "var": v, "map": [[old, new], …]}             # new values (reverse, mid-points)
   {"op": "set_nets",       "var": v, "nets": [{"label": "Top 2 Box", "codes": [4, 5]}, …]}  # table rows
+                           (nets also work on a derived variable with categories: "var": its name)
   {"op": "add_net",        "var": v, "label": "Top 2 Box", "codes": [4, 5]}
   {"op": "remove_net",     "var": v, "label": "Top 2 Box"}
   {"op": "set_data_workbook", "settings": {title, drop_columns, groups, score_flags, tabs} | null}
@@ -28,7 +29,7 @@ import pandas as pd
 from services.codebook.apply import apply_codebook, clean_text
 from services.codebook.heuristics import MAX_CATEGORIES, _merge_case_variants, _natural_key, _spss_name
 from services.codebook.model import Code, Codebook, DataWorkbook, Derived, Inferred, Net, Option, Variable
-from services.codebook.rules import Context, RuleError, multi_output_labels
+from services.codebook.rules import Context, RuleError, coalesce_refs, multi_output_labels
 
 
 class EditError(ValueError):
@@ -269,13 +270,25 @@ def _set_codes(cb, op, df):
     var.missing.sort(key=lambda c: c.code)
 
 
-def _net(var: Variable, spec: dict) -> Net:
+def _net_target(cb: Codebook, ref: str) -> "Variable | Derived":
+    """The variable or derived variable a net belongs to; it must have categories."""
+    d = cb.find_derived(ref)
+    if d is not None:
+        if not d.codes:
+            raise EditError(f"'{d.name}' has no categories to net")
+        return d
+    var = _var(cb, ref)
+    _needs_codes(var)
+    return var
+
+
+def _net(var: "Variable | Derived", spec: dict) -> Net:
     label = str(spec.get("label") or "").strip()
     if not label:
         raise EditError("a net needs a label")
     codes = []
     for value in spec.get("codes") or []:
-        code = _code(var, value)
+        code = _code(var, value) if isinstance(var, Variable) else _derived_code(var, value)
         if not _holds(var.codes, code):
             raise EditError(f"'{code.label}' is excluded from the base, so it can't be in a net")
         codes.append(code.code)
@@ -284,7 +297,17 @@ def _net(var: Variable, spec: dict) -> Net:
     return Net(label=label, codes=list(dict.fromkeys(codes)))
 
 
-def _check_net_labels(var: Variable) -> None:
+def _derived_code(d: Derived, value: Any) -> Code:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        match = next((c for c in d.codes if c.code == float(value)), None)
+    else:
+        match = next((c for c in d.codes if str(value).casefold() == c.label.casefold()), None)
+    if match is None:
+        raise EditError(f"'{value}' is not a category of '{d.name}'")
+    return match
+
+
+def _check_net_labels(var: "Variable | Derived") -> None:
     labels = [n.label.casefold() for n in var.nets]
     dupes = sorted({n.label for n in var.nets if labels.count(n.label.casefold()) > 1})
     if dupes:
@@ -292,15 +315,13 @@ def _check_net_labels(var: Variable) -> None:
 
 
 def _set_nets(cb, op, df):
-    var = _var(cb, op["var"])
-    _needs_codes(var)
+    var = _net_target(cb, op["var"])
     var.nets = [_net(var, n) for n in op["nets"]]
     _check_net_labels(var)
 
 
 def _add_net(cb, op, df):
-    var = _var(cb, op["var"])
-    _needs_codes(var)
+    var = _net_target(cb, op["var"])
     var.nets.append(_net(var, op))
     _check_net_labels(var)
 
@@ -321,7 +342,7 @@ def _set_data_workbook(cb, op, df):
 
 
 def _remove_net(cb, op, df):
-    var = _var(cb, op["var"])
+    var = cb.find_derived(op["var"]) or _var(cb, op["var"])
     label = str(op["label"]).casefold()
     if not any(n.label.casefold() == label for n in var.nets):
         raise EditError(f"no net '{op['label']}' on '{var.name or var.column}'")
@@ -359,10 +380,27 @@ def _build_derived(cb: Codebook, spec: dict, df: pd.DataFrame, name: str | None 
         used = _used_names(cb)
         try:
             labels = multi_output_labels(d, ctx)
+            singles = d.rule == "coalesce" and not coalesce_refs(d, ctx)[1]
         except RuleError as e:
             raise EditError(str(e)) from None
         d.outputs = [Option(label=lab, name=_spss_name(f"{d.name}_{lab}", used)) for lab in labels]
+        if singles and not d.codes:
+            _inherit_categories(cb, d)
     return d
+
+
+def _inherit_categories(cb: Codebook, d: Derived) -> None:
+    """A combined single question keeps its sources' answers (first source's label wins)."""
+    codes: dict[float, Code] = {}
+    measure = None
+    for ref in d.params.get("from") or [d.source]:
+        src = cb.find(ref) or cb.find_derived(ref)
+        for c in (src.codes if src else []):
+            codes.setdefault(c.code, Code(code=c.code, label=c.label))
+        measure = measure or (src.measure if src else None)
+    d.codes = [codes[k] for k in sorted(codes)]
+    if measure in ("nominal", "ordinal"):
+        d.measure = measure
 
 
 def _add_derived(cb, op, df):

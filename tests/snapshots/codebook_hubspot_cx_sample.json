@@ -1287,6 +1287,7 @@
     }
    ],
    "outputs": [],
+   "nets": [],
    "measure": "ordinal",
    "inferred": {
     "rule": "nps",

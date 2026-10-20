@@ -295,6 +295,7 @@
               <option value="count">Count options ticked (e.g. Single / Dual / Triple)</option>
               <option value="flags">One column per answer</option>
               <option value="coalesce">Combine multi-select questions</option>
+              <option value="combine">Combine a question asked of different groups (e.g. age per condition)</option>
               <option value="priority">Priority groups — first match wins (advanced)</option>
               <option value="combination">Exact combinations of options (advanced)</option>
             </select></label>
@@ -395,7 +396,8 @@ async function start(file) {
   try {
     const data = await api('/v1/codebook', fileForm());
     state.codebook = data.codebook; state.summary = data.summary;
-    state.editable = !['sav', 'zsav', 'por'].includes(data.codebook.source.format);
+    state.spss = ['sav', 'zsav', 'por'].includes(data.codebook.source.format);
+    state.editable = true;  // SPSS edits overlay the file's own labels
     state.edited = false; state.history = []; state.selected = null; state.ops = []; state.setup = null; state.suggest = null;
     state.open = { questions: true, added: true, numbers: false, text: false, ignore: false };
     $('search').value = '';
@@ -404,7 +406,7 @@ async function start(file) {
     $('upload').classList.add('hidden');
     render();
     notifyParent('review-loaded');
-    if (state.editable) checkSetups();
+    if (!state.spss) checkSetups();  // client setups are rules for survey-platform exports
   } catch (e) {
     status.replaceChildren(el('span', { class: 'text-danger' }, `Couldn't read the file: ${e.message}`));
     $('summary').classList.add('hidden'); $('workspace').classList.add('hidden');  // not the previous file's data
@@ -532,7 +534,7 @@ function render() {
   if (cb.derived.length) parts.push(`${plural(cb.derived.length, 'added variable')}`);
   if (count('text')) parts.push(`${count('text')} open text`);
   if (count('ignore')) parts.push(`${count('ignore')} not used`);
-  $('summary-line').textContent = parts.join('  ·  ') + (state.editable ? '' : '  ·  SPSS file (view only)');
+  $('summary-line').textContent = parts.join('  ·  ') + (state.spss ? '  ·  SPSS file' : '');
 
   renderSetupBanner();
 
@@ -669,6 +671,7 @@ function details(item) {
     if (d.inferred?.reason) box.append(el('p', { class: 'text-xs text-gray-500' }, d.inferred.reason));
     const base = d.outputs.length ? state.codebook.source.rows : d.codes.reduce((s, c) => s + (c.count || 0), 0);
     box.append(el('div', { class: 'space-y-1.5' }, bars(d.outputs.length ? d.outputs : d.codes, base)));
+    if (!d.outputs.length && d.codes.length) box.append(derivedNets(d, base));
     const src = derivedSourceVar(d);
     box.append(el('div', { class: 'edit-only gap-1' },
       src ? el('button', { class: 'ic-btn ic-btn--primary ic-btn--sm', onclick: () => openRecoder(src, 'new', d) }, 'Edit…') : null,
@@ -686,6 +689,42 @@ function details(item) {
   if (v.missing.length) box.append(el('div', { class: 'space-y-1.5' },
     el('p', { class: 'text-[11px] uppercase tracking-wide text-gray-400 pt-1' }, 'Left out of bases'), bars(v.missing, v.base, { isMissing: true, v })));
   if (v.options.length) box.append(el('div', { class: 'space-y-1.5' }, bars(v.options, v.base)));
+  return box;
+}
+
+// Nets on a derived variable with categories (e.g. "3 + 4 + 5" on a combined rating)
+const netDrafts = {};  // derived name → nets being edited
+function derivedNets(d, base) {
+  const labelOf = (c) => d.codes.find(x => x.code === c)?.label ?? c;
+  const countOf = (codes) => d.codes.filter(c => codes.includes(c.code)).reduce((t, c) => t + (c.count || 0), 0);
+  const box = el('div', { class: 'space-y-1.5' });
+  if (d.nets?.length) box.append(
+    el('p', { class: 'text-[11px] uppercase tracking-wide text-gray-400 pt-1' }, 'Nets (table rows)'),
+    ...bars(d.nets.map(n => ({ label: `${n.label} = ${n.codes.map(labelOf).join(' + ')}`, count: countOf(n.codes) })), base));
+  const draft = netDrafts[d.name];
+  if (!draft) {
+    box.append(el('div', { class: 'edit-only gap-1' }, el('button', { class: 'ic-btn ic-btn--secondary ic-btn--sm',
+      onclick: () => { netDrafts[d.name] = (d.nets || []).map(n => ({ label: n.label, codes: new Set(n.codes) })); renderList(); } },
+      d.nets?.length ? 'Edit nets…' : 'Add nets…')));
+    return box;
+  }
+  const redraw = () => renderList();
+  draft.forEach((n, i) => box.append(el('div', { class: 'rounded-lg ring-1 ring-gray-200 p-2 space-y-1.5' },
+    el('div', { class: 'flex items-center gap-1.5' },
+      el('input', { class: 'rc-input', value: n.label, placeholder: 'Net name, e.g. 3 + 4 + 5', 'aria-label': 'Net name',
+                    oninput: (e) => { n.label = e.target.value; } }),
+      smallBtn('✕', 'Remove net', () => { draft.splice(i, 1); redraw(); })),
+    chips(d.codes.map(c => ({ value: c.code, label: c.label })), [...n.codes], (value, on) => {
+      on ? n.codes.add(value) : n.codes.delete(value); redraw(); }))));
+  box.append(el('div', { class: 'flex flex-wrap gap-2' },
+    el('button', { class: 'ic-btn ic-btn--secondary ic-btn--sm', onclick: () => { draft.push({ label: '', codes: new Set() }); redraw(); } }, '+ Net'),
+    el('button', { class: 'ic-btn ic-btn--primary ic-btn--sm', onclick: async () => {
+      const nets = draft.filter(n => n.codes.size).map(n => ({ label: n.label.trim(), codes: [...n.codes] }));
+      if (nets.some(n => !n.label)) return toast('Give each net a name.', true);
+      delete netDrafts[d.name];
+      if (!(await edit([{ op: 'set_nets', var: d.name, nets }]))) netDrafts[d.name] = draft;
+    } }, 'Save nets'),
+    el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', onclick: () => { delete netDrafts[d.name]; redraw(); } }, 'Cancel')));
   return box;
 }
 
@@ -1854,6 +1893,17 @@ function renderBuilderForm(reset = true) {
   } else if (rule === 'flags') {
     parts.push(field('From question', varSelect(coded, 'b-src')));
     parts.push(el('p', { class: 'text-sm text-gray-500' }, 'Creates one 0/1 column per answer (like the analysts\' 1-5 score columns).'));
+  } else if (rule === 'combine') {
+    parts.push(el('p', { class: 'text-sm text-gray-500' }, 'Pick the versions of the question (same answers, each asked of one group). For each respondent the first one they answered is used, so everyone is in one table.'));
+    const filter = el('input', { id: 'b-filter', class: 'ic-input', placeholder: 'Filter by name or label', type: 'search' });
+    const list = el('div', { id: 'b-sources', class: 'space-y-1 max-h-64 overflow-y-auto' }, ...coded.map(v =>
+      el('label', { class: 'text-sm flex items-center gap-2', 'data-text': `${ref(v)} ${v.label}`.toLowerCase() },
+        el('input', { type: 'checkbox', value: ref(v) }), el('span', { class: 'truncate' }, `${ref(v)}: ${v.label}`))));
+    filter.addEventListener('input', () => {
+      const q = filter.value.trim().toLowerCase();
+      list.querySelectorAll('label').forEach(l => { l.hidden = q && !l.dataset.text.includes(q); });
+    });
+    parts.push(filter, list);
   } else if (rule === 'coalesce') {
     parts.push(el('p', { class: 'text-sm text-gray-500' }, 'Pick the multi-select questions to combine. For each respondent the first one they answered is used (e.g. detractor / passive / promoter drivers → one set).'));
     parts.push(el('div', { id: 'b-sources', class: 'space-y-1' }, ...multis.map(v =>
@@ -1912,7 +1962,11 @@ function builderSpec() {
     params = { from: src, exclude: [...document.querySelectorAll('#b-exclude input:checked')].map(x => x.value) };
     if ($('b-usebands').checked) params.bands = readBands();
   } else if (rule === 'flags') params = { from: src };
-  else if (rule === 'coalesce') params = { from: [...document.querySelectorAll('#b-sources input:checked')].map(x => x.value) };
+  else if (rule === 'coalesce' || rule === 'combine') {
+    params = { from: [...document.querySelectorAll('#b-sources input:checked')].map(x => x.value) };
+    if (rule === 'combine' && params.from.length < 2) throw new Error('Pick at least two versions of the question.');
+    return { label, rule: 'coalesce', params };
+  }
   else {
     try { params = JSON.parse($('b-json').value); }
     catch (e) { throw new Error(`The rule isn't valid JSON: ${e.message}`); }

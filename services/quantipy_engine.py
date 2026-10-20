@@ -107,6 +107,11 @@ def _strip_common_label_prefix(labels: list[str]) -> list[str]:
             prefix = prefix[:-1]
             if not prefix:
                 return labels
+    # End the prefix at a separator, so options sharing a first word ("Concerns with
+    # safety", "Concerns with cost") keep it
+    if not prefix.endswith(tuple(":;-–—/?")):
+        cut = max(prefix.rfind(ch) for ch in ":;-–—/?")
+        prefix = prefix[:cut + 1] if cut >= 0 else prefix
     if len(prefix) < 5:
         return labels
     cleaned = []

@@ -79,6 +79,7 @@ class Derived(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
     codes: list[Code] = Field(default_factory=list, description="Categories of a single-variable result")
     outputs: list[Option] = Field(default_factory=list, description="0/1 variables of a multi-variable result")
+    nets: list[Net] = Field(default_factory=list, description="Net rows shown in tables (single results only)")
     measure: Measure = "nominal"
     inferred: Inferred | None = None
 
@@ -164,7 +165,7 @@ class Codebook(BaseModel):
     def table_nets(self, explicit: dict | None = None) -> dict[str, dict[str, list]]:
         """Nets for TabulateSpec.nets: {variable: {net label: [codes]}}; `explicit` (a request's own) wins."""
         nets = {v.name: {n.label: [int(c) if float(c).is_integer() else c for c in n.codes] for n in v.nets}
-                for v in self.variables if v.name and v.nets}
+                for v in [*self.variables, *self.derived] if v.name and v.nets}
         return {**nets, **(explicit or {})}
 
     def find_derived(self, name: str) -> "Derived | None":

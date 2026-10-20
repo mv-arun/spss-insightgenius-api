@@ -1247,6 +1247,13 @@ function detectScaleVars() {
   }).map(v => ({ name: v.name, values: Object.keys(v.value_labels).map(Number).filter(x => !isNaN(x)).sort((a,b) => a-b) }));
 }
 
+// Variables (and derived variables) given nets in Review data
+function reviewedNetNames() {
+  const cb = reviewedCodebook;
+  if (!cb) return [];
+  return [...(cb.variables || []), ...(cb.derived || [])].filter(v => v.name && (v.nets || []).length).map(v => v.name);
+}
+
 // ── Generate ──
 async function generate() {
   // Total-only export is valid — no banner selection required
@@ -1287,7 +1294,8 @@ async function generate() {
   // Auto T2B/B2B — use preset_nets from backend when available, else local detection
   if (document.getElementById('opt-t2b').checked) {
     spec.nets = {};
-    const bannerSet = new Set(selectedBanners);
+    // Nets set in Review data come with the codebook; auto T2B/B2B would replace them
+    const bannerSet = new Set([...selectedBanners, ...reviewedNetNames()]);
     const presetNets = metadata.preset_nets || {};
     if (Object.keys(presetNets).length > 0) {
       // Use backend-detected nets (Likert-5, Likert-7, NPS scales)

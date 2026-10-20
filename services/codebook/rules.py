@@ -11,6 +11,8 @@ Seven rule types cover what analysts build by hand in Excel:
   combination  exact set ticked        {"from": multi, "combos": [{"code", "label", "exact"|"within": [labels]}],
                                          "ignore": [labels]}
   coalesce     first answered of       {"from": [multi, multi, ...]}  → one 0/1 variable per option
+                                        {"from": [single, single, ...]} → one variable (the same question
+                                         asked of different groups, e.g. age per condition)
   flags        one 0/1 per answer      {"from": var, "values": [codes|labels] (optional)}
 
 Conditions (no eval — a fixed vocabulary evaluated with pandas masks):
@@ -270,10 +272,24 @@ def _combination(d: Derived, ctx: Context) -> list[Output]:
     return _single(d, out)
 
 
-def _coalesce(d: Derived, ctx: Context) -> list[Output]:
+def coalesce_refs(d: Derived, ctx: Context) -> tuple[list[str], bool]:
+    """The variables a coalesce rule combines, and whether they are multi-selects (all or none)."""
     refs = d.params.get("from") or ([d.source] if d.source else [])
     if not refs:
         raise RuleError(f"Rule '{d.name}' needs 'from' variables")
+    multi = [ctx.is_multi(r) for r in refs]
+    if any(multi) and not all(multi):
+        raise RuleError(f"Rule '{d.name}' mixes multi-select and single questions")
+    return refs, all(multi)
+
+
+def _coalesce(d: Derived, ctx: Context) -> list[Output]:
+    refs, multi = coalesce_refs(d, ctx)
+    if not multi:  # first answered value wins
+        out = pd.Series(float("nan"), index=ctx.index)
+        for ref in refs:
+            out = out.fillna(ctx.series(ref))
+        return _single(d, out)
     sources = [ctx.options(r) for r in refs]
     answered = [ctx.answered(r) for r in refs]
     outputs = []
@@ -308,8 +324,11 @@ _RULES = {
 def multi_output_labels(d: Derived, ctx: Context) -> list[str]:
     """Option labels a coalesce/flags rule produces (used to name its outputs)."""
     if d.rule == "coalesce":
+        refs, multi = coalesce_refs(d, ctx)
+        if not multi:
+            return []
         labels: list[str] = []
-        for ref in d.params.get("from") or [d.source]:
+        for ref in refs:
             labels += [label for label in ctx.options(ref) if label not in labels]
         return labels
     if d.rule == "flags":
