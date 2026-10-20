@@ -21,13 +21,13 @@
         <h1 id="greeting">Welcome</h1>
         <p>Turn raw market research data into clean, structured and analysis-ready tables.</p>
         <div class="ic-row">
-          <a class="ic-btn ic-btn--primary" href="/datasets/upload"><ic-icon name="plus" size="16"></ic-icon>Upload Dataset</a>
+          <a class="ic-btn ic-btn--primary" id="primary-cta" href="/datasets/upload"><ic-icon name="plus" size="16"></ic-icon>Upload Dataset</a>
           <a class="ic-btn ic-btn--secondary" href="/workflows">Start a Workflow</a>
         </div>
         <ic-illustration class="ic-hero-art"></ic-illustration>
       </section>
 
-      <section class="ic-card" style="margin-top:28px">
+      <section class="ic-card" id="recent-card" style="margin-top:28px">
         <div class="ic-card-header">
           <h2 class="ic-section-title">Recent Datasets</h2>
           <a class="ic-link" href="/datasets">View all <ic-icon name="arrow-right" size="14"></ic-icon></a>
@@ -44,6 +44,13 @@
   greeting.textContent = IC.greeting();
   IC.me().then(u => { if (u) greeting.textContent = `${IC.greeting()}, ${IC.firstName(u.name || u.email)}`; });
 
+  if (!IC.FEATURES.datasets) {  // no saved-file library: start straight from a tabulation
+    const cta = document.getElementById('primary-cta');
+    cta.href = '/export';
+    cta.replaceChildren(IC.icon('table', 16), 'New tabulation');
+    document.getElementById('recent-card').hidden = true;
+    return;
+  }
   const box = document.getElementById('recent');
   async function load() {
     box.replaceChildren(Datasets.skeleton(4));

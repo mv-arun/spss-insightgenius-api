@@ -72,6 +72,11 @@ Static pages in `public/`, routed in `main.py`. One design system for every page
 - `public/ui/datasets.js`: library calls and the shared datasets table.
 - New pages copy the skeleton in `home.html`. Don't add new colours or a second style system.
 
+Optional features (off by default; `ENABLE_DATASETS`, `ENABLE_AI_CHAT`):
+- Off, their API routes (`/v1/library/*`, `/v1/chat*`) and pages (`/datasets*`, `/export-mcp`) aren't served.
+- `/static/config.js` sets `window.__INDICO_FEATURES__`, and the pages hide their links (`IC.FEATURES`).
+- Datasets is the only part of the app that needs Supabase.
+
 Sidebar sections and the pages behind them:
 - Home: `/home`
 - Datasets: `/datasets`, `/datasets/upload`, `/datasets/{id}`

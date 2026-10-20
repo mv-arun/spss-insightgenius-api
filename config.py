@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     clerk_jwt_issuer: str = ""  # Auto-detected from publishable key if empty
     clerk_domain: str = ""  # e.g., "beloved-redbird-68.clerk.accounts.dev" or "clerk.indicolabs.io"
 
+    # Optional features, off for the MVP. Datasets (the saved-file library) needs Supabase;
+    # AI chat needs ANTHROPIC_API_KEY. Off: their API routes and pages aren't served.
+    enable_datasets: bool = False
+    enable_ai_chat: bool = False
+
     # Supabase (user data, API keys, usage tracking)
     supabase_url: str = ""
     supabase_service_role_key: str = ""

@@ -315,7 +315,7 @@ dialog.ic-modal:not([open]) { display: none; }
 .ic-split-step { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 28px; align-items: start; }
 
 @media (max-width: 960px) {
-  .ic-app { grid-template-columns: 1fr; }
+  .ic-app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }  /* nav row: its own height */
   ic-sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--ic-border); }
   ic-sidebar .ic-brand { padding: 0 8px 0 0; }
   ic-sidebar .ic-nav { flex-direction: row; flex-wrap: wrap; gap: 0; }
