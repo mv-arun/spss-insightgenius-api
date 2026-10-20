@@ -93,7 +93,7 @@ ANALYSIS_TOOLS = [
                 "filters": {"type": "array", "items": {"type": "object"}, "description": "Filters: [{variable, operator, value}]"},
                 "nets": {"type": "object", "description": "Nets per variable: {var: {net_name: [codes]}}"},
                 "mrs_groups": {"type": "object", "description": "MRS groups: {group_name: [member_vars]}"},
-                "output_mode": {"type": "string", "enum": ["multi_sheet", "single_sheet"], "default": "multi_sheet"},
+                "output_mode": {"type": "string", "enum": ["multi_sheet", "single_sheet", "banner_sheets"], "default": "multi_sheet"},
             },
             "required": ["banners", "stubs"],
         },

@@ -8,8 +8,8 @@ from main import app
 
 UI_EMAIL, UI_PASSWORD = os.environ["UI_LOGIN_EMAIL"], os.environ["UI_LOGIN_PASSWORD"]  # set in conftest
 
-APP_PAGES = ["/home", "/datasets", "/datasets/upload", "/review", "/workflows",
-             "/export", "/express", "/wizard", "/export-mcp", "/settings"]
+APP_PAGES = ["/home", "/review", "/workflows", "/export", "/express", "/wizard", "/settings"]
+OFF_PAGES = ["/datasets", "/datasets/upload", "/export-mcp"]  # Datasets and AI chat are off by default
 
 
 def fresh():
@@ -62,3 +62,14 @@ def test_public_pages_stay_open():
 
 def test_pages_are_not_served_raw_from_static():
     assert fresh().get("/static/app.html").status_code == 404
+
+
+def test_optional_features_are_off_by_default():
+    """Datasets (needs Supabase) and AI chat aren't served, and pages are told so they hide their links."""
+    c = fresh()
+    c.post("/auth/login", json={"email": UI_EMAIL, "password": UI_PASSWORD})
+    for path in OFF_PAGES:
+        assert c.get(path, follow_redirects=False).status_code == 404, path
+    assert c.get("/v1/library/files").status_code == 404
+    assert c.post("/v1/chat", json={}).status_code == 404
+    assert 'window.__INDICO_FEATURES__ = {"datasets": false, "chat": false};' in c.get("/static/config.js").text

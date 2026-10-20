@@ -81,7 +81,17 @@
   .group-row-title { font-weight: 600; font-size: 13.5px; }
   .auto-badge { margin-bottom: 8px; }
   select[multiple].ic-select { min-height: 140px; }
-  #stubs-select { min-height: 100px; margin-top: 12px; }
+  .tables-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+  .tables-toolbar #tables-filter { max-width: 260px; }
+  .tables-toolbar-gap { flex: 1; }
+  .tables-list { border: 1px solid var(--ic-border); border-radius: 10px; max-height: 520px; overflow-y: auto; }
+  .table-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px;
+               padding: 8px 12px; border-bottom: 1px solid var(--ic-border); }
+  .table-row:last-child { border-bottom: 0; }
+  .table-row.is-off .table-row-main { opacity: .5; }
+  .table-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .table-row-actions { display: flex; }
+  @media (max-width: 640px) { .table-row { grid-template-columns: auto minmax(0, 1fr); } .table-row > select, .table-row > .ic-badge { grid-column: 2; justify-self: start; } .table-row-actions { grid-column: 2; } }
   .check-row { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
   .cg-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .cg-row .cg-var, .cg-row .cg-val { flex: 1 1 180px; width: auto; min-width: 0; }
@@ -302,6 +312,15 @@
           <div id="banner-chips" class="chips" style="margin-bottom:16px"></div>
           <p class="ic-label">Selected</p>
           <div id="selected-banners" class="selected-row"></div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <label class="ic-section-title" style="font-size:14px">Respondents</label>
+              <button type="button" onclick="addConditionRow('filter-conditions')" class="ic-btn ic-btn--secondary ic-btn--sm"><ic-icon name="filter" size="14"></ic-icon>Add condition</button>
+            </div>
+            <p class="ic-help" style="margin-bottom:10px">Everyone is tabulated unless you add conditions. With conditions (all must be true), only those respondents are, and Total is their total &mdash; e.g. Survey Finish State = completed.</p>
+            <div id="filter-conditions" class="list-stack"></div>
+          </div>
         </div>
         <div class="ic-card-footer step-footer">
           <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
@@ -312,20 +331,20 @@
       <!-- Step 4: Stubs + MRS -->
       <section id="stubs-section" class="ic-card fade-in" hidden>
         <div class="ic-card-header step-head">
-          <h2 class="ic-section-title">Select stubs</h2>
-          <p class="ic-help">The rows in your crosstab.</p>
+          <h2 class="ic-section-title">Tables</h2>
+          <p class="ic-help">Every table in the output, in order. Untick a table to leave it out; its title is what the table is called.</p>
         </div>
         <div class="ic-card-body">
-          <p class="ic-muted" style="font-size:12.5px;margin-bottom:14px">Stubs are the questions that appear as rows in your tables. Each stub generates one crosstab sheet (or one block in single-sheet mode).</p>
-          <div class="check-row">
-            <label class="ic-check">
-              <input type="radio" name="stub-mode" value="all" checked> All variables
-            </label>
-            <label class="ic-check">
-              <input type="radio" name="stub-mode" value="select"> Select specific
-            </label>
+          <div class="tables-toolbar">
+            <input type="search" id="tables-filter" placeholder="Filter tables" class="ic-input ic-input--sm" aria-label="Filter tables">
+            <label class="ic-check"><input type="checkbox" id="tables-only-on"> Included only</label>
+            <span id="tables-count" class="ic-help"></span>
+            <span class="tables-toolbar-gap"></span>
+            <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="setAllTables(true)">Include all</button>
+            <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="setAllTables(false)">None</button>
           </div>
-          <select id="stubs-select" multiple class="hidden ic-select"></select>
+          <p id="tables-detected" class="ic-alert ic-alert--success is-block" style="font-size:12.5px;margin-bottom:10px" hidden></p>
+          <div id="tables-list" class="tables-list"></div>
 
           <!-- Open-end warning -->
           <div id="open-end-warning" class="hidden ic-alert ic-alert--warning is-block" style="margin-top:12px;font-size:12.5px">
@@ -334,11 +353,14 @@
           <!-- MRS Groups -->
           <div class="subsection">
             <div class="subsection-head">
-              <label class="ic-section-title" style="font-size:14px">Multiple Response Sets (MRS)</label>
-              <button type="button" onclick="toggleMrsPanel()" class="ic-btn ic-btn--secondary ic-btn--sm"><ic-icon name="plus" size="14"></ic-icon>Add MRS group</button>
+              <label class="ic-section-title" style="font-size:14px">Group questions into one table</label>
+              <div class="ic-row" style="gap:6px">
+                <button type="button" onclick="toggleMrsPanel()" class="ic-btn ic-btn--secondary ic-btn--sm"><ic-icon name="plus" size="14"></ic-icon>Multi-select set</button>
+                <button type="button" onclick="toggleGridPanel()" class="ic-btn ic-btn--secondary ic-btn--sm" id="grid-add-btn"><ic-icon name="plus" size="14"></ic-icon>Grid</button>
+              </div>
             </div>
-            <p class="ic-help" style="margin-bottom:10px"><strong>MRS = "select all that apply" questions</strong> (binary yes/no per option, e.g., brand awareness). Group the individual binary variables into one table where percentages can exceed 100%.</p>
-            <div id="mrs-groups" class="list-stack"></div>
+            <p class="ic-help" style="margin-bottom:10px"><strong>Multi-select set:</strong> "select all that apply", one yes/no variable per option; percentages can add to more than 100%. <strong>Grid:</strong> questions with the same answers (ratings, rankings) side by side in one table.</p>
+            <div id="mrs-groups" hidden></div>
             <div id="mrs-panel" class="hidden ic-panel fade-in" style="margin-top:12px">
               <div class="ic-field">
                 <label class="ic-label" for="mrs-name">Group name</label>
@@ -353,16 +375,7 @@
                 <button type="button" onclick="toggleMrsPanel()" class="ic-btn ic-btn--secondary ic-btn--sm">Cancel</button>
               </div>
             </div>
-          </div>
-
-          <!-- Grid/Battery Summary -->
-          <div class="subsection">
-            <div class="subsection-head">
-              <label class="ic-section-title" style="font-size:14px">Grid / Battery Summary</label>
-              <button type="button" onclick="toggleGridPanel()" class="ic-btn ic-btn--secondary ic-btn--sm" id="grid-add-btn"><ic-icon name="plus" size="14"></ic-icon>Add grid group</button>
-            </div>
-            <p class="ic-help" style="margin-bottom:10px"><strong>Grid = rating scale questions with the same scale</strong> (e.g., 7 satisfaction questions all on 1-5). Shows Top 2 Box %, Bottom 2 Box %, and Mean in one compact summary sheet.</p>
-            <div id="grid-groups" class="list-stack"></div>
+            <div id="grid-groups" hidden></div>
             <div id="grid-panel" class="hidden ic-panel fade-in" style="margin-top:12px">
               <div class="ic-field">
                 <label class="ic-label" for="grid-name">Group name</label>
@@ -405,6 +418,8 @@
                 <option value="0.90">90%</option>
                 <option value="0.95" selected>95%</option>
                 <option value="0.99">99%</option>
+                <option value="0.999,0.95">99.9% CAPITALS + 95% lowercase</option>
+                <option value="0.95,0.90">95% CAPITALS + 90% lowercase</option>
               </select>
             </div>
             <div>
@@ -443,6 +458,14 @@
                 </div>
                 <input type="checkbox" id="opt-means" checked class="ic-checkbox">
               </label>
+              <label class="ic-option" for="opt-bonferroni">
+                <span class="ic-option-icon"><ic-icon name="check" size="16"></ic-icon></span>
+                <div class="option-text">
+                  <div class="ic-option-title">Correct for multiple comparisons</div>
+                  <div class="ic-option-desc">Bonferroni: stricter letters when there are many columns. Turn off for uncorrected column comparisons.</div>
+                </div>
+                <input type="checkbox" id="opt-bonferroni" checked class="ic-checkbox">
+              </label>
             </div>
           </div>
 
@@ -465,6 +488,22 @@
                 </div>
                 <input type="radio" name="output-mode" value="single_sheet" class="ic-checkbox">
               </label>
+              <label class="ic-option">
+                <span class="ic-option-icon"><ic-icon name="table" size="16"></ic-icon></span>
+                <div class="option-text">
+                  <div class="ic-option-title">Total and banner sheets</div>
+                  <div class="ic-option-desc">A Total sheet, then one sheet per banner and its (Stat) sheet with significance letters. Group names are the table titles.</div>
+                </div>
+                <input type="radio" name="output-mode" value="banner_sheets" class="ic-checkbox">
+              </label>
+              <label class="ic-option" for="opt-sort">
+                <span class="ic-option-icon"><ic-icon name="sliders" size="16"></ic-icon></span>
+                <div class="option-text">
+                  <div class="ic-option-title">Sort answers by Total</div>
+                  <div class="ic-option-desc">Highest first; "Other" and "None" stay at the bottom.</div>
+                </div>
+                <input type="checkbox" id="opt-sort" class="ic-checkbox">
+              </label>
             </div>
           </div>
         </div>
@@ -482,6 +521,12 @@
         </div>
         <div class="ic-card-body">
           <p class="ic-muted" style="font-size:12.5px;margin-bottom:14px">Example: "London + Uber users" = region is London AND aware of Uber. Each group becomes a column with significance testing.</p>
+
+          <div class="ic-field" style="max-width:320px">
+            <label class="ic-label" for="cg-banner-name">Banner name</label>
+            <input type="text" id="cg-banner-name" placeholder="Custom Groups" class="ic-input">
+            <p class="ic-help">Shown above the group columns, and in sheet names ("By Data Cut").</p>
+          </div>
 
           <div id="custom-groups-list" class="list-stack" style="margin-bottom:12px"></div>
 
@@ -644,7 +689,7 @@ function appendData(form) {
 }
 
 // ── Stepper: one step's card at a time ──
-const STEP_LABELS = ['Upload', 'Review data', 'Banners', 'Stubs', 'Options', 'Custom groups', 'Generate'];
+const STEP_LABELS = ['Upload', 'Review data', 'Banners', 'Tables', 'Options', 'Custom groups', 'Generate'];
 const STEP_PANELS = ['upload-section', 'review-section', 'banners-section', 'stubs-section', 'options-section', 'custom-groups-section', 'generate-section'];
 let currentStep = 0, furthestStep = 0;
 let metaReady = false;  // steps after Upload unlock once the file's metadata has loaded
@@ -764,7 +809,9 @@ async function loadMetadata() {
     metadata = data;
     infoText.textContent = `${metadata.file_name} — ${metadata.n_cases.toLocaleString()} cases × ${metadata.n_variables} variables`;
     // Reset ALL state from previous file
-    selectedBanners = []; mrsGroups = {}; gridGroups = {}; customGroups = [];
+    selectedBanners = []; mrsGroups = {}; gridGroups = {}; customGroups = []; resetTables();
+    document.getElementById('filter-conditions').replaceChildren();
+    for (const k of Object.keys(detectedNotes)) delete detectedNotes[k];
     resultBlob = null; resultFilename = '';
     smartSpec = null;
     autoResultBlob = null; autoResultFilename = '';
@@ -782,11 +829,10 @@ async function loadMetadata() {
 // ── Populate UI from metadata ──
 function populateUI() {
   const chipsEl = document.getElementById('banner-chips');
-  const stubsSel = document.getElementById('stubs-select');
   const weightSel = document.getElementById('weight-select');
   const mrsSel = document.getElementById('mrs-members');
   const gridSel = document.getElementById('grid-members');
-  chipsEl.innerHTML = ''; stubsSel.innerHTML = ''; mrsSel.innerHTML = ''; gridSel.innerHTML = '';
+  chipsEl.innerHTML = ''; mrsSel.innerHTML = ''; gridSel.innerHTML = '';
   weightSel.innerHTML = '<option value="">None (unweighted)</option>';
 
   // ── Smart banners: show suggested first, then separator, then rest ──
@@ -838,12 +884,6 @@ function populateUI() {
       if (openEndNames.length < 5) openEndNames.push(v.name);
     }
 
-    // Stubs: all labeled variables (excludes open-ends)
-    if (vl >= 2) {
-      const opt = document.createElement('option'); opt.value = v.name; opt.textContent = label;
-      stubsSel.appendChild(opt);
-    }
-
     // MRS candidates: binary variables
     if (vl === 2 || (v.type === 'numeric' && vl <= 2)) {
       const opt = document.createElement('option'); opt.value = v.name; opt.textContent = label;
@@ -891,36 +931,42 @@ function populateUI() {
   const awarenessGroups = detectedGroups.filter(g => g.question_type === 'awareness');
   if (awarenessGroups.length > 0) {
     for (const g of awarenessGroups) {
-      const name = g.display_name || g.name || 'MRS Group';
+      const name = uniqueGroupName(mrsGroups, g.display_name || g.name || 'MRS Group');
       const vars = g.variables || [];
       if (vars.length >= 2) {
         mrsGroups[name] = vars;
       }
     }
     renderMrsGroups();
-    _showAutoDetectBadge('mrs-groups', `${awarenessGroups.length} MRS group(s) auto-detected`);
+    _showAutoDetectBadge('multi', `${awarenessGroups.length} multi-select set${awarenessGroups.length > 1 ? 's' : ''}`);
   }
 
   // ── Auto-populate Grids from detected_groups (scale type) — user can remove ──
   const scaleGroups = detectedGroups.filter(g => g.question_type === 'scale');
   if (scaleGroups.length > 0) {
     for (const g of scaleGroups) {
-      const name = g.display_name || g.name || 'Grid';
+      const name = uniqueGroupName(gridGroups, g.display_name || g.name || 'Grid');
       const vars = g.variables || [];
       if (vars.length >= 2) {
         gridGroups[name] = { variables: vars, show: ['t2b', 'b2b', 'mean'] };
       }
     }
     renderGridGroups();
-    _showAutoDetectBadge('grid-groups', `${scaleGroups.length} grid(s) auto-detected`);
+    _showAutoDetectBadge('grid', `${scaleGroups.length} rating grid${scaleGroups.length > 1 ? 's' : ''}`);
   }
 
-  // ── Auto-select first suggested banner (or first available) ──
-  const firstSuggested = suggested.length > 0 ? suggested[0] : (rest.length > 0 ? rest[0] : null);
-  if (firstSuggested) {
-    const chip = chipsEl.querySelector(`.chip[data-varname="${firstSuggested.name}"]`);
-    if (chip) toggleBanner(firstSuggested.name, chip);
+  // ── Rankings and other grids of single questions: one table, items side by side ──
+  const numeric = new Set(metadata.variables.filter(v => v.type === 'numeric').map(v => v.name));
+  const itemGroups = detectedGroups.filter(g => ['ranking', 'grid_single'].includes(g.question_type)
+    && (g.variables || []).length >= 2 && g.variables.every(v => numeric.has(v)));  // not open-text grids
+  for (const g of itemGroups) {
+    const name = uniqueGroupName(gridGroups, g.display_name || g.name || 'Ranking');
+    gridGroups[name] = { variables: g.variables, show: [g.question_type === 'ranking' ? 'rank' : 'answers'] };
   }
+  if (itemGroups.length > 0) { renderGridGroups(); _showAutoDetectBadge('items', `${itemGroups.length} ranking or answer grid${itemGroups.length > 1 ? 's' : ''}`); }
+
+  // Banners are the analyst's choice: suggestions are shown as "Recommended", none is picked
+  // (an unwanted banner adds sheets and takes its question out of the Tables list)
   updateSummary();
 }
 
@@ -937,14 +983,14 @@ function _makeBannerChip(v, isSuggested) {
   return chip;
 }
 
-function _showAutoDetectBadge(containerId, text) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  const badge = document.createElement('div');
-  badge.className = 'ic-alert ic-alert--success is-block auto-badge fade-in';
-  badge.style.fontSize = '12.5px';
-  badge.innerHTML = `<strong>Auto-detected:</strong> ${text}. You can edit or remove these.`;
-  container.parentNode.insertBefore(badge, container);
+// One note above the Tables list, rewritten on every metadata load (not added to)
+const detectedNotes = {};
+function _showAutoDetectBadge(kind, text) {
+  detectedNotes[kind] = text;
+  const note = document.getElementById('tables-detected');
+  const parts = Object.values(detectedNotes).filter(Boolean);
+  note.hidden = !parts.length;
+  note.textContent = parts.length ? `Detected: ${parts.join(', ')}. They're in the list below; ungroup or change any of them.` : '';
 }
 
 // ── Banner selection ──
@@ -979,9 +1025,6 @@ function removeBanner(varName) {
 }
 
 // ── Stub mode ──
-document.querySelectorAll('input[name="stub-mode"]').forEach(r => {
-  r.addEventListener('change', e => { document.getElementById('stubs-select').classList.toggle('hidden', e.target.value === 'all'); updateSummary(); });
-});
 
 // ── MRS groups ──
 function toggleMrsPanel() { document.getElementById('mrs-panel').classList.toggle('hidden'); }
@@ -1016,15 +1059,18 @@ function updateMrsCount() {
   document.getElementById('mrs-count').textContent = `(${n} selected)`;
 }
 
-function renderMrsGroups() {
-  const el = document.getElementById('mrs-groups');
-  const entries = Object.entries(mrsGroups);
-  if (entries.length === 0) { el.innerHTML = ''; return; }
-  el.innerHTML = entries.map(([name, members]) =>
-    `<div class="ic-row"><span class="pill pill-purple">${name} <span class="ic-help">(${members.length} vars)</span> <span class="remove" onclick="removeMrsGroup('${name}')">&times;</span></span></div>`
-  ).join('');
-}
+function renderMrsGroups() { renderTables(); }
 
+// A group's name is its table title (Total and banner sheets), so it can be renamed in place
+function renameGroup(groups, oldName, newName) {
+  newName = newName.trim();
+  if (!newName || newName === oldName) return false;
+  if (newName in groups) { IC.toast(`There is already a group called "${newName}"`, 'danger'); return false; }
+  const entries = Object.entries(groups).map(([k, v]) => [k === oldName ? newName : k, v]);
+  for (const k of Object.keys(groups)) delete groups[k];
+  for (const [k, v] of entries) groups[k] = v;
+  return true;
+}
 // ── Grid/Battery Groups ──
 let gridGroups = {};  // {"Satisfaction Battery": {variables: [...], show: ["t2b","b2b","mean"]}}
 
@@ -1061,21 +1107,115 @@ function addGridGroup() {
 
 function removeGridGroup(name) { delete gridGroups[name]; renderGridGroups(); updateSummary(); }
 
-function renderGridGroups() {
-  const el = document.getElementById('grid-groups');
-  const entries = Object.entries(gridGroups);
-  if (entries.length === 0) { el.innerHTML = ''; return; }
-  el.innerHTML = entries.map(([name, cfg]) => {
-    const metrics = cfg.show.map(s => ({t2b:'T2B', b2b:'B2B', mean:'Mean', median:'Median'}[s] || s)).join(', ');
-    return `<div class="group-row">
-      <div class="group-row-main">
-        <span class="group-row-title">${name}</span>
-        <p class="ic-help">${cfg.variables.length} variables | Metrics: ${metrics}</p>
-      </div>
-      <button type="button" onclick="removeGridGroup('${name}')" class="ic-icon-btn" aria-label="Remove"><ic-icon name="x" size="16"></ic-icon></button>
-    </div>`;
-  }).join('');
+function renderGridGroups() { renderTables(); }
+
+// ── Tables: everything that becomes a table, in output order ──
+// Keys: "v:<variable>" (one question), "m:<group>" (multi-select set), "g:<group>" (grid).
+let tableOrder = [];          // keys in output order
+let tablesOff = new Set();    // keys left out
+let tableTitles = {};         // variable → title, for single questions (a group's name is its title)
+
+function resetTables() { tableOrder = []; tablesOff = new Set(); tableTitles = {}; }
+
+function currentTables() {
+  if (!metadata) return [];
+  const position = Object.fromEntries(metadata.variables.map((v, i) => [v.name, i]));
+  const grouped = new Set([...Object.values(mrsGroups).flat(), ...Object.values(gridGroups).flatMap(g => g.variables)]);
+  const banners = new Set(selectedBanners);
+  const items = [
+    ...metadata.variables
+      .filter(v => Object.keys(v.value_labels || {}).length >= 2 && !grouped.has(v.name) && !banners.has(v.name))
+      .map(v => ({ key: `v:${v.name}`, kind: 'single', name: v.name, title: tableTitles[v.name] || v.label || v.name,
+                   detail: v.name, pos: position[v.name] })),
+    ...Object.entries(mrsGroups).map(([name, vars]) => ({ key: `m:${name}`, kind: 'multi', name, title: name,
+                   detail: `${vars.length} options`, pos: Math.min(...vars.map(x => position[x] ?? 1e9)) })),
+    ...Object.entries(gridGroups).map(([name, g]) => ({ key: `g:${name}`, kind: 'grid', name, title: name,
+                   detail: `${g.variables.length} items`, pos: Math.min(...g.variables.map(x => position[x] ?? 1e9)) })),
+  ];
+  const byKey = Object.fromEntries(items.map(t => [t.key, t]));
+  tableOrder = tableOrder.filter(k => byKey[k]);
+  for (const t of [...items].sort((a, b) => a.pos - b.pos)) {   // new tables go where the questionnaire has them
+    if (tableOrder.includes(t.key)) continue;
+    const at = tableOrder.findIndex(k => byKey[k].pos > t.pos);
+    at < 0 ? tableOrder.push(t.key) : tableOrder.splice(at, 0, t.key);
+  }
+  return tableOrder.map(k => byKey[k]);
 }
+
+const TABLE_KINDS = { single: 'Single question', multi: 'Multi-select set', grid: 'Grid (items side by side)' };
+
+function renderTables() {
+  const box = document.getElementById('tables-list');
+  if (!box) return;
+  const all = currentTables();
+  const q = document.getElementById('tables-filter').value.trim().toLowerCase();
+  const onlyOn = document.getElementById('tables-only-on').checked;
+  const shown = all.filter(t => (!onlyOn || !tablesOff.has(t.key)) && (!q || `${t.title} ${t.detail} ${t.name}`.toLowerCase().includes(q)));
+  document.getElementById('tables-count').textContent = `${all.filter(t => !tablesOff.has(t.key)).length} of ${all.length} included`;
+  box.replaceChildren(...shown.map(t => {
+    const off = tablesOff.has(t.key);
+    const type = t.kind === 'single'
+      ? IC.el('span', { class: 'ic-badge' }, TABLE_KINDS.single)
+      : IC.el('select', { class: 'ic-select ic-select--sm', 'aria-label': 'Table type', onchange: (e) => setGroupKind(t, e.target.value) },
+          ...['multi', 'grid'].map(k => IC.el('option', { value: k, selected: k === t.kind }, TABLE_KINDS[k])));
+    return IC.el('div', { class: `table-row${off ? ' is-off' : ''}` },
+      IC.el('input', { type: 'checkbox', class: 'ic-checkbox', checked: !off, 'aria-label': 'Include this table',
+        onchange: (e) => { e.target.checked ? tablesOff.delete(t.key) : tablesOff.add(t.key); renderTables(); updateSummary(); } }),
+      IC.el('div', { class: 'table-row-main' },
+        IC.el('input', { class: 'ic-input ic-input--sm', value: t.title, 'aria-label': 'Table title',
+          onchange: (e) => renameTable(t, e.target.value) }),
+        IC.el('span', { class: 'ic-help' }, t.detail)),
+      type,
+      IC.el('div', { class: 'table-row-actions' },
+        IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': 'Move up', onclick: () => moveTable(t.key, -1) }, '↑'),
+        IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': 'Move down', onclick: () => moveTable(t.key, 1) }, '↓'),
+        t.kind === 'single' ? null : IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': 'Ungroup',
+          title: 'Ungroup: one table per question',
+          onclick: () => { delete (t.kind === 'multi' ? mrsGroups : gridGroups)[t.name]; renderTables(); updateSummary(); } },
+          IC.icon('x', 16))));
+  }));
+}
+
+function moveTable(key, step) {
+  currentTables();  // order is in sync with the tables there are
+  const i = tableOrder.indexOf(key), j = i + step;
+  if (i < 0 || j < 0 || j >= tableOrder.length) return;
+  [tableOrder[i], tableOrder[j]] = [tableOrder[j], tableOrder[i]];
+  renderTables();
+}
+
+function renameTable(t, title) {
+  title = title.trim();
+  if (t.kind === 'single') {
+    if (title) tableTitles[t.name] = title; else delete tableTitles[t.name];
+  } else {
+    const store = t.kind === 'multi' ? mrsGroups : gridGroups;
+    const key = `${t.key[0]}:${title}`;
+    if (renameGroup(store, t.name, title)) {
+      tableOrder = tableOrder.map(k => (k === t.key ? key : k));
+      if (tablesOff.delete(t.key)) tablesOff.add(key);
+    }
+  }
+  renderTables(); updateSummary();
+}
+
+function setGroupKind(t, kind) {
+  const from = t.kind === 'multi' ? mrsGroups : gridGroups;
+  const vars = t.kind === 'multi' ? from[t.name] : from[t.name].variables;
+  delete from[t.name];
+  const name = uniqueGroupName(kind === 'multi' ? mrsGroups : gridGroups, t.name);
+  if (kind === 'multi') mrsGroups[name] = vars; else gridGroups[name] = { variables: vars, show: ['answers'] };
+  tableOrder = tableOrder.map(k => (k === t.key ? `${kind[0]}:${name}` : k));
+  renderTables(); updateSummary();
+}
+
+function setAllTables(on) {
+  for (const t of currentTables()) on ? tablesOff.delete(t.key) : tablesOff.add(t.key);
+  renderTables(); updateSummary();
+}
+
+document.getElementById('tables-filter').addEventListener('input', renderTables);
+document.getElementById('tables-only-on').addEventListener('change', renderTables);
 
 // ── Custom Groups ──
 let customGroups = [];  // [{name: "...", conditions: [{variable, operator, value}]}]
@@ -1093,78 +1233,59 @@ function cancelCustomGroup() {
   document.getElementById('cg-add-btn').classList.remove('hidden');
 }
 
-function addConditionRow() {
-  const container = document.getElementById('cg-conditions');
-  const row = document.createElement('div');
-  row.className = 'cg-row';
-
-  // Variable select
-  let varOpts = '<option value="">-- Variable --</option>';
-  for (const v of metadata.variables) {
-    const label = v.label ? `${v.name} - ${v.label}` : v.name;
-    varOpts += `<option value="${v.name}">${label}</option>`;
-  }
-
-  row.innerHTML = `
-    <select class="cg-var ic-select ic-select--sm" onchange="onCgVarChange(this)">${varOpts}</select>
-    <select class="cg-op ic-select ic-select--sm">
-      <option value="eq">=</option>
-      <option value="ne">!=</option>
-      <option value="gt">&gt;</option>
-      <option value="gte">&gt;=</option>
-      <option value="lt">&lt;</option>
-      <option value="lte">&lt;=</option>
-      <option value="in">in</option>
-    </select>
-    <select class="cg-val ic-select ic-select--sm">
-      <option value="">-- Select variable first --</option>
-    </select>
-    <button type="button" onclick="this.parentElement.remove()" class="ic-icon-btn" aria-label="Remove condition"><ic-icon name="x" size="16"></ic-icon></button>
-  `;
-  container.appendChild(row);
+// A condition row (variable, operator, value) in a custom group or the respondent filter
+function addConditionRow(containerId = 'cg-conditions') {
+  const varSel = IC.el('select', { class: 'cg-var ic-select ic-select--sm', 'aria-label': 'Variable',
+    onchange: (e) => onCgVarChange(e.target) },
+    IC.el('option', { value: '' }, '-- Variable --'),
+    ...metadata.variables.map(v => IC.el('option', { value: v.name }, v.label ? `${v.name} - ${v.label}` : v.name)));
+  const ops = [['eq', '='], ['ne', '!='], ['gt', '>'], ['gte', '>='], ['lt', '<'], ['lte', '<='], ['in', 'in']];
+  const row = IC.el('div', { class: 'cg-row' }, varSel,
+    IC.el('select', { class: 'cg-op ic-select ic-select--sm', 'aria-label': 'Operator' },
+      ...ops.map(([value, label]) => IC.el('option', { value }, label))),
+    IC.el('select', { class: 'cg-val ic-select ic-select--sm', 'aria-label': 'Value' },
+      IC.el('option', { value: '' }, '-- Select variable first --')),
+    IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': 'Remove condition',
+      onclick: () => { row.remove(); updateSummary(); } }, IC.icon('x', 16)));
+  document.getElementById(containerId).appendChild(row);
+  return row;
 }
 
 function onCgVarChange(selectEl) {
-  const varName = selectEl.value;
   const row = selectEl.parentElement;
-  const valSelect = row.querySelector('.cg-val');
-  valSelect.innerHTML = '';
+  const old = row.querySelector('.cg-val');
+  const v = metadata.variables.find(x => x.name === selectEl.value);
+  const labels = v && v.value_labels ? Object.entries(v.value_labels) : [];
+  const val = !selectEl.value
+    ? IC.el('select', { class: 'cg-val ic-select ic-select--sm', 'aria-label': 'Value' }, IC.el('option', { value: '' }, '--'))
+    : labels.length
+      ? IC.el('select', { class: 'cg-val ic-select ic-select--sm', 'aria-label': 'Value' },
+          ...labels.map(([code, label]) => IC.el('option', { value: code },
+            `${label} (${Number.isInteger(Number(code)) ? Number(code) : code})`)))  // 1.0 → 1
+      : IC.el('input', { type: 'number', step: 'any', class: 'cg-val ic-input ic-input--sm', placeholder: 'Value', 'aria-label': 'Value' });
+  old.replaceWith(val);
+  updateSummary();
+}
 
-  if (!varName) { valSelect.innerHTML = '<option value="">--</option>'; return; }
-
-  const v = metadata.variables.find(x => x.name === varName);
-  if (v && v.value_labels) {
-    for (const [code, label] of Object.entries(v.value_labels)) {
-      const opt = document.createElement('option');
-      opt.value = code;
-      opt.textContent = `${label} (${code})`;
-      valSelect.appendChild(opt);
-    }
-  } else {
-    // Numeric input fallback
-    valSelect.outerHTML = `<input type="number" step="any" class="cg-val ic-input ic-input--sm" placeholder="Value">`;
+// Conditions of one container (AND-ed), numbers as numbers
+function readConditions(containerId) {
+  const out = [];
+  for (const row of document.querySelectorAll(`#${containerId} > .cg-row`)) {
+    const variable = row.querySelector('.cg-var').value;
+    if (!variable) continue;
+    let value = row.querySelector('.cg-val')?.value;
+    const num = parseFloat(value);
+    if (!isNaN(num)) value = num;
+    out.push({ variable, operator: row.querySelector('.cg-op').value, value });
   }
+  return out;
 }
 
 function saveCustomGroup() {
   const name = document.getElementById('cg-name').value.trim();
   if (!name) { alert('Enter a group name'); return; }
 
-  const rows = document.querySelectorAll('#cg-conditions > div');
-  const conditions = [];
-  for (const row of rows) {
-    const varSel = row.querySelector('.cg-var');
-    const opSel = row.querySelector('.cg-op');
-    const valEl = row.querySelector('.cg-val');
-    if (!varSel?.value) continue;
-
-    let value = valEl?.value;
-    // Try to parse as number
-    const num = parseFloat(value);
-    if (!isNaN(num)) value = num;
-
-    conditions.push({ variable: varSel.value, operator: opSel.value, value });
-  }
+  const conditions = readConditions('cg-conditions');
 
   if (conditions.length === 0) { alert('Add at least one condition'); return; }
 
@@ -1205,16 +1326,14 @@ function renderCustomGroups() {
 function updateSummary() {
   const el = document.getElementById('spec-summary');
   if (!metadata) { el.textContent = 'Upload a file to get started'; return; }
-  const stubMode = document.querySelector('input[name="stub-mode"]:checked')?.value || 'all';
-  const nStubs = stubMode === 'all' ? 'all' : document.getElementById('stubs-select').selectedOptions.length || 'all';
-  const nMrs = Object.keys(mrsGroups).length;
-  const nGrid = Object.keys(gridGroups).length;
+  const included = currentTables().filter(t => !tablesOff.has(t.key));
   const nCg = customGroups.length;
   const parts = [];
   if (selectedBanners.length > 0) parts.push(`Banners: ${selectedBanners.join(' + ')}`);
-  parts.push(`Stubs: ${nStubs}`);
-  if (nMrs > 0) parts.push(`MRS: ${nMrs}`);
-  if (nGrid > 0) parts.push(`Grids: ${nGrid}`);
+  const nFilter = readConditions('filter-conditions').length;
+  if (nFilter) parts.push(`Filter: ${nFilter} condition${nFilter > 1 ? 's' : ''}`);
+  parts.push(`Tables: ${included.length}`);
+  renderTables();  // a question chosen as a banner leaves the Tables list
   if (nCg > 0) parts.push(`Custom: ${nCg}`);
   el.textContent = parts.join(' | ');
 }
@@ -1231,6 +1350,27 @@ function detectScaleVars() {
   }).map(v => ({ name: v.name, values: Object.keys(v.value_labels).map(Number).filter(x => !isNaN(x)).sort((a,b) => a-b) }));
 }
 
+// Two questions can share a label (e.g. the same question about two products): keep both groups
+function uniqueGroupName(groups, name) {
+  if (!(name in groups)) return name;
+  let i = 2;
+  while (`${name} (${i})` in groups) i++;
+  return `${name} (${i})`;
+}
+
+// "0.95" → one level; "0.999,0.95" → two (CAPITAL letters at the first, lowercase at the second)
+function sigLevels(value) {
+  const levels = value.split(',').map(Number);
+  return levels.length > 1 ? { significance_level: levels[0], significance_levels: levels } : { significance_level: levels[0] };
+}
+
+// Variables (and derived variables) given nets in Review data
+function reviewedNetNames() {
+  const cb = reviewedCodebook;
+  if (!cb) return [];
+  return [...(cb.variables || []), ...(cb.derived || [])].filter(v => v.name && (v.nets || []).length).map(v => v.name);
+}
+
 // ── Generate ──
 async function generate() {
   // Total-only export is valid — no banner selection required
@@ -1243,26 +1383,32 @@ async function generate() {
   progress.classList.remove('hidden'); result.classList.add('hidden'); error.classList.add('hidden');
   progressText.textContent = 'Uploading file and running crosstabs...';
 
-  const stubMode = document.querySelector('input[name="stub-mode"]:checked').value;
-  let stubs = ['_all_'];
-  if (stubMode === 'select') {
-    stubs = Array.from(document.getElementById('stubs-select').selectedOptions).map(o => o.value);
-    if (stubs.length === 0) stubs = ['_all_'];
-  }
+  // The Tables step: included tables, in order, with their titles
+  const tables = currentTables().filter(t => !tablesOff.has(t.key));
+  const stubs = tables.filter(t => t.kind === 'single').map(t => t.name);
+  const includedMrs = Object.fromEntries(tables.filter(t => t.kind === 'multi').map(t => [t.name, mrsGroups[t.name]]));
+  const includedGrids = Object.fromEntries(tables.filter(t => t.kind === 'grid').map(t => [t.name, gridGroups[t.name]]));
 
   const outputMode = document.querySelector('input[name="output-mode"]:checked')?.value || 'multi_sheet';
   const spec = {
     stubs,
-    significance_level: parseFloat(document.getElementById('sig-select').value),
+    table_order: tables.map(t => t.name),
+    table_titles: Object.fromEntries(tables.filter(t => t.kind === 'single' && tableTitles[t.name]).map(t => [t.name, tableTitles[t.name]])),
+    ...sigLevels(document.getElementById('sig-select').value),
     include_means: document.getElementById('opt-means').checked,
+    bonferroni: document.getElementById('opt-bonferroni').checked,
     include_total_column: true,
     output_mode: outputMode,
+    sort_rows: document.getElementById('opt-sort').checked,
+    custom_groups_label: document.getElementById('cg-banner-name').value.trim() || undefined,
     title: document.getElementById('title-input').value || undefined,
   };
 
   if (selectedBanners.length > 0) spec.banners = selectedBanners;
+  const filters = readConditions('filter-conditions');
+  if (filters.length) spec.filters = filters;
   if (customGroups.length > 0) spec.custom_groups = customGroups;
-  if (Object.keys(gridGroups).length > 0) spec.grid_groups = gridGroups;
+  if (Object.keys(includedGrids).length > 0) spec.grid_groups = includedGrids;
 
   const weight = document.getElementById('weight-select').value;
   if (weight) spec.weight = weight;
@@ -1270,7 +1416,8 @@ async function generate() {
   // Auto T2B/B2B — use preset_nets from backend when available, else local detection
   if (document.getElementById('opt-t2b').checked) {
     spec.nets = {};
-    const bannerSet = new Set(selectedBanners);
+    // Nets set in Review data come with the codebook; auto T2B/B2B would replace them
+    const bannerSet = new Set([...selectedBanners, ...reviewedNetNames()]);
     const presetNets = metadata.preset_nets || {};
     if (Object.keys(presetNets).length > 0) {
       // Use backend-detected nets (Likert-5, Likert-7, NPS scales)
@@ -1289,7 +1436,7 @@ async function generate() {
   }
 
   // MRS
-  if (Object.keys(mrsGroups).length > 0) spec.mrs_groups = mrsGroups;
+  if (Object.keys(includedMrs).length > 0) spec.mrs_groups = includedMrs;
 
   const form = new FormData();
   appendData(form);

@@ -100,9 +100,11 @@
   const icon = (name, size) => el('ic-icon', { name, size: size || 18 });
 
   // ── Nav ────────────────────────────────────────────────────
+  // Optional features (served by /static/config.js); everything on if it hasn't loaded
+  const FEATURES = Object.assign({ datasets: true, chat: true }, window.__INDICO_FEATURES__ || {});
   const NAV = [
     { key: 'home', label: 'Home', href: '/home', icon: 'home', paths: ['/home'] },
-    { key: 'datasets', label: 'Datasets', href: '/datasets', icon: 'database', paths: ['/datasets'] },
+    ...(FEATURES.datasets ? [{ key: 'datasets', label: 'Datasets', href: '/datasets', icon: 'database', paths: ['/datasets'] }] : []),
     { key: 'transformations', label: 'Transformations', href: '/review', icon: 'repeat', paths: ['/review'] },
     { key: 'workflows', label: 'Workflows', href: '/workflows', icon: 'workflow', paths: ['/workflows', '/export', '/app', '/express', '/wizard', '/export-mcp'] },
     { key: 'settings', label: 'Settings', href: '/settings', icon: 'settings', paths: ['/settings'] },
@@ -166,7 +168,7 @@
         const v = input.value.trim();
         location.href = '/datasets' + (v ? '?q=' + encodeURIComponent(v) : '');
       });
-      const search = el('div', { class: 'ic-search', role: 'search' }, icon('search', 16), input);
+      const search = el('div', { class: 'ic-search', role: 'search', hidden: !FEATURES.datasets }, icon('search', 16), input);
 
       const avatar = el('span', { class: 'ic-avatar', 'aria-hidden': 'true' });
       const name = el('span', { class: 'ic-user-name' });
@@ -296,5 +298,5 @@
     });
   }
 
-  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, greeting, fileIcon, toast, stepper, NAV };
+  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, greeting, fileIcon, toast, stepper, NAV, FEATURES };
 })();

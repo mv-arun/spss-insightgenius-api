@@ -25,7 +25,7 @@ to tables, exports, and wave comparisons.
 
 ### Non-goals
 - Coding open-ended comments into themes (explicitly out of scope).
-- A full drag-and-drop table designer like Displayr/Decipher. The review screen is
+- A full drag-and-drop table designer. The review screen is
   for checking and correcting the data, not for building reports.
 
 ## 2. Where we are (Phase 1, uncommitted)

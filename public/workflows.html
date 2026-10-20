@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/ui/ic.css">
+<script src="/static/config.js"></script>
 <script src="/static/ui/ic.js"></script>
 <style>
   .wf-list { display: grid; gap: 12px; }
@@ -56,7 +57,7 @@
           </span>
           <ic-icon class="wf-arrow" name="chevron-right" size="18"></ic-icon>
         </a>
-        <a class="ic-option" href="/export-mcp">
+        <a class="ic-option" href="/export-mcp" id="wf-chat">
           <span class="ic-option-icon"><ic-icon name="message" size="20"></ic-icon></span>
           <span>
             <span class="ic-option-title">AI chat</span>
@@ -70,5 +71,6 @@
     </main>
   </div>
 </div>
+<script>if (!IC.FEATURES.chat) document.getElementById('wf-chat').remove();</script>
 </body>
 </html>

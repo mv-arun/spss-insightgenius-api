@@ -1,6 +1,7 @@
 """QuantiPro API — SPSS processing microservice powered by QuantipyMRX + Haiku."""
 
 import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 
@@ -189,12 +190,14 @@ def create_application() -> FastAPI:
     app.include_router(downloads_router)
     app.include_router(file_upload_router)
     app.include_router(weight_router)
-    app.include_router(chat_router)
-    app.include_router(chat_stream_router)
+    if settings.enable_ai_chat:
+        app.include_router(chat_router)
+        app.include_router(chat_stream_router)
     app.include_router(wave_compare_router)
     app.include_router(keys_router)
     app.include_router(smart_spec_router)
-    app.include_router(library_router)
+    if settings.enable_datasets:
+        app.include_router(library_router)
     app.include_router(codebook_router)
     app.include_router(setups_router)
     app.include_router(exports_router)
@@ -221,8 +224,9 @@ def create_application() -> FastAPI:
     async def demo_config():
         demo_key = settings.demo_api_key or "demo"
         from starlette.responses import Response
+        features = json.dumps({"datasets": settings.enable_datasets, "chat": settings.enable_ai_chat})
         return Response(
-            content=f"window.__INDICO_CROSSTAB_DEMO_KEY__ = '{demo_key}';",
+            content=f"window.__INDICO_CROSSTAB_DEMO_KEY__ = '{demo_key}';\nwindow.__INDICO_FEATURES__ = {features};",
             media_type="application/javascript",
         )
 
@@ -274,6 +278,11 @@ def create_application() -> FastAPI:
             "/export-mcp": "chat.html",
             "/settings": "settings.html",
         }
+        if not settings.enable_datasets:
+            for path in ("/datasets", "/datasets/upload", "/datasets/{library_id}"):
+                del app_pages[path]
+        if not settings.enable_ai_chat:
+            del app_pages["/export-mcp"]
         for path, name in app_pages.items():
             app.add_api_route(path, signed_in_page(name), methods=["GET"], include_in_schema=False)
 

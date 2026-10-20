@@ -27,7 +27,10 @@ from openpyxl.utils import get_column_letter
 from scipy import stats
 
 from services.data_loader import is_non_substantive
-from shared.significance import low_base_marker, significant_at, t_test_means, z_test_proportions
+from services.quantipy_engine import value_text
+from shared.significance import (
+    low_base_marker, multiple_comparison_correction, significant_at, t_test_means, z_test_proportions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +117,8 @@ class TabulateSpec:
     # Two-level testing (Decipher style): e.g. [0.95, 0.90] → CAPITAL letters at 95%,
     # lowercase at 90%. When set, significance_level becomes the highest level.
     significance_levels: list[float] | None = None
+    # Bonferroni-correct pairwise column tests. Turn off to match uncorrected column letters.
+    bonferroni: bool = True
     # Low-sample markers on bases: "*" below low_base_warn, "**" below low_base_flag (0 = off)
     low_base_warn: int = 100
     low_base_flag: int = 30
@@ -124,7 +129,12 @@ class TabulateSpec:
     grid_mode: str = "individual"  # "individual" (each var as crosstab) or "summary" (compact T2B/Mean table)
     include_means: bool = False
     include_total_column: bool = True  # Total as first column (T2-5)
-    output_mode: str = "multi_sheet"  # "multi_sheet" or "single_sheet"
+    output_mode: str = "multi_sheet"  # "multi_sheet", "single_sheet" or "banner_sheets"
+    custom_groups_label: str = "Custom Groups"  # banner name of the custom groups ("By Data Cut")
+    sort_rows: bool = False  # banner_sheets: answers by Total, highest first ("Other" / "None" stay last)
+    # banner_sheets: tables in this order (stub variables and group names; others follow) and their titles
+    table_order: list[str] | None = None
+    table_titles: dict[str, str] | None = None
     show_counts: bool = True
     show_percentages: bool = True
     show_chi2: bool = True  # Chi-square p-value in Excel headers (Story #9)
@@ -155,9 +165,11 @@ class TabulateSpec:
 
     @property
     def significance_levels_text(self) -> str:
+        def pct(level: float) -> str:  # 99.9% stays 99.9%, not 100%
+            return f"{level * 100:.1f}".rstrip("0").rstrip(".") + "%"
         if self.secondary_level is None:
-            return f"{self.significance_level:.0%}"
-        return f"{self.significance_level:.0%} (CAPITALS) / {self.secondary_level:.0%} (lowercase)"
+            return pct(self.significance_level)
+        return f"{pct(self.significance_level)} (CAPITALS) / {pct(self.secondary_level)} (lowercase)"
 
     @property
     def low_base_text(self) -> str:
@@ -171,6 +183,8 @@ class TabulateSpec:
     @property
     def significance_note(self) -> str:
         note = f"Significance: {self.significance_levels_text} confidence"
+        if not self.bonferroni:
+            note += ", no multiple-comparison correction"
         return note + (f" | {self.low_base_text}" if self.low_base_text else "")
 
     def base_marker(self, base: float) -> str:
@@ -226,6 +240,7 @@ class SheetResult:
     mrs_members: list[str] | None = None
     is_grid: bool = False
     grid_data: dict[str, Any] | None = None  # {"variables": [...], "metrics": {...}}
+    group: str | None = None  # grid group this variable's table belongs to (individual mode)
 
 
 @dataclass
@@ -245,6 +260,11 @@ class TabulationResult:
 
 def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> TabulationResult:
     """Run all crosstabs and build the Excel workbook. CPU-bound — call via asyncio.to_thread()."""
+    with multiple_comparison_correction(spec.bonferroni):
+        return _build_tabulation(engine_cls, data, spec)
+
+
+def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> TabulationResult:
     from services.quantipy_engine import QuantiProEngine
 
     df = data.df
@@ -284,9 +304,9 @@ def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulati
         for cv in col_values:
             banner_columns.append(BannerColumn(
                 banner_var=banner_var,
-                banner_label=col_labels.get(banner_var, banner_var),
+                banner_label=col_labels.get(banner_var) or banner_var,
                 value=str(cv),
-                value_label=vl.get(cv, str(cv)),
+                value_label=vl.get(cv, value_text(cv)),
                 letter="" if is_total else all_letters[letter_idx],
                 banner_index=b_idx,
             ))
@@ -294,20 +314,43 @@ def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulati
                 letter_idx += 1
 
     # ── Custom groups as virtual banner columns ──
-    # Each group is its own 0/1 column (1 = in the group, NaN = not), so overlapping
-    # groups (a respondent in a role group and a setting group) keep their full base.
+    # Groups that never overlap (PsO / PsA / UC-CD) become one banner variable, coded
+    # 1..k, so they are tested against each other like any other banner.
+    # Overlapping groups (a role group and a setting group) can't share one column:
+    # each is its own 0/1 column (1 = in the group, NaN = not) and keeps its full base.
     vvl = getattr(meta, "variable_value_labels", {})
     cnl = getattr(meta, "column_names_to_labels", {})
-    for gi, cg in enumerate(spec.parsed_custom_groups):
+    group_masks = [_apply_group_mask(df, cg.conditions) for cg in spec.parsed_custom_groups]
+    exclusive = len(group_masks) > 1 and int(sum(m.astype(int) for m in group_masks).max()) <= 1
+    if exclusive:
+        cg_col = "_custom_groups_"
+        codes = pd.Series(np.nan, index=df.index)
+        for gi, mask in enumerate(group_masks):
+            codes[mask] = float(gi + 1)
+        df[cg_col] = codes
+        vvl[cg_col] = {float(gi + 1): cg.name for gi, cg in enumerate(spec.parsed_custom_groups)}
+        cnl[cg_col] = spec.custom_groups_label
+        banners = list(banners) + [cg_col]
+        for gi, cg in enumerate(spec.parsed_custom_groups):
+            banner_columns.append(BannerColumn(
+                banner_var=cg_col,
+                banner_label=spec.custom_groups_label,
+                value=str(float(gi + 1)),
+                value_label=cg.name,
+                letter=all_letters[letter_idx],
+                banner_index=len(banners) - 1,
+            ))
+            letter_idx += 1
+    for gi, cg in enumerate([] if exclusive else spec.parsed_custom_groups):
         cg_col = f"_custom_group_{gi + 1}_"
-        mask = _apply_group_mask(df, cg.conditions)
+        mask = group_masks[gi]
         df[cg_col] = pd.Series(np.nan, index=df.index).where(~mask, 1.0)
         vvl[cg_col] = {1.0: cg.name}
         cnl[cg_col] = cg.name
         banners = list(banners) + [cg_col]
         banner_columns.append(BannerColumn(
             banner_var=cg_col,
-            banner_label="Custom Groups",
+            banner_label=spec.custom_groups_label,
             value="1.0",
             value_label=cg.name,
             letter=all_letters[letter_idx],
@@ -355,7 +398,7 @@ def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulati
                 children_info = []
                 for cv in child_vals:
                     combined_key = f"{pv}|{cv}"
-                    c_label = child_vl.get(cv, str(cv)) if child_vl else str(cv)
+                    c_label = child_vl.get(cv, value_text(cv)) if child_vl else value_text(cv)
                     combined_vl[combined_key] = c_label
 
                     banner_columns.append(BannerColumn(
@@ -399,7 +442,7 @@ def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulati
             })
 
     # ── Resolve stubs ──
-    if spec.stubs == ["_all_"] or not spec.stubs:
+    if spec.stubs == ["_all_"]:  # an empty list means no single-question tables (only groups)
         value_labels = getattr(meta, "variable_value_labels", {})
         banner_set = set(banners)
         # Collect variables that belong to MRS or Grid groups — they're exported as group sheets
@@ -471,16 +514,7 @@ def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulati
         # Apply per-stub filter if configured
         stub_data, filtered = _apply_stub_filter(data, stub)
         try:
-            # Run crosstab against FIRST banner (primary), store all banner results
-            all_banner_results = {}
-            for banner_var in banners:
-                ct = QuantiProEngine.crosstab_with_significance(
-                    stub_data, row=stub, col=banner_var,
-                    weight=spec.weight,
-                    significance_level=spec.significance_level,
-                    secondary_level=spec.secondary_level,
-                )
-                all_banner_results[banner_var] = ct
+            all_banner_results = _crosstabs_by_banner(QuantiProEngine, stub_data, stub, banners, spec)
 
             sheet = SheetResult(
                 variable=stub,
@@ -536,7 +570,7 @@ def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulati
         else:
             # Individual mode: each variable gets its own crosstab with auto-nets
             from services.quantipy_engine import _strip_common_label_prefix
-            grid_labels = [col_labels.get(v, v) for v in gvars if v in df.columns]
+            grid_labels = [col_labels.get(v) or v for v in gvars if v in df.columns]
             stripped = _strip_common_label_prefix(grid_labels)
             label_map = dict(zip([v for v in gvars if v in df.columns], stripped))
 
@@ -547,20 +581,12 @@ def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulati
                 if df[gvar].dtype == object or df[gvar].dtype.kind in ('U', 'S', 'O'):
                     continue
                 try:
-                    all_banner_results = {}
-                    for banner_var in banners:
-                        ct = engine_cls.crosstab_with_significance(
-                            data, row=gvar, col=banner_var,
-                            weight=spec.weight,
-                            significance_level=spec.significance_level,
-                            secondary_level=spec.secondary_level,
-                        )
-                        all_banner_results[banner_var] = ct
+                    all_banner_results = _crosstabs_by_banner(engine_cls, data, gvar, banners, spec)
                     # Use stripped label for the variable
                     var_label = label_map.get(gvar, col_labels.get(gvar, gvar))
                     sheet = SheetResult(
                         variable=gvar, label=var_label, status="success",
-                        crosstab_data=all_banner_results,
+                        crosstab_data=all_banner_results, group=grid_name,
                     )
                     # Auto-add T2B/B2B nets for this variable
                     gvar_vl = getattr(meta, "variable_value_labels", {}).get(gvar, {})
@@ -584,6 +610,30 @@ def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulati
 
     result.excel_bytes = _build_excel(result, spec, data)
     return result
+
+
+def _crosstabs_by_banner(engine_cls: Any, data: Any, stub: str, banners: list[str],
+                         spec: TabulateSpec) -> dict[str, dict[str, Any]]:
+    """One crosstab per banner. A banner with nobody answering the stub (a question asked
+    only of PsA patients, crossed with a PsO-only group) gets an empty table, so its
+    columns show '-' instead of failing the whole stub. Raises when no banner has data."""
+    out = {}
+    for banner_var in banners:
+        has_data = data.df[[stub, banner_var]].dropna().shape[0] > 0
+        if not has_data:
+            out[banner_var] = {"row_variable": stub, "col_variable": banner_var,
+                               "total_responses": 0, "table": [], "col_labels": {},
+                               "col_value_labels": {}, "significant_pairs": []}
+            continue
+        out[banner_var] = engine_cls.crosstab_with_significance(
+            data, row=stub, col=banner_var,
+            weight=spec.weight,
+            significance_level=spec.significance_level,
+            secondary_level=spec.secondary_level,
+        )
+    if not any(ct.get("total_responses") or ct.get("table") for ct in out.values()):
+        raise ValueError(f"No valid observations for {stub}")
+    return out
 
 
 def _mrs_crosstab(
@@ -619,7 +669,7 @@ def _mrs_crosstab(
 
     # Strip common label prefix for MRS (e.g., "What treatments...? -Otezla" → "Otezla")
     from services.quantipy_engine import _strip_common_label_prefix
-    raw_labels = [col_labels.get(m, m) for m in valid_members]
+    raw_labels = [col_labels.get(m) or m for m in valid_members]
     stripped_labels = _strip_common_label_prefix(raw_labels)
     _member_label_map = dict(zip(valid_members, stripped_labels))
 
@@ -691,13 +741,20 @@ def _mrs_crosstab(
         "col_variable": col,
         "total_responses": len(valid),
         "is_mrs": True,
-        "col_bases": {str(cv): int(col_bases[cv]) for cv in col_values},
+        "col_bases": {str(cv): col_bases[cv] for cv in col_values},
         "table": table,
         "col_labels": col_letter_map,
-        "col_value_labels": {str(v): col_vl.get(v, str(v)) for v in col_values},
+        "col_value_labels": {str(v): col_vl.get(v, value_text(v)) for v in col_values},
         "significance_level": sig_level,
         "significant_pairs": [],
     }
+
+
+def _column_has_data(ct: dict, value: str) -> bool:
+    """Whether anyone in this banner column answered (a 0% over a base of 0 is shown as '-')."""
+    if ct.get("is_mrs") and ct.get("col_bases"):
+        return ct["col_bases"].get(value, 0) > 0
+    return any(isinstance(rd.get(value), dict) and rd[value].get("count", 0) > 0 for rd in ct.get("table", []))
 
 
 def _crosstab_letters(local: list[str], ct: dict, bc: "BannerColumn", banner_columns: list) -> list[str]:
@@ -973,6 +1030,10 @@ def _compute_means_by_column(
 # ── Excel builder ──
 
 def _build_excel(result: TabulationResult, spec: TabulateSpec, data: Any) -> bytes:
+    if spec.output_mode == "banner_sheets":
+        from services.banner_workbook import build_banner_workbook
+        return build_banner_workbook(result, spec, data)
+
     wb = Workbook()
 
     # Executive Summary sheet (Story #4) — before Summary if available
@@ -1286,7 +1347,7 @@ def _write_crosstab_sheet(ws, sheet_result: SheetResult, spec: TabulateSpec, dat
                 if rd.get("row_value") == rv:
                     cell_data = rd.get(bc.value, {})
                     break
-            if not isinstance(cell_data, dict):
+            if not isinstance(cell_data, dict) or not _column_has_data(ct, bc.value):
                 ws.cell(row=current_row, column=2 + i, value="-").font = COUNT_FONT
                 ws.cell(row=current_row, column=2 + i).alignment = CENTER
                 continue
@@ -1781,7 +1842,7 @@ def _write_single_sheet(ws, result: TabulationResult, spec: TabulateSpec, data: 
                     if rd.get("row_value") == rv:
                         cell_data = rd.get(bc.value, {})
                         break
-                if not isinstance(cell_data, dict):
+                if not isinstance(cell_data, dict) or not _column_has_data(ct, bc.value):
                     ws.cell(row=current_row, column=2 + i, value="-").font = COUNT_FONT
                     ws.cell(row=current_row, column=2 + i).alignment = CENTER
                     continue

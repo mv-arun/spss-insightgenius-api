@@ -19,7 +19,7 @@ import pyreadstat
 from scipy import stats
 from statsmodels.stats.proportion import proportions_ztest
 
-from shared.significance import significant_at, z_test_proportions
+from shared.significance import bonferroni_on, significant_at, z_test_proportions
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,13 @@ def _sanitize_value(v: Any) -> Any:
     return v
 
 
+def value_text(v: Any) -> str:
+    """A code shown where a value has no label: 3.0 → '3', 2.5 → '2.5', 'x' → 'x'."""
+    if isinstance(v, (float, np.floating)) and float(v).is_integer():
+        return str(int(v))
+    return str(v)
+
+
 def _get_user_missing(variable: str, meta: Any) -> set:
     """Get SPSS user-defined missing values for a variable."""
     if not meta:
@@ -100,6 +107,11 @@ def _strip_common_label_prefix(labels: list[str]) -> list[str]:
             prefix = prefix[:-1]
             if not prefix:
                 return labels
+    # End the prefix at a separator, so options sharing first words ("Concerns with
+    # safety" / "Concerns with cost", "Ask for a X" / "Ask for a Y") keep them
+    if not prefix.endswith(tuple(":;-–—/?")):
+        cut = max(prefix.rfind(ch) for ch in ":;-–—/?")
+        prefix = prefix[:cut + 1] if cut >= 0 else ""
     if len(prefix) < 5:
         return labels
     cleaned = []
@@ -233,7 +245,7 @@ def _crosstab_via_mrx(
             row_label = str(mrx_rv)
         else:
             numeric_rv = mrx_rv
-            row_label = row_vl.get(mrx_rv, str(mrx_rv))
+            row_label = row_vl.get(mrx_rv, value_text(mrx_rv))
 
         row_data: dict[str, Any] = {
             "row_value": _sanitize_value(numeric_rv),
@@ -261,7 +273,7 @@ def _crosstab_via_mrx(
             }
         table.append(row_data)
 
-    col_vl_map = {str(v): col_vl.get(v, str(v)) for v in col_values}
+    col_vl_map = {str(v): col_vl.get(v, value_text(v)) for v in col_values}
     raw_total = ct.total_base if ct.total_base else ct.counts.sum().sum()
     total = _sanitize_value(raw_total) or 0
 
@@ -742,8 +754,9 @@ class QuantiProEngine:
             raise ValueError(f"Column variable '{col}' not found in dataset")
 
         # Try MRX native crosstab first — validate result before using.
-        # MRX tests a single level, so two-level requests use the pandas path.
-        if data.mrx_dataset is not None and secondary_level is None:
+        # MRX tests a single level with its own correction, so two-level requests and
+        # runs without Bonferroni use the pandas path.
+        if data.mrx_dataset is not None and secondary_level is None and bonferroni_on():
             try:
                 result = _crosstab_via_mrx(data, row, col, weight, significance_level)
                 if result is not None:
@@ -803,7 +816,7 @@ class QuantiProEngine:
             for row_val in weighted_ct.index:
                 row_data = {
                     "row_value": _sanitize_value(row_val),
-                    "row_label": row_value_labels.get(row_val, str(row_val)),
+                    "row_label": row_value_labels.get(row_val, value_text(row_val)),
                 }
                 for i, cv in enumerate(col_values):
                     wc = float(weighted_ct.loc[row_val, cv]) if cv in weighted_ct.columns else 0
@@ -848,7 +861,7 @@ class QuantiProEngine:
                         row_data[str(cv)]["significance_letters_secondary"] = sorted(set(sig_letters2))
                 table.append(row_data)
 
-            col_vl_map = {str(v): col_value_labels.get(v, str(v)) for v in col_values}
+            col_vl_map = {str(v): col_value_labels.get(v, value_text(v)) for v in col_values}
             return {
                 "row_variable": row,
                 "col_variable": col,
@@ -877,7 +890,7 @@ class QuantiProEngine:
         for row_val in crosstab.index:
             row_data = {
                 "row_value": _sanitize_value(row_val),
-                "row_label": row_value_labels.get(row_val, str(row_val)),
+                "row_label": row_value_labels.get(row_val, value_text(row_val)),
             }
             for i, cv in enumerate(col_values):
                 count = int(crosstab.loc[row_val, cv])
@@ -920,7 +933,7 @@ class QuantiProEngine:
                     row_data[str(cv)]["significance_letters_secondary"] = sorted(set(sig_letters2))
             table.append(row_data)
 
-        col_vl_map = {str(v): col_value_labels.get(v, str(v)) for v in col_values}
+        col_vl_map = {str(v): col_value_labels.get(v, value_text(v)) for v in col_values}
         return {
             "row_variable": row,
             "col_variable": col,

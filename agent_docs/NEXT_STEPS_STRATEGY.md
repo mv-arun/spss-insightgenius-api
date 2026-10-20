@@ -22,8 +22,8 @@
 ### The Platform Vision (NEW — Apr 2026)
 
 > **The Stripe of market research.**
-> Displayr charges $175/mo per seat. We charge per API call.
-> A developer with Lovable builds their own Displayr in a weekend using our engine.
+> Desktop tabulation tools charge per seat. We charge per API call.
+> A developer with Lovable builds their own tabulation product in a weekend using our engine.
 > Our customer is the BUILDER, not the end-user.
 
 ---

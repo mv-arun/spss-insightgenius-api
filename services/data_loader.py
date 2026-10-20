@@ -70,7 +70,7 @@ def load_data(file_bytes: bytes, filename: str = "upload.sav", codebook: Codeboo
     Raises:
         ValueError: unsupported format or unreadable file contents.
     """
-    if file_format(filename) in SPSS_FORMATS:
+    if file_format(filename) in SPSS_FORMATS and codebook is None:
         return QuantiProEngine.load_spss(file_bytes, filename)
     data, _ = load_with_codebook(file_bytes, filename, codebook)
     return data
@@ -82,7 +82,12 @@ def load_with_codebook(
     """Load a file and return the codebook that was applied (inferred if none given)."""
     if file_format(filename) in SPSS_FORMATS:
         data = QuantiProEngine.load_spss(file_bytes, filename)
-        return data, codebook_from_spss(file_bytes, data, filename)
+        if codebook is None:
+            return data, codebook_from_spss(file_bytes, data, filename)
+        # An edited SPSS codebook (labels, nets, excluded codes, combined questions) is
+        # applied like any other: the file's own values are its "raw" answers.
+        coded = apply_codebook(data.df, codebook)
+        return QuantiProEngine.load_spss(write_sav(coded), filename), codebook
 
     raw = read_raw(file_bytes, filename)
     codebook = codebook or infer_codebook(raw)
@@ -99,8 +104,9 @@ def describe_file(file_bytes: bytes, filename: str, codebook: Codebook | None = 
     """Codebook with counts + summary: how every column of the file is (or would be) coded."""
     if file_format(filename) in SPSS_FORMATS:
         data = QuantiProEngine.load_spss(file_bytes, filename)
-        cb = codebook_from_spss(file_bytes, data, filename)
-        columns, unmatched = {c: data.df[c] for c in data.df.columns}, {}
+        cb = codebook or codebook_from_spss(file_bytes, data, filename)
+        coded = apply_codebook(data.df, cb)
+        columns, unmatched = coded.columns, coded.unmatched
     else:
         raw = read_raw(file_bytes, filename)
         cb = codebook or infer_codebook(raw)
@@ -113,11 +119,13 @@ def describe_file(file_bytes: bytes, filename: str, codebook: Codebook | None = 
 def edit_codebook(file_bytes: bytes, filename: str, edits: list[dict], codebook: Codebook | None = None) -> dict:
     """Apply edits to the file's codebook (inferred if none given) → described result.
 
-    Raises EditError for invalid edits and ValueError for SPSS files (their codebook is
-    their own metadata; editing it isn't supported yet).
+    An SPSS file starts from its own metadata (codebook_from_spss); its values are the
+    answers the edits refer to. Raises EditError for invalid edits.
     """
     if file_format(filename) in SPSS_FORMATS:
-        raise ValueError("Editing the codebook of an SPSS file isn't supported yet (it uses the file's own labels)")
+        data = QuantiProEngine.load_spss(file_bytes, filename)
+        edited = apply_ops(codebook or codebook_from_spss(file_bytes, data, filename), edits, data.df)
+        return describe_file(file_bytes, filename, edited)
     raw = read_raw(file_bytes, filename)
     edited = apply_ops(codebook or infer_codebook(raw), edits, raw.df)
     return describe_file(file_bytes, filename, edited)

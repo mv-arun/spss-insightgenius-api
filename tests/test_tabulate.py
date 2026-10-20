@@ -1,6 +1,8 @@
 """Tests for POST /v1/tabulate endpoint — including Tier 1 features."""
 
 import json
+
+import pytest
 import io
 from openpyxl import load_workbook
 
@@ -420,3 +422,175 @@ def test_tabulate_custom_groups_only_shows_answer_rows(client, auth_headers, tes
         ws = wb["satisfaction"] if mode == "multi_sheet" else wb[wb.sheetnames[-1]]
         labels = {str(r[0]) for r in ws.iter_rows(values_only=True)}
         assert {"Very dissatisfied", "Neutral", "Very satisfied"} <= labels, mode
+
+
+def _sav(tmp_path, df, value_labels=None):
+    """Write a small .sav and return its bytes."""
+    import pyreadstat
+    path = tmp_path / "t.sav"
+    pyreadstat.write_sav(df, str(path), variable_value_labels=value_labels or {})
+    return path.read_bytes()
+
+
+def _tabulate(client, auth_headers, sav_bytes, spec):
+    resp = client.post("/v1/tabulate", headers=auth_headers,
+                       files={"file": ("t.sav", sav_bytes, "application/octet-stream")},
+                       data={"spec": json.dumps(spec)})
+    assert resp.status_code == 200, resp.text
+    return resp, load_workbook(io.BytesIO(resp.content))
+
+
+def _three_groups_df():
+    """Three cuts of 30. 'barrier' is picked by 4/30, 11/30 and 8/30: B vs A gives p ≈ 0.037,
+    significant at 95% but not after Bonferroni over three pairs (alpha 0.0167)."""
+    import pandas as pd
+    cut = [1.0] * 30 + [2.0] * 30 + [3.0] * 30
+    barrier = [1.0] * 4 + [0.0] * 26 + [1.0] * 11 + [0.0] * 19 + [1.0] * 8 + [0.0] * 22
+    only_b = [None] * 30 + [1.0, 2.0] * 15 + [None] * 30          # asked of cut 2 only
+    return pd.DataFrame({"cut": cut, "barrier": barrier, "only_b": only_b})
+
+
+_THREE_GROUPS = [
+    {"name": f"Cut {i}", "conditions": [{"variable": "cut", "operator": "eq", "value": float(i)}]}
+    for i in (1, 2, 3)
+]
+_LABELS = {"barrier": {0.0: "No", 1.0: "Yes"}, "only_b": {1.0: "One", 2.0: "Two"}}
+
+
+def test_tabulate_exclusive_custom_groups_are_tested_against_each_other(client, auth_headers, tmp_path):
+    """Non-overlapping custom groups share one banner, so their columns get sig letters."""
+    sav = _sav(tmp_path, _three_groups_df(), _LABELS)
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "stubs": ["barrier"], "custom_groups": _THREE_GROUPS, "bonferroni": False})
+    rows, headers = _crosstab_rows(wb["barrier"])
+    yes = dict(zip(headers, rows["Yes"]))
+    assert yes["Cut 2"].endswith(" A"), yes          # 36.7% beats Cut 1's 13.3%
+    assert dict(zip(headers, rows["Base (N)"]))["Cut 1"] == 30
+
+
+def test_tabulate_bonferroni_switch(client, auth_headers, tmp_path):
+    """p ≈ 0.037 is significant without correction and not with Bonferroni (the default)."""
+    sav = _sav(tmp_path, _three_groups_df(), _LABELS)
+    for bonferroni, expect_letter in ((True, False), (False, True)):
+        _, wb = _tabulate(client, auth_headers, sav, {
+            "stubs": ["barrier"], "custom_groups": _THREE_GROUPS, "bonferroni": bonferroni})
+        rows, headers = _crosstab_rows(wb["barrier"])
+        cell = dict(zip(headers, rows["Yes"]))["Cut 2"]
+        assert cell.endswith(" A") is expect_letter, (bonferroni, cell)
+        assert ("no multiple-comparison correction" in wb["barrier"].cell(row=2, column=1).value) is not bonferroni
+
+
+def test_tabulate_question_asked_of_one_group_keeps_its_table(client, auth_headers, tmp_path):
+    """A banner column with nobody answering shows '-' instead of failing the whole table."""
+    sav = _sav(tmp_path, _three_groups_df(), _LABELS)
+    resp, wb = _tabulate(client, auth_headers, sav, {"stubs": ["only_b"], "custom_groups": _THREE_GROUPS})
+    assert resp.headers["X-Stubs-Success"] == "1"
+    rows, headers = _crosstab_rows(wb["only_b"])
+    bases = dict(zip(headers, rows["Base (N)"]))
+    assert (bases["Cut 1"], bases["Cut 2"], bases["Cut 3"]) == (0, 30, 0)
+    assert dict(zip(headers, rows["One"]))["Cut 1"] == "-"
+
+
+def test_tabulate_unlabelled_codes_print_as_whole_numbers(client, auth_headers, tmp_path):
+    """A ranking item without value labels shows rows '1', '2', not '1.0', '2.0'."""
+    import pandas as pd
+    df = pd.DataFrame({"g": [1.0, 2.0] * 10, "rank_a": [1.0, 2.0, 3.0, 2.0] * 5})
+    sav = _sav(tmp_path, df, {"g": {1.0: "M", 2.0: "F"}})
+    _, wb = _tabulate(client, auth_headers, sav, {"banner": "g", "grid_groups": {"Rank": {"variables": ["rank_a"], "show": ["rank"]}}, "stubs": ["g"]})
+    rows, _ = _crosstab_rows(wb["rank_a"])
+    assert {"1", "2", "3"} <= set(rows), list(rows)
+
+
+def _block(ws, title):
+    """Rows of one table in a Total/banner sheet, from its title to its footer."""
+    rows = [list(r) for r in ws.iter_rows(values_only=True)]
+    start = next(i for i, r in enumerate(rows) if r[0] == title)
+    end = next(i for i in range(start + 1, len(rows)) if rows[i][0] in (title, f"{title} SUMMARY"))  # Total: "… SUMMARY"
+    return rows[start:end + 2]
+
+
+def test_tabulate_banner_sheets_layout(client, auth_headers, tmp_path):
+    """Total / By <banner> / Stat sheets; fractions, NET, Column Sample Size, letters, empty columns."""
+    sav = _sav(tmp_path, _three_groups_df(), _LABELS)
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "stubs": ["barrier", "only_b"], "custom_groups": _THREE_GROUPS, "bonferroni": False,
+        "output_mode": "banner_sheets", "custom_groups_label": "Data Cut"})
+    assert wb.sheetnames == ["Total", "By Data Cut", "By Data Cut (Stat)"]
+
+    block = _block(wb["By Data Cut"], "barrier by Data Cut")
+    assert block[1][:5] == ["Column %", "Cut 1", "Cut 2", "Cut 3", "Total"]
+    rows = {r[0]: r[1:5] for r in block[2:] if r[0]}
+    assert rows["Yes"] == pytest.approx([4 / 30, 11 / 30, 8 / 30, 23 / 90])   # fractions, not "13.3%"
+    assert rows["NET"] == [1, 1, 1, 1]
+    assert rows["Column Sample Size"] == [30, 30, 30, 90]
+    assert block[-1][0] == "sample size = 90"
+
+    empty = {r[0]: r[1:5] for r in _block(wb["By Data Cut"], "only_b by Data Cut")[2:] if r[0]}
+    assert empty["One"][0] is None and empty["Column Sample Size"] == [0, 30, 0, 30]
+
+    stat = _block(wb["By Data Cut (Stat)"], "barrier by Data Cut")
+    yes = next(i for i, r in enumerate(stat) if r[0] == "Yes")
+    assert [v or "" for v in stat[yes + 1][1:5]] == ["", "A", "", "-"]   # Cut 2 > Cut 1; Total untested
+    assert any(r[0] == "Column Names" for r in stat)
+
+    total = {r[0]: r[1] for r in _block(wb["Total"], "barrier")[2:] if r[0]}
+    assert total["Yes"] == pytest.approx(23 / 90) and total["NET"] == 1
+
+
+def test_tabulate_banner_sheets_merged_nets_and_grids(client, auth_headers, tmp_path):
+    """Nets that split every answer replace the answers; a grid group is one table with its items side by side."""
+    import pandas as pd
+    df = _three_groups_df().assign(r1=[1.0, 2.0, 3.0] * 30, r2=[3.0, 3.0, 1.0] * 30)
+    labels = {**_LABELS, "r1": {1.0: "Low", 2.0: "Mid", 3.0: "High"}, "r2": {1.0: "Low", 2.0: "Mid", 3.0: "High"}}
+    sav = _sav(tmp_path, df, labels)
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "stubs": ["barrier"], "custom_groups": _THREE_GROUPS, "output_mode": "banner_sheets",
+        "grid_groups": {"Ratings": {"variables": ["r1", "r2"], "show": []}},
+        "nets": {"r1": {"Low + Mid": [1, 2], "High": [3]}, "r2": {"Low + Mid": [1, 2], "High": [3]}}})
+    block = _block(wb["By Custom Groups"], "Ratings by Custom Groups")
+    labels_col = [r[0] for r in block]
+    assert "Low + Mid" in labels_col and "High" in labels_col and "Low" not in labels_col   # merge
+    header_items = [v for v in block[1][1:] if v]
+    assert len(header_items) == 2                                       # r1 and r2 as column groups
+    low_mid = next(r for r in block if r[0] == "Low + Mid")
+    assert low_mid[4] == pytest.approx(2 / 3) and low_mid[8] == pytest.approx(1 / 3)   # Total of r1, r2
+
+
+def test_tabulate_banner_sheets_table_order_and_titles(client, auth_headers, tmp_path):
+    """Tables follow table_order (variables and group names) and take table_titles."""
+    sav = _sav(tmp_path, _three_groups_df(), _LABELS)
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "stubs": ["barrier", "only_b"], "custom_groups": _THREE_GROUPS, "output_mode": "banner_sheets",
+        "table_order": ["only_b", "barrier"], "table_titles": {"barrier": "Q10: Barriers"}})
+    titles = [r[0] for r in wb["Total"].iter_rows(values_only=True)
+              if r[0] and r[1] is None and not str(r[0]).startswith(("sample size", "Total")) and "SUMMARY" not in str(r[0])]
+    assert titles == ["only_b", "Q10: Barriers"]
+
+
+def test_banner_sheets_excel_names_and_wide_grid(client, auth_headers, tmp_path):
+    import pandas as pd
+    df = pd.DataFrame({"banner": [float(i) for i in range(1, 27)] * 2,
+                       "q1": [1.0, 2.0] * 26, "q2": [2.0, 1.0] * 26})
+    sav = _sav(tmp_path, df, {"q1": {1.0: "Yes", 2.0: "No"},
+                              "q2": {1.0: "Yes", 2.0: "No"}})
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "banners": ["banner"], "stubs": [], "output_mode": "banner_sheets",
+        "grid_groups": {"Grid": {"variables": ["q1", "q2"], "show": []}}})
+    assert any("AA" in row for row in wb["By banner (Stat)"].iter_rows(values_only=True))
+    from services.banner_workbook import _sheet
+    first = _sheet(wb, "By age/gender: " + "x" * 40)
+    second = _sheet(wb, "By age/gender: " + "x" * 40)
+    assert first.title != second.title
+    assert all(len(s) <= 31 and not any(c in s for c in "\\/*?:[]") for s in wb.sheetnames)
+
+
+def test_banner_sheets_weighted_multi_net(client, auth_headers, tmp_path):
+    import pandas as pd
+    df = pd.DataFrame({"a": [1.0, 0.0, 0.0], "b": [0.0, 1.0, 0.0],
+                       "weight": [1.25, 2.5, 0.5]})
+    sav = _sav(tmp_path, df, {})
+    _, wb = _tabulate(client, auth_headers, sav, {
+        "stubs": [], "mrs_groups": {"Choices": ["a", "b"]},
+        "weight": "weight", "output_mode": "banner_sheets"})
+    rows = {r[0]: r[1] for r in _block(wb["Total"], "Choices")[2:] if r[0]}
+    assert rows["NET"] == pytest.approx(3.75 / 4.25)

@@ -161,7 +161,7 @@ Full professional Excel with sig, nets, means, MRS, grids.
 | significance_level | float | no | Default 0.95 |
 | weight | string | no | Weight variable |
 | include_means | bool | no | Default false |
-| output_mode | string | no | "multi_sheet" or "single_sheet" |
+| output_mode | string | no | "multi_sheet", "single_sheet", or "banner_sheets" |
 | nets | object | no | Net definitions |
 | mrs_groups | object | no | MRS groups |
 | grid_groups | object | no | Grid groups |

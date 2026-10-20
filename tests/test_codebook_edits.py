@@ -1,10 +1,12 @@
 """Codebook editing + derived-variable rules (IMPLEMENTATION_PLAN.md M4)."""
 
+import io
 import json
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from openpyxl import load_workbook
 
 from services.codebook.apply import apply_codebook
 from services.codebook.infer import infer_codebook
@@ -265,11 +267,54 @@ def test_edit_endpoint_rejects_bad_edits(client, auth_headers):
     assert malformed.status_code == 400
 
 
-def test_edit_endpoint_spss_not_supported(client, auth_headers):
-    response = _post(client, auth_headers, "/v1/codebook",
-                     {"edits": json.dumps([{"op": "set_label", "var": "Q_1", "label": "x"}])},
+# Job 3 edits on an SPSS file: the age question was asked per condition (Q_16 / Q_17 / Q_18)
+SPSS_EDITS = [
+    {"op": "add_derived", "derived": {"name": "AGE", "label": "Age", "rule": "coalesce",
+                                      "params": {"from": ["Q_16", "Q_17", "Q_18"]}}},
+    {"op": "set_nets", "var": "AGE", "nets": [{"label": "Under 41", "codes": [1, 2]}]},
+    {"op": "set_nets", "var": "Q_27_1", "nets": [{"label": "3 + 4 + 5", "codes": [3, 4, 5]}]},
+    {"op": "set_label", "var": "Q_11", "label": "Severity"},
+]
+
+
+def test_edit_endpoint_spss_file(client, auth_headers):
+    """SPSS files are editable: combined questions, nets (also on derived variables), labels."""
+    response = _post(client, auth_headers, "/v1/codebook", {"edits": json.dumps(SPSS_EDITS)},
                      file=SAV, mime="application/octet-stream")
-    assert response.status_code == 400
+    assert response.status_code == 200, response.text
+    codebook = response.json()["data"]["codebook"]
+    age = next(d for d in codebook["derived"] if d["name"] == "AGE")
+    assert [c["label"] for c in age["codes"]][0] == "30 years or younger"   # categories of the sources
+    assert age["nets"] == [{"label": "Under 41", "codes": [1.0, 2.0]}]
+    assert next(v for v in codebook["variables"] if v["name"] == "Q_11")["label"] == "Severity"
+
+
+def test_tabulate_spss_with_edited_codebook(client, auth_headers):
+    codebook = _post(client, auth_headers, "/v1/codebook", {"edits": json.dumps(SPSS_EDITS)},
+                     file=SAV, mime="application/octet-stream").json()["data"]["codebook"]
+    spec = {"banner": "Q_10", "stubs": ["AGE", "Q_27_1", "Q_11"]}
+    response = _post(client, auth_headers, "/v1/tabulate",
+                     {"spec": json.dumps(spec), "codebook": json.dumps(codebook)},
+                     file=SAV, mime="application/octet-stream")
+    assert response.status_code == 200, response.text
+    wb = load_workbook(io.BytesIO(response.content))
+    rows = {r[0]: r[1:] for r in wb["AGE"].iter_rows(values_only=True) if r[0]}
+    assert rows["Base (N)"][0] == 85                       # everyone answered one of the three
+    assert "30 years or younger" in rows and "Under 41" in rows
+    assert "3 + 4 + 5" in {r[0] for r in wb["Q_27_1"].iter_rows(values_only=True)}
+    assert wb["Q_11"].cell(row=1, column=1).value.startswith("Q_11: Severity")
+
+
+def test_combining_single_and_multi_questions_is_refused():
+    from services.codebook.patch import EditError, apply_ops
+    from services.data_loader import QuantiProEngine, codebook_from_spss
+    raw = SAV.read_bytes()
+    data = QuantiProEngine.load_spss(raw, SAV.name)
+    cb = codebook_from_spss(raw, data, SAV.name)
+    cb.variables[0].role = "multi"  # pretend cf_1 is a multi-select
+    with pytest.raises(EditError, match="mixes multi-select and single"):
+        apply_ops(cb, [{"op": "add_derived", "derived": {"label": "X", "rule": "coalesce",
+                                                         "params": {"from": ["cf_1", "Q_16"]}}}], data.df)
 
 
 def test_invalid_codebook_rejected(client, auth_headers):
@@ -400,3 +445,11 @@ def test_set_codes_by_code_ignores_numeric_labels():
     # a string is still matched by label
     relabelled = apply_ops(cb, [{"op": "relabel_code", "var": "Q5", "code": "MISSING", "label": "No answer"}], df)
     assert relabelled.variable("Q5").codes[-1].label == "No answer"
+
+
+def test_derived_variable_can_be_renamed(client, auth_headers):
+    edits = SPSS_EDITS + [{"op": "set_label", "var": "AGE", "label": "S6ABC: Age group"}]
+    response = _post(client, auth_headers, "/v1/codebook", {"edits": json.dumps(edits)},
+                     file=SAV, mime="application/octet-stream")
+    assert response.status_code == 200, response.text
+    assert next(d for d in response.json()["data"]["codebook"]["derived"] if d["name"] == "AGE")["label"] == "S6ABC: Age group"
