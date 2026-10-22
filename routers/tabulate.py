@@ -40,7 +40,7 @@ _MAX_FILE_SIZE = {
 def _tab_spec(spec_dict: dict, cb) -> TabulateSpec:
     """The request's spec as a TabulateSpec (nets saved in the codebook added). 400 if invalid."""
     try:
-        return TabulateSpec(
+        spec = TabulateSpec(
             banner=spec_dict.get("banner", ""),
             banners=spec_dict.get("banners"),  # none: a Total-only export
             custom_groups=spec_dict.get("custom_groups"),
@@ -62,6 +62,7 @@ def _tab_spec(spec_dict: dict, cb) -> TabulateSpec:
             sort_rows=_sort_rows(spec_dict.get("sort_rows", False)),
             hide_codes=_hide_codes(spec_dict.get("hide_codes")),
             show_row_pct=bool(spec_dict.get("show_row_pct", False)),
+            table_specs=_table_specs(spec_dict.get("table_specs")),
             table_order=spec_dict.get("table_order"),
             table_titles=spec_dict.get("table_titles"),
             show_counts=spec_dict.get("show_counts", True),
@@ -74,6 +75,10 @@ def _tab_spec(spec_dict: dict, cb) -> TabulateSpec:
         )
     except (ValueError, TypeError) as e:
         raise HTTPException(400, detail={"code": "VALIDATION_ERROR", "message": str(e)})
+    if spec.table_specs and spec.stubs == ["_all_"]:
+        raise HTTPException(400, detail={"code": "VALIDATION_ERROR",
+                                         "message": "With table_specs, name the tables in 'stubs' (and the groups), not [\"_all_\"]"})
+    return spec
 
 
 def _sort_rows(value) -> bool | str:
@@ -96,6 +101,20 @@ def _hide_codes(value) -> dict | None:
     return value
 
 
+def _table_specs(value) -> list | None:
+    """table_specs: [{"table": "Q1", "banners": [...], "filters": [...], "custom_groups": bool}, …]."""
+    if not value:
+        return None
+    if not isinstance(value, list) or not all(isinstance(t, dict) and isinstance(t.get("table"), str) for t in value):
+        raise ValueError("table_specs must be a list of {\"table\": name, \"banners\": [...], \"filters\": [...]}")
+    for t in value:
+        if t.get("banners") is not None and not (isinstance(t["banners"], list) and all(isinstance(b, str) for b in t["banners"])):
+            raise ValueError(f"table_specs[{t['table']}].banners must be a list of variable names")
+        if t.get("filters") is not None and not isinstance(t["filters"], list):
+            raise ValueError(f"table_specs[{t['table']}].filters must be a list of conditions")
+    return value
+
+
 async def _load(file_bytes: bytes, filename: str, cb):
     """Parse the file (once per worker: services.data_cache). 400 if it can't be read."""
     try:
@@ -108,7 +127,8 @@ async def _load(file_bytes: bytes, filename: str, cb):
 
 def _check_variables(tab_spec: TabulateSpec, data) -> None:
     """Every banner, stub and multi-select member the spec names must be in the file."""
-    for b in tab_spec.resolved_banners:
+    table_banners = [b for t in tab_spec.table_specs or [] for b in (t.get("banners") or [])]
+    for b in list(dict.fromkeys(tab_spec.resolved_banners + table_banners)):
         if b not in data.df.columns:
             raise HTTPException(400, detail={
                 "code": "VARIABLE_NOT_FOUND",
@@ -153,7 +173,10 @@ def _check_variables(tab_spec: TabulateSpec, data) -> None:
         "Set `stubs` to `[\"_all_\"]` to auto-select all variables with value labels.\n\n"
         "Optional: `significance_levels: [0.95, 0.90]` shows CAPITAL letters at 95% and lowercase "
         "at 90%; `low_base_warn` / `low_base_flag` (default 100 / 30, 0 = off) mark small bases "
-        "with `*` / `**`."
+        "with `*` / `**`.\n\n"
+        "Per-table columns: `table_specs: [{\"table\": \"Q1\", \"banners\": [\"Gender\"], \"filters\": [...], "
+        "\"custom_groups\": false}]` (name the tables in `stubs` / the groups). Tables not listed use "
+        "`banners` / `filters` / `custom_groups`; each table is written with its own columns."
     ),
     response_class=StreamingResponse,
 )
@@ -358,7 +381,8 @@ MAX_PREVIEW_TABLES = 50  # a preview draws what's on screen; the export does the
         "Add `\"tables\": [\"Q1\", \"Brand awareness\"]` to the spec to compute only those tables "
         f"(stub variables or multi-select / grid group names; at most {MAX_PREVIEW_TABLES}).\n\n"
         "Percentages are fractions (0.42 = 42%); `sig` is `-` where nothing is tested "
-        "(the Total column, NET rows, a column with no base)."
+        "(the Total column, NET rows, a column with no base). With `table_specs` (each table its own "
+        "columns and filters) every table carries its own `banners`."
     ),
 )
 async def tabulate_preview(
@@ -399,6 +423,8 @@ async def tabulate_preview(
         for k in ("mrs_groups", "grid_groups"):
             if spec_dict.get(k):
                 spec_dict[k] = {name: members for name, members in spec_dict[k].items() if name in tables}
+        if isinstance(spec_dict.get("table_specs"), list):
+            spec_dict["table_specs"] = [t for t in spec_dict["table_specs"] if isinstance(t, dict) and t.get("table") in tables]
     elif spec_dict.get("stubs", ["_all_"]) == ["_all_"]:
         raise HTTPException(400, detail={"code": "VALIDATION_ERROR",
                                          "message": "Name the tables to preview: 'tables' (or 'stubs') in the spec"})

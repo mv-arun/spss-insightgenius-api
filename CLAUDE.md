@@ -53,7 +53,7 @@ User identity = `key.name`. NEVER accept user_id from client input.
 | Library | POST/GET/PATCH/DELETE /v1/library/*, GET /v1/library/{id}/file (original bytes), GET /v1/library/search/files |
 | Metadata | POST /v1/metadata |
 | Analysis | /v1/frequency, /v1/crosstab, /v1/anova, /v1/correlation, /v1/gap-analysis, /v1/satisfaction-summary |
-| Tabulation | POST /v1/tabulate (sync + async webhook; `output_mode: "banner_sheets"` = Total / By banner / Stat sheets, `services/banner_workbook.py`), POST /v1/tabulate/preview (the banner workbook's tables as JSON, `tables: [...]` ≤ 50, for live previews), POST /v1/auto-analyze |
+| Tabulation | POST /v1/tabulate (sync + async webhook; `table_specs` = per-table columns / filters / custom groups, tables with the same setup tabulated together; `output_mode: "banner_sheets"` = Total / By banner / Stat sheets, `services/banner_workbook.py`), POST /v1/tabulate/preview (the banner workbook's tables as JSON, `tables: [...]` ≤ 50, for live previews), POST /v1/auto-analyze |
 | Export | POST /v1/convert, POST /v1/exports/data-workbook (FULL DATA + category sheets from the codebook) |
 | AI | POST /v1/smart-spec, /v1/parse-ticket, /v1/chat, /v1/chat-stream |
 | Weighting | POST /v1/weight/preview, /v1/weight/compute |
@@ -79,7 +79,7 @@ Optional features (off by default; `ENABLE_DATASETS`, `ENABLE_AI_CHAT`):
 
 Navigation: no sidebar. The app is one stepped flow at `/app` (also `/export`), with its steps in the app bar:
 - Dataset (library table when Datasets is on + upload) → Variables (`/review?embed=1` in a frame: the Variables grid) → Crosstabs → Options → Generate
-- Crosstabs: variable list; Columns (= banners, + custom groups), Rows (= the tables, in order; multi-select / grid groups), Filter (respondent conditions), Values; live tables from `/v1/tabulate/preview` (6 at a time, up to 50). The shelves edit the same state the export spec is built from (`buildSpec()`).
+- Crosstabs: built one table at a time. Left: the report's tables (`xtTables`, in output order; + New table, a table per question). Middle: the variables. Right: the selected table's Rows (its question or group), Columns, Filter (its own, sent as `table_specs`), Values (every table: Options' controls), and its live preview from `/v1/tabulate/preview`. "Use them for every table" copies a table's columns and filter.
 - Values: Column %, Row %, Counts, T2B/B2B, answer order (file / Total / A→Z), significance. Chip menu → "Choose answers…" hides answers or columns (`hide_codes`; bases unchanged). Order, Row % (`show_row_pct`: a "(Row %)" sheet per banner) and hidden answers are written by `output_mode: "banner_sheets"` only, like the preview.
 - A refresh picks up where the analyst left off: the file, its reviewed coding and every choice are kept in IndexedDB (`indico-crosstab`; ≤ 100 MB, 7 days, cleared on sign-out).
 - Plan and what's left: `docs/proposals/variables-crosstabs-plan.md`
@@ -96,7 +96,7 @@ Sign-in:
 ## Testing
 
 ```bash
-python -m pytest tests/ -x -q --tb=short  # 281 tests, ~40s
+python -m pytest tests/ -x -q --tb=short  # 285 tests, ~45s
 ```
 
 - `tests/test_tabulation_real.py` — golden standard tests vs R export

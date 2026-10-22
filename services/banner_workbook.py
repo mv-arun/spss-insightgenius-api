@@ -401,41 +401,77 @@ def _banner_groups(result, spec) -> list[list]:
     return list(groups.values())
 
 
+@dataclass
+class Placed:
+    """A laid-out table and what it was tabulated with: its calculations and its column groups."""
+    table: Table
+    calc: Calc
+    groups: list
+
+
+def _placed(result, spec, data) -> list[Placed]:
+    """Every table in output order. With per-table columns (result.parts) each table keeps its own part."""
+    parts = [(p.result, p.spec, p.data) for p in result.parts] or [(result, spec, data)]
+    out = []
+    for r, s, d in parts:
+        calc, groups = Calc(r, s, d), _banner_groups(r, s)
+        for table in _tables(r, s):
+            _layout_rows(table, s, calc)
+            out.append(Placed(table, calc, groups))
+    if result.parts and spec.table_order:
+        rank = {key: i for i, key in enumerate(spec.table_order)}
+        out.sort(key=lambda x: rank.get(x.table.key, len(rank)))
+    return out
+
+
+def _group_keys(groups) -> list[tuple]:
+    """(banner label, nth group with that label): custom groups that overlap share a label."""
+    seen, keys = {}, []
+    for g in groups:
+        label = g[0].banner_label
+        keys.append((label, seen.get(label, 0)))
+        seen[label] = seen.get(label, 0) + 1
+    return keys
+
+
+def _banners_json(groups) -> list[dict]:
+    return [{"variable": g[0].banner_var, "label": g[0].banner_label,
+             "columns": [{"value": bc.value, "label": bc.value_label, "letter": get_column_letter(i + 1)}
+                         for i, bc in enumerate(g)]} for g in groups]
+
+
 def preview_tables(result, spec, data) -> dict:
     """The tables this workbook writes, as JSON for a live preview: the same rows (answers or
     merging nets, nets, NET; empty rows out; sorted if asked), bases, percentages and the Stat
     sheets' letters (each banner group tested on its own, columns lettered A, B, … within it).
-    Call inside multiple_comparison_correction(spec.bonferroni), like the workbook."""
-    calc = Calc(result, spec, data)
-    tables = _tables(result, spec)
-    for table in tables:
-        _layout_rows(table, spec, calc)
-    groups = _banner_groups(result, spec)
+    Each table lists its own banners (per-table columns); the top-level banners are the first
+    table's. Call inside multiple_comparison_correction(spec.bonferroni), like the workbook."""
+    placed = _placed(result, spec, data)
 
-    def cell(item, bc, tested, row) -> dict:
+    def cell(calc, item, bc, tested, row) -> dict:
         v = calc.value(item, bc, row)
         letters = calc.letters(item, tested, bc, row) if v is not None and tested else "-"
         return {"count": round(calc.count(item, bc, row), 4), "pct": v, "row_pct": calc.row_value(item, bc, row), "sig": letters}
 
-    def item_json(table, item) -> dict:
-        total = calc.total
+    def item_json(p, item) -> dict:
+        calc, total, rows = p.calc, p.calc.total, p.table.rows
         return {
             "label": item.label,
             "variable": item.sheet.variable,
             "is_mrs": item.sheet.is_mrs,
-            "total": {"base": calc.base(item, total), "cells": [cell(item, total, [], r) for r in table.rows]} if total else None,
+            "total": {"base": calc.base(item, total), "cells": [cell(calc, item, total, [], r) for r in rows]} if total else None,
             "banners": [{"bases": [calc.base(item, bc) for bc in group],
-                         "cells": [[cell(item, bc, group, r) for bc in group] for r in table.rows]} for group in groups],
+                         "cells": [[cell(calc, item, bc, group, r) for bc in group] for r in rows]} for group in p.groups],
         }
 
+    first_groups = placed[0].groups if placed else _banner_groups(result, spec)
     return {
         "n_cases": len(data.df),
-        "banners": [{"variable": g[0].banner_var, "label": g[0].banner_label,
-                     "columns": [{"value": bc.value, "label": bc.value_label, "letter": get_column_letter(i + 1)}
-                                 for i, bc in enumerate(g)]} for g in groups],
-        "tables": [{"key": t.key, "title": t.title, "is_grid": len(t.items) > 1,
-                    "rows": [{"label": r.label, "kind": r.kind} for r in t.rows],
-                    "items": [item_json(t, item) for item in t.items]} for t in tables],
+        "banners": _banners_json(first_groups),
+        "tables": [{"key": p.table.key, "title": p.table.title, "is_grid": len(p.table.items) > 1,
+                    "banners": _banners_json(p.groups),
+                    "rows": [{"label": r.label, "kind": r.kind} for r in p.table.rows],
+                    "items": [item_json(p, item) for item in p.table.items]} for p in placed],
         "failed": [{"variable": s.variable, "error": s.error} for s in result.sheets if s.status != "success"],
         "significance": {"level": spec.significance_level, "secondary_level": spec.secondary_level,
                          "bonferroni": spec.bonferroni, "note": _stat_note(spec)},
@@ -443,32 +479,41 @@ def preview_tables(result, spec, data) -> dict:
 
 
 def build_banner_workbook(result, spec, data) -> bytes:
-    calc = Calc(result, spec, data)
-    tables = _tables(result, spec)
-    for table in tables:
-        _layout_rows(table, spec, calc)
+    placed = _placed(result, spec, data)
     n_cases = len(data.df)
+    width = lambda p: max(len(p.table.items), 1)
 
     wb = Workbook()
     wb.remove(wb.active)
-    total_cols = [("Total", calc.total)] if calc.total else []
-    if total_cols:
+    with_total = [p for p in placed if p.calc.total]
+    if with_total:
         ws = _sheet(wb, "Total")
         r = FIRST_ROW
-        for table in tables:
-            r = _write_table(ws, r, table, calc, total_cols, stat=False, banner=None, n_cases=n_cases)
-        _widths(ws, max((len(t.items) for t in tables), default=1))
+        for p in with_total:
+            r = _write_table(ws, r, p.table, p.calc, [("Total", p.calc.total)], stat=False, banner=None, n_cases=n_cases)
+        _widths(ws, max((width(p) for p in with_total), default=1))
 
-    for group in _banner_groups(result, spec):
-        banner = group[0].banner_label
-        cols = [(bc.value_label, bc) for bc in group] + total_cols
-        sheets = [("", False, False), (" (Stat)", True, False)] + ([(" (Row %)", False, True)] if spec.show_row_pct else [])
+    # One set of sheets per banner; each holds the tables that use that banner (all of them, unless
+    # tables have their own columns)
+    keys = []
+    for p in placed:
+        for key in _group_keys(p.groups):
+            if key not in keys:
+                keys.append(key)
+    sheets = [("", False, False), (" (Stat)", True, False)] + ([(" (Row %)", False, True)] if spec.show_row_pct else [])
+    for key in keys:
+        banner = key[0]
         for suffix, stat, row_pct in sheets:
             ws = _sheet(wb, f"By {banner}{suffix}")
-            r = FIRST_ROW
-            for table in tables:
-                r = _write_table(ws, r, table, calc, cols, stat=stat, banner=banner, n_cases=n_cases, row_pct=row_pct)
-            _widths(ws, len(cols) * max((len(t.items) for t in tables), default=1))
+            r, widest = FIRST_ROW, 1
+            for p in placed:
+                group = dict(zip(_group_keys(p.groups), p.groups)).get(key)
+                if group is None:
+                    continue
+                cols = [(bc.value_label, bc) for bc in group] + ([("Total", p.calc.total)] if p.calc.total else [])
+                r = _write_table(ws, r, p.table, p.calc, cols, stat=stat, banner=banner, n_cases=n_cases, row_pct=row_pct)
+                widest = max(widest, len(cols) * width(p))
+            _widths(ws, widest)
 
     if not wb.worksheets:
         wb.create_sheet("Tables")

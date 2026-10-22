@@ -87,18 +87,33 @@
   .ww-stats .ic-stat-value { font-size: 15px; margin-top: 2px; }
   @media (max-width: 520px) { .ww-stats { grid-template-columns: 1fr; } }
 
-  /* API reference */
-  .api-ref summary { padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 13.5px; display: flex; align-items: center; gap: 8px; list-style: none; }
-  .api-ref summary::-webkit-details-marker { display: none; }
-  .api-ref[open] summary { border-bottom: 1px solid var(--ic-border); }
-  .api-ref h3 { font-size: 13px; font-weight: 600; margin: 18px 0 8px; }
-  .code-block { background: var(--ic-navy-900); color: var(--ic-blue-100); padding: 16px; border-radius: var(--ic-radius); overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.55; }
-
   /* Crosstabs: variables | shelves + live tables */
-  .xb { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
-  .xb-right { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-  .xb-fields { position: sticky; top: calc(var(--ic-topbar-h) + 16px); display: flex; flex-direction: column; max-height: calc(100vh - var(--ic-topbar-h) - 32px); }
-  .xb-fields-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--ic-border); }
+  .xb { display: grid; grid-template-columns: 230px 230px minmax(0, 1fr); grid-template-areas: "rail fields main"; gap: 16px; align-items: start; }
+  .xb-rail { grid-area: rail; position: sticky; top: calc(var(--ic-topbar-h) + 16px); display: flex; flex-direction: column; max-height: calc(100vh - var(--ic-topbar-h) - 32px); }
+  .xb-rail-list { list-style: none; margin: 0; padding: 6px; overflow: auto; flex: 1; min-height: 120px; display: flex; flex-direction: column; gap: 2px; }
+  .xb-rail-item { display: flex; gap: 8px; align-items: flex-start; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
+  .xb-rail-item:hover { background: var(--ic-surface-muted); }
+  .xb-rail-item.is-current { background: var(--ic-blue-100); }
+  .xb-rail-item.is-current .xb-rail-title { color: var(--ic-navy-800); font-weight: 600; }
+  .xb-rail-item.is-empty .xb-rail-title { color: var(--ic-warning); }
+  .xb-rail-item.drop-before { box-shadow: 0 -2px 0 var(--ic-blue-500); }
+  .xb-rail-num { min-width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 600;
+                 background: var(--ic-surface-muted); color: var(--ic-text-muted); flex-shrink: 0; }
+  .xb-rail-item.is-current .xb-rail-num { background: var(--ic-navy-800); color: #fff; }
+  .xb-rail-text { min-width: 0; display: flex; flex-direction: column; }
+  .xb-rail-title { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .xb-rail-sub { font-size: 11.5px; color: var(--ic-text-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .xb-rail-foot { padding: 8px 10px 10px; border-top: 1px solid var(--ic-border); display: grid; gap: 4px; }
+  .xb-editor-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--ic-border); }
+  .xb-title-input { flex: 1; min-width: 0; font-weight: 600; }
+  .xb-editor-nav { display: flex; gap: 2px; }
+  .xb-editor.is-off .xb-shelves { opacity: .5; pointer-events: none; }
+  .xb-shelf + .xb-shelf--copy { border-top: 0; padding-top: 0; }
+  .xb-chip--custom { padding-right: 2px; }
+  .xb-chip--custom .xb-chip-label { background: none; border: 0; font: inherit; color: inherit; cursor: pointer; padding: 0; text-align: left; }
+  .xb-right { grid-area: main; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .xb-fields { grid-area: fields; position: sticky; top: calc(var(--ic-topbar-h) + 16px); display: flex; flex-direction: column; max-height: calc(100vh - var(--ic-topbar-h) - 32px); }
+  .xb-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--ic-border); }
   .xb-kicker { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ic-text-subtle); }
   .xb-field-list { overflow: auto; padding: 4px 6px 8px; flex: 1; min-height: 120px; }
   .xb-fields-foot { padding: 8px 12px 12px; border-top: 1px solid var(--ic-border); }
@@ -185,9 +200,13 @@
   .xb-xt td.dim { color: var(--ic-text-subtle); }
   .xb-sig { color: var(--ic-blue-600); font-weight: 700; font-size: 10.5px; margin-left: 3px; vertical-align: super; }
   .xb-count { display: block; font-size: 11px; color: var(--ic-text-subtle); }
-  @media (max-width: 1100px) { .xb { grid-template-columns: 220px minmax(0, 1fr); } }
+  @media (max-width: 1180px) {
+    .xb { grid-template-columns: 220px minmax(0, 1fr); grid-template-areas: "rail main" "fields main"; }
+    .xb-rail, .xb-fields { position: static; max-height: 440px; }
+  }
   @media (max-width: 760px) {
-    .xb { grid-template-columns: minmax(0, 1fr); }
+    .xb { grid-template-columns: minmax(0, 1fr); grid-template-areas: "rail" "fields" "main"; }
+    .xb-rail { max-height: 280px; }
     .xb-chip { max-width: 100%; }
     .xb-more summary { flex-wrap: wrap; }
     .xb-fields { position: static; max-height: none; }
@@ -371,11 +390,23 @@
         </div>
       </section>
 
-      <!-- Step 3: Crosstabs — variables on the left; Columns, Rows, Filter and Values; the tables, live -->
+      <!-- Step 3: Crosstabs — the report's tables on the left; build one table at a time -->
       <section id="crosstabs-section" class="fade-in" hidden>
         <div class="xb">
+          <aside class="ic-card xb-rail" aria-label="Tables">
+            <div class="xb-panel-head">
+              <span class="xb-kicker">Tables</span>
+              <span id="xb-rail-count" class="ic-help"></span>
+            </div>
+            <ol id="xb-rail-list" class="xb-rail-list"></ol>
+            <div class="xb-rail-foot">
+              <button type="button" class="ic-btn ic-btn--secondary ic-btn--sm ic-btn--block" onclick="addBlankTable()"><ic-icon name="plus" size="14"></ic-icon>New table</button>
+              <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm ic-btn--block" onclick="addMissingTables()" title="A table for each question that doesn't have one, set up like the selected table">Add a table per question</button>
+            </div>
+          </aside>
+
           <aside class="ic-card xb-fields" aria-label="Variables">
-            <div class="xb-fields-head">
+            <div class="xb-panel-head">
               <span class="xb-kicker">Variables</span>
               <span id="xb-field-count" class="ic-help"></span>
             </div>
@@ -384,52 +415,80 @@
                 <input id="xb-field-search" type="search" placeholder="Search variables" aria-label="Search variables"></div>
             </div>
             <div id="xb-field-list" class="xb-field-list"></div>
-            <p class="ic-help xb-fields-foot">Drag into Columns, Rows or Filter, or use <strong>+</strong>. Double-click adds to Rows.</p>
+            <p class="ic-help xb-fields-foot">Drag onto this table's Rows, Columns or Filter, or use <strong>+</strong>. Double-click: a new table for that question.</p>
           </aside>
 
           <div class="xb-right">
-            <section class="ic-card xb-shelves" aria-label="Table layout">
-              <div class="xb-shelf">
-                <div class="xb-shelf-head"><span class="t">Columns</span><span class="sub">across the top</span></div>
-                <div id="shelf-columns" class="xb-drop" data-shelf="columns"></div>
-                <div class="xb-shelf-act">
-                  <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="openCustomGroups()" title="Columns built from conditions, e.g. London + aware of Uber"><ic-icon name="plus" size="14"></ic-icon>Custom group</button>
-                  <button type="button" class="xb-swap" onclick="swapShelves()" title="Swap rows and columns">⇅ Swap</button>
+            <section class="ic-card xb-editor" aria-label="This table">
+              <div class="xb-editor-head">
+                <span id="xb-table-pos" class="xb-kicker"></span>
+                <input id="xb-table-title" class="ic-input ic-input--sm xb-title-input" aria-label="Table title" placeholder="Table title">
+                <div class="xb-editor-nav">
+                  <button type="button" id="xb-prev" class="ic-icon-btn" aria-label="Previous table" title="Previous table" onclick="stepTable(-1)"><ic-icon name="arrow-left" size="16"></ic-icon></button>
+                  <button type="button" id="xb-next" class="ic-icon-btn" aria-label="Next table" title="Next table" onclick="stepTable(1)"><ic-icon name="arrow-right" size="16"></ic-icon></button>
+                  <button type="button" class="ic-icon-btn" aria-label="New table set up like this one" title="New table set up like this one" onclick="addBlankTable()"><ic-icon name="copy" size="16"></ic-icon></button>
+                  <button type="button" class="ic-icon-btn" aria-label="Delete this table" title="Delete this table" onclick="deleteTable(currentTableId)"><ic-icon name="trash" size="16"></ic-icon></button>
                 </div>
               </div>
-              <div class="xb-shelf">
-                <div class="xb-shelf-head"><span class="t">Rows</span><span class="sub" id="xb-rows-count">one table each</span></div>
-                <div id="shelf-rows" class="xb-drop xb-drop--rows" data-shelf="rows"></div>
-                <div class="xb-shelf-act">
-                  <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="setAllTables(true)" title="One table per question">Add all</button>
-                  <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="setAllTables(false)">Clear</button>
+              <div class="xb-shelves">
+                <div class="xb-shelf">
+                  <div class="xb-shelf-head"><span class="t">Rows</span><span class="sub">this table's question</span></div>
+                  <div id="shelf-rows" class="xb-drop" data-shelf="rows"></div>
+                  <div class="xb-shelf-act"></div>
+                </div>
+                <div class="xb-shelf">
+                  <div class="xb-shelf-head"><span class="t">Columns</span><span class="sub">across the top</span></div>
+                  <div id="shelf-columns" class="xb-drop" data-shelf="columns"></div>
+                  <div class="xb-shelf-act">
+                    <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="useCustomGroups()" title="Columns built from conditions, e.g. London + aware of Uber"><ic-icon name="plus" size="14"></ic-icon>Custom groups</button>
+                  </div>
+                </div>
+                <div class="xb-shelf">
+                  <div class="xb-shelf-head"><span class="t">Filter</span><span class="sub">who is counted</span></div>
+                  <div class="xb-drop xb-drop--filter" data-shelf="filter">
+                    <div id="filter-conditions" class="list-stack"></div>
+                    <p id="xb-filter-empty" class="xb-drop-empty">Everyone. Drop a variable here to count only some respondents in this table (all conditions must be true).</p>
+                  </div>
+                  <div class="xb-shelf-act">
+                    <button type="button" onclick="addConditionRow('filter-conditions'); renderFilterShelf()" class="ic-btn ic-btn--ghost ic-btn--sm"><ic-icon name="filter" size="14"></ic-icon>Condition</button>
+                  </div>
+                </div>
+                <div class="xb-shelf xb-shelf--copy">
+                  <div></div>
+                  <p class="ic-help">Columns and filter apply to this table only.
+                    <button type="button" class="ic-link" onclick="applyToAllTables()">Use them for every table</button></p>
+                  <div></div>
+                </div>
+                <div class="xb-shelf xb-shelf--values">
+                  <div class="xb-shelf-head"><span class="t">Values</span><span class="sub">every table</span></div>
+                  <div class="xb-values">
+                    <label class="ic-check"><input type="checkbox" id="xb-show-pct" checked> Column %</label>
+                    <label class="ic-check"><input type="checkbox" id="xb-row-pct"> Row %</label>
+                    <label class="ic-check"><input type="checkbox" id="xb-show-counts"> Counts</label>
+                    <label class="ic-check"><input type="checkbox" id="xb-t2b" checked> Top 2 / Bottom 2 Box</label>
+                    <label class="ic-check">Order
+                      <select id="xb-sort" class="ic-select ic-select--sm" style="width:auto" aria-label="Answer order"></select></label>
+                    <label class="ic-check">Significance
+                      <select id="xb-sig" class="ic-select ic-select--sm" style="width:auto" aria-label="Significance level"></select></label>
+                    <p id="xb-layout-hint" class="ic-help" hidden style="flex-basis:100%">Answer order, Row % and hidden answers go into the
+                      "Total and banner sheets" Excel. <button type="button" class="ic-link" onclick="useBannerSheets()">Use that layout</button></p>
+                  </div>
+                  <div></div>
                 </div>
               </div>
-              <div class="xb-shelf">
-                <div class="xb-shelf-head"><span class="t">Filter</span><span class="sub">who is counted</span></div>
-                <div class="xb-drop xb-drop--filter" data-shelf="filter">
-                  <div id="filter-conditions" class="list-stack"></div>
-                  <p id="xb-filter-empty" class="xb-drop-empty">Everyone. Drop a variable here to count only some respondents (all conditions must be true).</p>
-                </div>
-                <div class="xb-shelf-act">
-                  <button type="button" onclick="addConditionRow('filter-conditions'); renderFilterShelf()" class="ic-btn ic-btn--ghost ic-btn--sm"><ic-icon name="filter" size="14"></ic-icon>Condition</button>
-                </div>
+            </section>
+
+            <section class="ic-card xb-result" aria-label="This table, live">
+              <div class="xb-result-bar">
+                <span id="xb-live" class="xb-live">Live</span>
+                <span id="xb-result-meta" class="ic-help"></span>
               </div>
-              <div class="xb-shelf">
-                <div class="xb-shelf-head"><span class="t">Values</span><span class="sub">in each cell</span></div>
-                <div class="xb-values">
-                  <label class="ic-check"><input type="checkbox" id="xb-show-pct" checked> Column %</label>
-                  <label class="ic-check"><input type="checkbox" id="xb-row-pct"> Row %</label>
-                  <label class="ic-check"><input type="checkbox" id="xb-show-counts"> Counts</label>
-                  <label class="ic-check"><input type="checkbox" id="xb-t2b" checked> Top 2 / Bottom 2 Box</label>
-                  <label class="ic-check">Order
-                    <select id="xb-sort" class="ic-select ic-select--sm" style="width:auto" aria-label="Answer order"></select></label>
-                  <label class="ic-check">Significance
-                    <select id="xb-sig" class="ic-select ic-select--sm" style="width:auto" aria-label="Significance level"></select></label>
-                  <p id="xb-layout-hint" class="ic-help" hidden style="flex-basis:100%">Answer order, Row % and hidden answers go into the
-                    "Total and banner sheets" Excel. <button type="button" class="ic-link" onclick="useBannerSheets()">Use that layout</button></p>
-                </div>
-                <div></div>
+              <div id="open-end-warning" class="hidden ic-alert ic-alert--warning is-block" style="margin:12px 14px 0;font-size:12.5px"></div>
+              <div id="xb-tables" class="xb-tables"></div>
+              <div class="ic-card-footer step-footer xb-result-foot">
+                <span id="xb-legend" class="ic-help" style="margin-right:auto"></span>
+                <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
+                <button type="button" class="ic-btn ic-btn--primary js-next" onclick="nextStep()">Next <ic-icon name="arrow-right" size="16"></ic-icon></button>
               </div>
             </section>
 
@@ -504,20 +563,6 @@
                 <button type="button" id="cg-add-btn" onclick="openCustomGroupBuilder()" class="ic-btn ic-btn--secondary"><ic-icon name="plus" size="16"></ic-icon>Add custom group</button>
               </div>
             </details>
-
-            <section class="ic-card xb-result" aria-label="Tables">
-              <div class="xb-result-bar">
-                <span id="xb-live" class="xb-live">Live</span>
-                <span id="xb-result-meta" class="ic-help"></span>
-              </div>
-              <div id="open-end-warning" class="hidden ic-alert ic-alert--warning is-block" style="margin:12px 14px 0;font-size:12.5px"></div>
-              <div id="xb-tables" class="xb-tables"></div>
-              <div class="ic-card-footer step-footer xb-result-foot">
-                <span id="xb-legend" class="ic-help" style="margin-right:auto"></span>
-                <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
-                <button type="button" class="ic-btn ic-btn--primary js-next" onclick="nextStep()">Next <ic-icon name="arrow-right" size="16"></ic-icon></button>
-              </div>
-            </section>
           </div>
         </div>
       </section>
@@ -699,66 +744,6 @@
           <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
         </div>
       </section>
-
-      <!-- API Reference -->
-      <details class="ic-card api-ref" style="margin-top:24px">
-        <summary><ic-icon name="code" size="16"></ic-icon>API Reference &mdash; curl / Python / Node<ic-icon name="chevron-down" size="16" style="margin-left:auto"></ic-icon></summary>
-        <div class="ic-card-body" style="padding-top:4px">
-          <h3>curl &mdash; multiple banners + means + MRS</h3>
-          <pre class="code-block"><code>curl -X POST https://crosstab.indicolabs.io/v1/tabulate \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -F "file=@survey.sav" \
-  -F 'spec={
-    "banners": ["gender", "region", "age_group"],
-    "stubs": ["_all_"],
-    "significance_level": 0.95,
-    "include_means": true,
-    "nets": {"sat_overall": {"Top 2 Box": [4,5], "Bottom 2 Box": [1,2]}},
-    "mrs_groups": {"Brand_Awareness": ["AWARE_A","AWARE_B","AWARE_C"]}
-  }' -o tabulation.xlsx</code></pre>
-
-          <h3>Python</h3>
-          <pre class="code-block"><code>import requests, json
-
-resp = requests.post(
-    "https://crosstab.indicolabs.io/v1/tabulate",
-    headers={"Authorization": "Bearer YOUR_API_KEY"},
-    files={"file": open("survey.sav", "rb")},
-    data={"spec": json.dumps({
-        "banners": ["gender", "region"],
-        "stubs": ["_all_"],
-        "include_means": True,
-        "significance_level": 0.95,
-    })}
-)
-with open("tabulation.xlsx", "wb") as f:
-    f.write(resp.content)
-print(f"{resp.headers['X-Stubs-Success']} tables generated")</code></pre>
-
-          <h3>Node.js</h3>
-          <pre class="code-block"><code>const fs = require("fs");
-const FormData = require("form-data");
-
-const form = new FormData();
-form.append("file", fs.createReadStream("survey.sav"));
-form.append("spec", JSON.stringify({
-  banners: ["gender", "region"],
-  stubs: ["_all_"],
-  include_means: true,
-  significance_level: 0.95,
-}));
-
-const resp = await fetch("https://crosstab.indicolabs.io/v1/tabulate", {
-  method: "POST",
-  headers: { Authorization: "Bearer YOUR_API_KEY", ...form.getHeaders() },
-  body: form,
-});
-fs.writeFileSync("tabulation.xlsx", Buffer.from(await resp.arrayBuffer()));
-console.log(`${resp.headers.get("X-Stubs-Success")} tables generated`);</code></pre>
-
-          <p class="ic-help" style="margin-top:16px">Full interactive docs: <a href="/docs" target="_blank" rel="noopener" class="ic-link">/docs</a> | <a href="/redoc" target="_blank" rel="noopener" class="ic-link">/redoc</a></p>
-        </div>
-      </details>
     </main>
   </div>
 </div>
@@ -767,7 +752,6 @@ console.log(`${resp.headers.get("X-Stubs-Success")} tables generated`);</code></
 // ── State ──
 let savFile = null, docxFile = null, questFile = null, metadata = null, resultBlob = null, resultFilename = '';
 let smartSpec = null;  // AI-generated spec from smart-spec endpoint
-let selectedBanners = [];
 let mrsGroups = {};  // { "Brand Awareness": ["AWARE_A","AWARE_B"] }
 let reviewedCodebook = null;  // set when the user edits the coding in Step 2 (Review data)
 
@@ -794,6 +778,7 @@ function renderStepper() {
 function goStep(i) {
   if (i < 0 || i >= STEP_PANELS.length) return;
   if (i > 0 && !metaReady) return;
+  if (isCrosstabsStep()) saveFilterRows();
   currentStep = i;
   furthestStep = Math.max(furthestStep, i);
   saveSoon();
@@ -803,7 +788,7 @@ function goStep(i) {
   renderContext();
   // The review frame measured itself while hidden: ask it for its height again now it has a width
   if (STEP_PANELS[i] === 'review-section') requestAnimationFrame(syncReviewHeight);
-  if (STEP_PANELS[i] === 'crosstabs-section') { syncValues(); renderCrosstabs(); }
+  if (STEP_PANELS[i] === 'crosstabs-section') { syncValues(); renderCrosstabs({ filters: true }); }
   window.scrollTo({ top: 0 });
 }
 
@@ -992,7 +977,7 @@ async function loadMetadata() {
     metadata = data;
     infoText.textContent = `${metadata.file_name} — ${metadata.n_cases.toLocaleString()} cases × ${metadata.n_variables} variables`;
     // Reset ALL state from previous file
-    selectedBanners = []; mrsGroups = {}; gridGroups = {}; customGroups = []; hiddenCodes = {}; resetTables();
+    mrsGroups = {}; gridGroups = {}; customGroups = []; hiddenCodes = {}; xtTables = []; currentTableId = null;
     document.getElementById('filter-conditions').replaceChildren();
     for (const k of Object.keys(detectedNotes)) delete detectedNotes[k];
     resultBlob = null; resultFilename = '';
@@ -1002,6 +987,7 @@ async function loadMetadata() {
     document.getElementById('auto-result')?.classList.add('hidden');
     document.getElementById('result-section')?.classList.add('hidden');
     populateUI();
+    startTables();  // one table per question (groups included), Total only
     document.getElementById('auto-analyze-bar').classList.remove('hidden');
     metaReady = true; renderStepper(); renderContext();  // unlock Variables → Generate
   } catch (e) {
@@ -1140,6 +1126,7 @@ function addMrsGroup() {
   if (!name) { alert('Enter a group name'); return; }
   if (members.length < 2) { alert('Select at least 2 variables'); return; }
   mrsGroups[name] = members;
+  groupAdded(`m:${name}`, members);
   renderMrsGroups();
   document.getElementById('mrs-name').value = '';
   sel.selectedIndex = -1;
@@ -1201,6 +1188,7 @@ function addGridGroup() {
   if (document.getElementById('grid-show-mean').checked) show.push('mean');
   if (show.length === 0) { alert('Select at least one metric to show'); return; }
   gridGroups[name] = { variables: members, show };
+  groupAdded(`g:${name}`, members);
   renderGridGroups();
   document.getElementById('grid-name').value = '';
   document.getElementById('grid-members').selectedIndex = -1;
@@ -1211,77 +1199,13 @@ function addGridGroup() {
 
 function renderGridGroups() { renderTables(); }
 
-// ── Tables: everything that becomes a table, in output order ──
-// Keys: "v:<variable>" (one question), "m:<group>" (multi-select set), "g:<group>" (grid).
-let tableOrder = [];          // keys in output order
-let tablesOff = new Set();    // keys left out
-let tableTitles = {};         // variable → title, for single questions (a group's name is its title)
-
-function resetTables() { tableOrder = []; tablesOff = new Set(); tableTitles = {}; }
-
-function currentTables() {
-  if (!metadata) return [];
-  const position = Object.fromEntries(metadata.variables.map((v, i) => [v.name, i]));
-  const grouped = new Set([...Object.values(mrsGroups).flat(), ...Object.values(gridGroups).flatMap(g => g.variables)]);
-  const banners = new Set(selectedBanners);
-  const items = [
-    ...metadata.variables
-      .filter(v => Object.keys(v.value_labels || {}).length >= 2 && !grouped.has(v.name) && !banners.has(v.name))
-      .map(v => ({ key: `v:${v.name}`, kind: 'single', name: v.name, title: tableTitles[v.name] || v.label || v.name,
-                   detail: v.name, pos: position[v.name] })),
-    ...Object.entries(mrsGroups).map(([name, vars]) => ({ key: `m:${name}`, kind: 'multi', name, title: name,
-                   detail: `${vars.length} options`, pos: Math.min(...vars.map(x => position[x] ?? 1e9)) })),
-    ...Object.entries(gridGroups).map(([name, g]) => ({ key: `g:${name}`, kind: 'grid', name, title: name,
-                   detail: `${g.variables.length} items`, pos: Math.min(...g.variables.map(x => position[x] ?? 1e9)) })),
-  ];
-  const byKey = Object.fromEntries(items.map(t => [t.key, t]));
-  tableOrder = tableOrder.filter(k => byKey[k]);
-  for (const t of [...items].sort((a, b) => a.pos - b.pos)) {   // new tables go where the questionnaire has them
-    if (tableOrder.includes(t.key)) continue;
-    const at = tableOrder.findIndex(k => byKey[k].pos > t.pos);
-    at < 0 ? tableOrder.push(t.key) : tableOrder.splice(at, 0, t.key);
-  }
-  return tableOrder.map(k => byKey[k]);
-}
-
-function renderTables() { renderCrosstabs(); }
-
-function renameTable(t, title) {
-  title = title.trim();
-  if (t.kind === 'single') {
-    if (title) tableTitles[t.name] = title; else delete tableTitles[t.name];
-  } else {
-    const store = t.kind === 'multi' ? mrsGroups : gridGroups;
-    const key = `${t.key[0]}:${title}`;
-    if (renameGroup(store, t.name, title)) {
-      tableOrder = tableOrder.map(k => (k === t.key ? key : k));
-      if (tablesOff.delete(t.key)) tablesOff.add(key);
-    }
-  }
-  renderTables(); updateSummary();
-}
-
-function setGroupKind(t, kind) {
-  const from = t.kind === 'multi' ? mrsGroups : gridGroups;
-  const vars = t.kind === 'multi' ? from[t.name] : from[t.name].variables;
-  delete from[t.name];
-  const name = uniqueGroupName(kind === 'multi' ? mrsGroups : gridGroups, t.name);
-  if (kind === 'multi') mrsGroups[name] = vars; else gridGroups[name] = { variables: vars, show: ['answers'] };
-  tableOrder = tableOrder.map(k => (k === t.key ? `${kind[0]}:${name}` : k));
-  renderTables(); updateSummary();
-}
-
-function setAllTables(on) {
-  for (const t of currentTables()) on ? tablesOff.delete(t.key) : tablesOff.add(t.key);
-  renderTables(); updateSummary();
-}
-
-
-// ── Step 3: Crosstabs ──
-// The shelves edit the same state the export uses: Columns = selectedBanners, Rows = the
-// included tables in order (tableOrder / tablesOff / tableTitles, plus multi-select and grid
-// groups), Filter = the respondent conditions. The tables below come from /v1/tabulate/preview,
-// i.e. the same calculation as the Excel.
+// ── Step 3: Crosstabs — the report's tables, built one at a time ──
+// xtTables is the report, in output order. Each table has its own question (row), columns,
+// custom-groups switch and filter (sent as table_specs); Values and significance are the
+// Options step's and apply to every table. The preview shows the selected table only, from
+// /v1/tabulate/preview: the same calculation as the Excel.
+let xtTables = [];          // [{ id, row: 'v:Q1' | 'm:Group' | 'g:Group' | null, title, columns: [var…], customGroups, filters: [cond…] }]
+let currentTableId = null, nextTableId = 1;
 let suggestedBannerNames = new Set();
 let hiddenCodes = {};  // variable or group name → answers (rows) / values (columns) left out of the tables
 const varByName = (name) => metadata?.variables.find(v => v.name === name);
@@ -1289,72 +1213,141 @@ const nLabels = (v) => Object.keys(v?.value_labels || {}).length;
 const bannerable = (name) => { const n = nLabels(varByName(name)); return n >= 2 && n <= 15; };
 const isCrosstabsStep = () => STEP_PANELS[currentStep] === 'crosstabs-section';
 
-// Single questions, multi-select sets and grids that can be tables or columns
+// Questions that can be a table: single questions, multi-select sets and grids (members of a group are the group)
 function crosstabFields() {
   if (!metadata) return [];
+  const position = Object.fromEntries(metadata.variables.map((v, i) => [v.name, i]));
+  const at = (vars) => Math.min(...vars.map(x => position[x] ?? 1e9));
   const grouped = new Set([...Object.values(mrsGroups).flat(), ...Object.values(gridGroups).flatMap(g => g.variables)]);
   return [
-    ...Object.entries(mrsGroups).map(([name, vars]) => ({ key: `m:${name}`, kind: 'multi', name, label: name, detail: `${vars.length} options` })),
-    ...Object.entries(gridGroups).map(([name, g]) => ({ key: `g:${name}`, kind: 'grid', name, label: name, detail: `${g.variables.length} items` })),
     ...metadata.variables.filter(v => nLabels(v) >= 2 && !grouped.has(v.name))
-      .map(v => ({ key: `v:${v.name}`, kind: 'single', name: v.name, label: v.label || v.name, detail: v.name })),
-  ];
+      .map(v => ({ key: `v:${v.name}`, kind: 'single', name: v.name, label: v.label || v.name, detail: v.name, pos: position[v.name] })),
+    ...Object.entries(mrsGroups).map(([name, vars]) => ({ key: `m:${name}`, kind: 'multi', name, label: name, detail: `${vars.length} options`, pos: at(vars) })),
+    ...Object.entries(gridGroups).map(([name, g]) => ({ key: `g:${name}`, kind: 'grid', name, label: name, detail: `${g.variables.length} items`, pos: at(g.variables) })),
+  ].sort((a, b) => a.pos - b.pos);
 }
+const fieldByKey = (key) => key && crosstabFields().find(f => f.key === key);
 const KIND_GLYPH = { single: '1·2', multi: 'check', grid: 'grid' };
 function kindGlyph(kind) {
   return IC.el('span', { class: `xb-glyph xb-glyph--${kind}`, 'aria-hidden': 'true' },
     kind === 'single' ? KIND_GLYPH.single : IC.icon(KIND_GLYPH[kind], 12));
 }
-function placeOf(key) {
-  if (key.startsWith('v:') && selectedBanners.includes(key.slice(2))) return 'Column';
-  if (currentTables().some(t => t.key === key) && !tablesOff.has(key)) return 'Row';
-  if (key.startsWith('v:') && readConditions('filter-conditions').some(c => c.variable === key.slice(2))) return 'Filter';
-  return '';
+
+// ── Tables ──
+const currentTable = () => xtTables.find(t => t.id === currentTableId) || null;
+const tableLabel = (t) => t.title || fieldByKey(t.row)?.label || 'New table';
+const tableName = (t) => (t.row ? t.row.slice(2) : null);  // the export's key: variable or group name
+function newTable(row = null, like = currentTable()) {
+  return { id: nextTableId++, row, title: '', columns: like ? [...like.columns] : [], customGroups: like ? like.customGroups : false,
+           filters: like ? like.filters.map(c => ({ ...c })) : [] };
+}
+// A new file starts with one table per question, in questionnaire order, Total only
+function startTables() {
+  xtTables = crosstabFields().map(f => newTable(f.key, null));
+  currentTableId = xtTables[0]?.id ?? null;
+}
+function selectTable(id) {
+  saveFilterRows();
+  currentTableId = id;
+  renderCrosstabs({ filters: true });
+}
+function stepTable(step) {
+  const i = xtTables.indexOf(currentTable()) + step;
+  if (xtTables[i]) selectTable(xtTables[i].id);
+}
+function insertTable(t) {
+  saveFilterRows();
+  const i = xtTables.indexOf(currentTable());
+  xtTables.splice(i < 0 ? xtTables.length : i + 1, 0, t);
+  currentTableId = t.id;
+  updateSummary();
+  renderCrosstabs({ filters: true });
+}
+function addBlankTable() { insertTable(newTable(null)); }
+function addTableFor(key) {
+  const other = xtTables.find(x => x.row === key);
+  if (other) { selectTable(other.id); IC.toast(`Opened its table (${xtTables.indexOf(other) + 1})`); return; }
+  insertTable(newTable(key));
+}
+function addMissingTables() {
+  saveFilterRows();
+  const have = new Set(xtTables.map(t => t.row));
+  const missing = crosstabFields().filter(f => !have.has(f.key)).map(f => newTable(f.key));
+  xtTables.push(...missing);
+  IC.toast(missing.length ? `Added ${missing.length} table${missing.length === 1 ? '' : 's'}, set up like the selected table` : 'Every question already has a table');
+  updateSummary();
+}
+function deleteTable(id) {
+  const i = xtTables.findIndex(t => t.id === id);
+  if (i < 0) return;
+  xtTables.splice(i, 1);
+  if (currentTableId === id) currentTableId = (xtTables[i] || xtTables[i - 1])?.id ?? null;
+  updateSummary();
+  renderCrosstabs({ filters: true });
+}
+function moveTable(id, beforeId) {
+  const t = xtTables.find(x => x.id === id);
+  if (!t || id === beforeId) return;
+  xtTables = xtTables.filter(x => x !== t);
+  const at = xtTables.findIndex(x => x.id === beforeId);
+  at < 0 ? xtTables.push(t) : xtTables.splice(at, 0, t);
+  updateSummary();
+}
+function applyToAllTables() {
+  saveFilterRows();
+  const t = currentTable();
+  if (!t) return;
+  for (const x of xtTables) {
+    x.columns = t.columns.filter(c => `v:${c}` !== x.row);
+    x.customGroups = t.customGroups;
+    x.filters = t.filters.map(c => ({ ...c }));
+  }
+  IC.toast(`Every table now has these columns${t.filters.length ? ' and this filter' : ''}`);
+  updateSummary();
 }
 
-// ── Moves (every shelf change goes through these) ──
-function toColumns(name, before) {
-  if (!bannerable(name)) { IC.toast('Columns need a question with 2 to 15 answers. Put it in Rows instead.', 'danger'); return; }
-  selectedBanners = selectedBanners.filter(b => b !== name);
-  const at = before ? selectedBanners.indexOf(before) : -1;
-  at < 0 ? selectedBanners.push(name) : selectedBanners.splice(at, 0, name);
+// ── This table's shelves ──
+function setRow(key) {
+  const t = currentTable();
+  if (!t) { addTableFor(key); return; }
+  const other = xtTables.find(x => x.row === key && x !== t);
+  if (other) { IC.toast(`That question already has a table (${xtTables.indexOf(other) + 1}); opened it.`); selectTable(other.id); return; }
+  t.row = key;
+  if (key.startsWith('v:')) t.columns = t.columns.filter(c => c !== key.slice(2));
   updateSummary();
 }
-function toRows(key, beforeKey) {
-  if (key.startsWith('v:')) selectedBanners = selectedBanners.filter(b => b !== key.slice(2));
-  tablesOff.delete(key);
-  currentTables();  // the table order now includes it
-  if (beforeKey && beforeKey !== key) {
-    tableOrder = tableOrder.filter(k => k !== key);
-    const at = tableOrder.indexOf(beforeKey);
-    at < 0 ? tableOrder.push(key) : tableOrder.splice(at, 0, key);
-  }
+function addColumn(name, before) {
+  const t = currentTable();
+  if (!t) return;
+  if (!bannerable(name)) { IC.toast('Columns need a question with 2 to 15 answers.', 'danger'); return; }
+  if (t.row === `v:${name}`) { IC.toast('That is this table’s question.', 'danger'); return; }
+  t.columns = t.columns.filter(c => c !== name);
+  const at = before ? t.columns.indexOf(before) : -1;
+  at < 0 ? t.columns.push(name) : t.columns.splice(at, 0, name);
   updateSummary();
 }
-function toFilter(name) {
+function addFilter(name) {
   const row = addConditionRow('filter-conditions');
   const sel = row.querySelector('.cg-var');
   sel.value = name;
   onCgVarChange(sel);
+  saveFilterRows();
   renderFilterShelf();
+  renderRail();
+  schedulePreview();
 }
 function dropOn(shelf, key, beforeKey) {
-  if (shelf === 'columns') {
-    if (!key.startsWith('v:')) { IC.toast('A multi-select set or grid goes in Rows.', 'danger'); return; }
-    toColumns(key.slice(2), beforeKey?.startsWith('v:') ? beforeKey.slice(2) : null);
-  } else if (shelf === 'rows') toRows(key, beforeKey);
-  else if (shelf === 'filter') {
-    if (!key.startsWith('v:')) { IC.toast('Filter on a single question.', 'danger'); return; }
-    toFilter(key.slice(2));
-  }
+  if (!currentTable() && shelf !== 'rows') { IC.toast('Add a table first.'); return; }
+  if (shelf === 'rows') setRow(key);
+  else if (!key.startsWith('v:')) IC.toast('A multi-select set or grid goes in Rows.', 'danger');
+  else if (shelf === 'columns') addColumn(key.slice(2), beforeKey?.startsWith('v:') ? beforeKey.slice(2) : null);
+  else if (shelf === 'filter') addFilter(key.slice(2));
 }
-function swapShelves() {
-  const rows = currentTables().filter(t => !tablesOff.has(t.key));
-  const toCols = rows.filter(t => t.kind === 'single' && bannerable(t.name)).map(t => t.name);
-  const oldCols = [...selectedBanners];
-  setAllTables(false);
-  selectedBanners = toCols;
-  for (const name of oldCols) tablesOff.delete(`v:${name}`);
+function useCustomGroups() {
+  const t = currentTable();
+  if (!t) return;
+  if (!customGroups.length) { openCustomGroups(); return; }
+  t.customGroups = true;
   updateSummary();
 }
 function openCustomGroups() {
@@ -1363,6 +1356,74 @@ function openCustomGroups() {
   if (!customGroups.length) openCustomGroupBuilder();
   d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
+// The filter rows on screen belong to the selected table
+function saveFilterRows() {
+  const t = currentTable();
+  if (t && document.getElementById('filter-conditions')) t.filters = readConditions('filter-conditions');
+}
+function setConditionRows(containerId, conds) {
+  document.getElementById(containerId).replaceChildren();
+  for (const c of conds || []) {
+    if (!varByName(c.variable)) continue;
+    const row = addConditionRow(containerId);
+    const sel = row.querySelector('.cg-var');
+    sel.value = c.variable; onCgVarChange(sel);
+    row.querySelector('.cg-op').value = c.operator;
+    const val = row.querySelector('.cg-val');
+    const match = val.tagName === 'SELECT' && [...val.options].find(o => Number(o.value) === Number(c.value) || o.value === String(c.value));
+    val.value = match ? match.value : String(c.value);
+  }
+}
+
+// Groups made, renamed, switched or split keep their tables
+function groupAdded(key, members) {
+  saveFilterRows();
+  const singles = xtTables.filter(t => t.row && members.includes(t.row.slice(2)) && t.row.startsWith('v:'));
+  const like = singles[0] || currentTable();
+  const t = newTable(key, like);
+  const at = singles.length ? xtTables.indexOf(singles[0]) : xtTables.length;
+  xtTables = xtTables.filter(x => !singles.includes(x));
+  xtTables.splice(Math.min(at, xtTables.length), 0, t);
+  currentTableId = t.id;
+}
+function renameTable(t, title) {
+  title = title.trim();
+  const f = fieldByKey(t.row);
+  if (f && f.kind !== 'single') {   // a group's name is its table title
+    const store = f.kind === 'multi' ? mrsGroups : gridGroups;
+    if (title && renameGroup(store, f.name, title)) {
+      const key = `${t.row[0]}:${title}`;
+      if (hiddenCodes[f.name]) { hiddenCodes[title] = hiddenCodes[f.name]; delete hiddenCodes[f.name]; }
+      for (const x of xtTables) if (x.row === t.row) x.row = key;
+    }
+  } else {
+    t.title = title === (f?.label || '') ? '' : title;
+  }
+  updateSummary();
+}
+function setGroupKind(t, kind) {
+  const f = fieldByKey(t.row);
+  const from = f.kind === 'multi' ? mrsGroups : gridGroups;
+  const vars = f.kind === 'multi' ? from[f.name] : from[f.name].variables;
+  delete from[f.name];
+  const name = uniqueGroupName(kind === 'multi' ? mrsGroups : gridGroups, f.name);
+  if (kind === 'multi') mrsGroups[name] = vars; else gridGroups[name] = { variables: vars, show: ['answers'] };
+  t.row = `${kind[0]}:${name}`;
+  updateSummary();
+}
+function ungroup(t) {
+  const f = fieldByKey(t.row);
+  const vars = f.kind === 'multi' ? mrsGroups[f.name] : gridGroups[f.name].variables;
+  const tabulable = vars.filter(v => nLabels(varByName(v)) >= 2);
+  if (!tabulable.length) { IC.toast('Its options are yes/no flags without answer labels, so they can’t be tables on their own.', 'danger'); return; }
+  delete (f.kind === 'multi' ? mrsGroups : gridGroups)[f.name];
+  const singles = tabulable.map(v => newTable(`v:${v}`, t));
+  xtTables.splice(xtTables.indexOf(t), 1, ...singles);
+  currentTableId = singles[0].id;
+  updateSummary();
+  renderCrosstabs({ filters: true });
+}
+function renderTables() { renderCrosstabs(); }
 
 // ── Choose answers: hide some of a question's answers (rows) or values (columns) ──
 const codeValue = (c) => (isNaN(Number(c)) ? c : Number(c));
@@ -1395,13 +1456,49 @@ function chooseAnswers(anchor, name, title) {
     IC.el('div', { class: 'xb-choices-foot' },
       IC.el('button', { type: 'button', class: 'ic-btn ic-btn--ghost ic-btn--sm', onclick: () => setAll(true) }, 'All'),
       IC.el('button', { type: 'button', class: 'ic-btn ic-btn--ghost ic-btn--sm', onclick: () => setAll(false) }, 'None'),
-      IC.el('span', { class: 'ic-help' }, 'Bases stay the same')),
+      IC.el('span', { class: 'ic-help' }, 'Bases stay the same; every table')),
   ]);
 }
 const chipAnchor = (shelf, key) => [...document.querySelectorAll(`#shelf-${shelf} .xb-chip`)].find(c => c.dataset.key === key) || document.getElementById(`shelf-${shelf}`);
 
+// ── Table list (left) ──
+let dragKey = null, dragTableId = null;
+function columnsText(t) {
+  const cols = t.columns.map(c => varByName(c)?.label || c);
+  if (t.customGroups && customGroups.length) cols.push(document.getElementById('cg-banner-name').value.trim() || 'Custom groups');
+  return cols.length ? `by ${cols.join(' · ')}` : 'Total only';
+}
+function renderRail() {
+  const list = document.getElementById('xb-rail-list');
+  if (!list) return;
+  document.getElementById('xb-rail-count').textContent = `${xtTables.length}`;
+  list.replaceChildren(...xtTables.map((t, i) => {
+    const f = fieldByKey(t.row);
+    const nf = t.filters.length;
+    const item = IC.el('li', { class: `xb-rail-item${t.id === currentTableId ? ' is-current' : ''}${f ? '' : ' is-empty'}`,
+      draggable: 'true', tabindex: '0', 'aria-current': t.id === currentTableId ? 'true' : null,
+      onclick: () => selectTable(t.id), onkeydown: (e) => { if (e.key === 'Enter') selectTable(t.id); } },
+      IC.el('span', { class: 'xb-rail-num' }, String(i + 1)),
+      IC.el('span', { class: 'xb-rail-text' },
+        IC.el('span', { class: 'xb-rail-title' }, f ? tableLabel(t) : (t.title || 'Choose a question')),
+        IC.el('span', { class: 'xb-rail-sub' }, columnsText(t), nf ? ` · filter (${nf})` : '')));
+    item.addEventListener('dragstart', (e) => { dragTableId = t.id; e.dataTransfer.setData('text/plain', `table:${t.id}`); item.classList.add('is-dragging'); });
+    item.addEventListener('dragend', () => { item.classList.remove('is-dragging'); dragTableId = null; });
+    item.addEventListener('dragover', (e) => { if (dragTableId != null) { e.preventDefault(); item.classList.add('drop-before'); } });
+    item.addEventListener('dragleave', () => item.classList.remove('drop-before'));
+    item.addEventListener('drop', (e) => {
+      if (dragTableId == null) return;
+      e.preventDefault(); item.classList.remove('drop-before');
+      moveTable(dragTableId, t.id);
+    });
+    return item;
+  }));
+  if (!xtTables.length) list.append(IC.el('li', { class: 'xb-drop-empty', style: { listStyle: 'none' } }, 'No tables yet. Add one below.'));
+  const now = list.querySelector('.is-current');
+  if (now && (now.offsetTop < list.scrollTop || now.offsetTop > list.scrollTop + list.clientHeight - 40)) list.scrollTop = now.offsetTop - 60;
+}
+
 // ── Variable list ──
-let dragKey = null;
 function renderFieldList() {
   const list = document.getElementById('xb-field-list');
   if (!list || !metadata) return;
@@ -1412,33 +1509,36 @@ function renderFieldList() {
     ['Groups', fields.filter(f => f.kind !== 'single')],
     ['Questions', fields.filter(f => f.kind === 'single' && !suggestedBannerNames.has(f.name))],
   ];
-  const nAll = crosstabFields().length;
-  document.getElementById('xb-field-count').textContent = `${nAll} to tabulate`;
+  document.getElementById('xb-field-count').textContent = `${crosstabFields().length}`;
   list.replaceChildren(...sections.filter(([, fs]) => fs.length).flatMap(([title, fs]) =>
     [IC.el('div', { class: 'xb-fgroup' }, title), ...fs.map(fieldItem)]));
   if (!list.children.length) list.append(IC.el('p', { class: 'ic-empty' }, 'No variables match.'));
 }
 function fieldItem(f) {
-  const place = placeOf(f.key);
+  const t = currentTable();
+  const tableNo = xtTables.findIndex(x => x.row === f.key);
+  const place = t && t.row === f.key ? 'Row' : t && f.kind === 'single' && t.columns.includes(f.name) ? 'Column'
+    : t && f.kind === 'single' && t.filters.some(c => c.variable === f.name) ? 'Filter' : tableNo >= 0 ? `T${tableNo + 1}` : '';
   const add = IC.el('button', { type: 'button', class: 'ic-icon-btn xb-add', 'aria-label': `Add ${f.label}`, title: 'Add to…' }, IC.icon('plus', 14));
   add.addEventListener('click', (e) => {
     e.stopPropagation();
-    const entries = [{ label: 'Rows (a table)', run: () => dropOn('rows', f.key) }];
-    if (f.kind === 'single' && bannerable(f.name)) entries.push({ label: 'Columns', run: () => dropOn('columns', f.key) });
-    if (f.kind === 'single') entries.push({ label: 'Filter respondents', run: () => dropOn('filter', f.key) });
+    const entries = [{ label: tableNo >= 0 ? `Open its table (${tableNo + 1})` : 'New table for this question', run: () => addTableFor(f.key) }];
+    if (t) entries.push({ label: 'This table’s question (Rows)', run: () => dropOn('rows', f.key) });
+    if (t && f.kind === 'single' && bannerable(f.name)) entries.push({ label: 'This table’s columns', run: () => dropOn('columns', f.key) });
+    if (t && f.kind === 'single') entries.push({ label: 'Filter this table', run: () => dropOn('filter', f.key) });
     IC.popMenu(add, f.label, entries);
   });
-  const item = IC.el('div', { class: `xb-field${place ? ' is-used' : ''}`, draggable: 'true', title: `${f.detail} · drag to Columns, Rows or Filter` },
+  const item = IC.el('div', { class: `xb-field${place ? ' is-used' : ''}`, draggable: 'true', title: `${f.detail} · drag onto Rows, Columns or Filter` },
     kindGlyph(f.kind), IC.el('span', { class: 'xb-field-label' }, f.label),
     place ? IC.el('span', { class: 'xb-used' }, place) : null, add);
   item.addEventListener('dragstart', (e) => { dragKey = f.key; e.dataTransfer.setData('text/plain', f.key); e.dataTransfer.effectAllowed = 'copyMove'; item.classList.add('is-dragging'); });
   item.addEventListener('dragend', () => item.classList.remove('is-dragging'));
-  item.addEventListener('dblclick', () => dropOn('rows', f.key));
+  item.addEventListener('dblclick', () => addTableFor(f.key));
   return item;
 }
 document.getElementById('xb-field-search').addEventListener('input', renderFieldList);
 
-// ── Shelves ──
+// ── Editor (the selected table) ──
 function shelfChip(shelf, key, label, kind, menu, onRemove, note) {
   const more = IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': `Options for ${label}` }, IC.icon('chevron-down', 14));
   more.addEventListener('click', (e) => { e.stopPropagation(); IC.popMenu(more, label, menu); });
@@ -1449,9 +1549,10 @@ function shelfChip(shelf, key, label, kind, menu, onRemove, note) {
     IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': `Remove ${label}`, onclick: onRemove }, IC.icon('x', 13)));
   chip.addEventListener('dragstart', (e) => { dragKey = key; e.dataTransfer.setData('text/plain', key); chip.classList.add('is-dragging'); });
   chip.addEventListener('dragend', () => chip.classList.remove('is-dragging'));
-  chip.addEventListener('dragover', (e) => { e.preventDefault(); chip.classList.add('drop-before'); });
+  chip.addEventListener('dragover', (e) => { if (dragTableId == null) { e.preventDefault(); chip.classList.add('drop-before'); } });
   chip.addEventListener('dragleave', () => chip.classList.remove('drop-before'));
   chip.addEventListener('drop', (e) => {
+    if (dragTableId != null) return;
     e.preventDefault(); e.stopPropagation(); chip.classList.remove('drop-before');
     if (dragKey && dragKey !== key) dropOn(shelf, dragKey, key);
     dragKey = null;
@@ -1459,38 +1560,48 @@ function shelfChip(shelf, key, label, kind, menu, onRemove, note) {
   return chip;
 }
 function renderShelves() {
-  const cols = document.getElementById('shelf-columns'), rows = document.getElementById('shelf-rows');
-  if (!cols || !metadata) return;
-  const colChips = selectedBanners.map(name => {
+  const t = currentTable();
+  const rows = document.getElementById('shelf-rows'), cols = document.getElementById('shelf-columns');
+  if (!rows || !metadata) return;
+  document.querySelector('#crosstabs-section .xb-editor').classList.toggle('is-off', !t);
+  document.getElementById('xb-table-pos').textContent = t ? `Table ${xtTables.indexOf(t) + 1} of ${xtTables.length}` : 'No table';
+  const title = document.getElementById('xb-table-title');
+  const f = t && fieldByKey(t.row);
+  if (document.activeElement !== title) title.value = t ? (f && f.kind !== 'single' ? f.name : t.title) : '';
+  title.placeholder = f ? f.label : 'Table title';
+  title.disabled = !t;
+  document.getElementById('xb-prev').disabled = !t || xtTables.indexOf(t) === 0;
+  document.getElementById('xb-next').disabled = !t || xtTables.indexOf(t) === xtTables.length - 1;
+
+  // Rows: this table's question
+  if (f) {
+    const menu = [{ label: 'Choose answers…', run: () => chooseAnswers(chipAnchor('rows', f.key), f.name, f.label) }];
+    if (f.kind !== 'single') {
+      menu.push({ label: f.kind === 'multi' ? 'Show as a grid' : 'Show as a multi-select set', run: () => setGroupKind(t, f.kind === 'multi' ? 'grid' : 'multi') });
+      menu.push({ label: 'Ungroup (a table per question)', run: () => ungroup(t) });
+    }
+    rows.replaceChildren(shelfChip('rows', f.key, f.label, f.kind, menu, () => { t.row = null; updateSummary(); }, hiddenNote(f.name)));
+  } else {
+    rows.replaceChildren(IC.el('p', { class: 'xb-drop-empty' }, t ? 'Drop a question here (or a multi-select set / grid).' : 'Add a table on the left.'));
+  }
+  rows.classList.toggle('has', !!f);
+
+  // Columns: this table's
+  const colChips = (t?.columns || []).map(name => {
     const v = varByName(name);
     return shelfChip('columns', `v:${name}`, v?.label || name, 'single',
-      [{ label: 'Choose answers…', run: () => chooseAnswers(chipAnchor('columns', `v:${name}`), name, v?.label || name) },
-       { label: 'Move to Rows', run: () => toRows(`v:${name}`) }],
-      () => { selectedBanners = selectedBanners.filter(b => b !== name); updateSummary(); }, hiddenNote(name));
+      [{ label: 'Choose answers…', run: () => chooseAnswers(chipAnchor('columns', `v:${name}`), name, v?.label || name) }],
+      () => { t.columns = t.columns.filter(c => c !== name); updateSummary(); }, hiddenNote(name));
   });
-  if (customGroups.length) {
+  if (t?.customGroups && customGroups.length) {
     const label = `${document.getElementById('cg-banner-name').value.trim() || 'Custom groups'}: ${customGroups.map(g => g.name).join(', ')}`;
-    const chip = IC.el('button', { type: 'button', class: 'xb-chip xb-chip--custom', onclick: openCustomGroups, title: 'Edit the custom groups' },
-      kindGlyph('grid'), IC.el('span', { class: 'xb-chip-label' }, label));
-    colChips.push(chip);
+    colChips.push(IC.el('div', { class: 'xb-chip xb-chip--custom' }, kindGlyph('grid'),
+      IC.el('button', { type: 'button', class: 'xb-chip-label', title: 'Edit the custom groups', onclick: openCustomGroups }, label),
+      IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': 'Remove the custom groups from this table',
+        onclick: () => { t.customGroups = false; updateSummary(); } }, IC.icon('x', 13))));
   }
   cols.replaceChildren(...(colChips.length ? colChips : [IC.el('p', { class: 'xb-drop-empty' }, 'Total only. Drop questions here, e.g. Gender or Age group.')]));
   cols.classList.toggle('has', colChips.length > 0);
-
-  const included = currentTables().filter(t => !tablesOff.has(t.key));
-  rows.replaceChildren(...(included.length ? included.map(t => {
-    const menu = [{ label: 'Choose answers…', run: () => chooseAnswers(chipAnchor('rows', t.key), t.name, t.title) },
-                  { label: 'Rename table…', run: () => { const title = prompt('Table title', t.title); if (title != null) renameTable(t, title); } }];
-    if (t.kind === 'single' && bannerable(t.name)) menu.push({ label: 'Move to Columns', run: () => toColumns(t.name) });
-    if (t.kind !== 'single') {
-      menu.push({ label: t.kind === 'multi' ? 'Show as a grid' : 'Show as a multi-select set', run: () => setGroupKind(t, t.kind === 'multi' ? 'grid' : 'multi') });
-      menu.push({ label: 'Ungroup (one table per question)', run: () => { delete (t.kind === 'multi' ? mrsGroups : gridGroups)[t.name]; updateSummary(); } });
-    }
-    return shelfChip('rows', t.key, t.title, t.kind, menu, () => { tablesOff.add(t.key); updateSummary(); }, hiddenNote(t.name));
-  }) : [IC.el('p', { class: 'xb-drop-empty' }, 'Drop questions here. Each becomes a table.')]));
-  rows.classList.toggle('has', included.length > 0);
-  document.getElementById('xb-rows-count').textContent = `${included.length} table${included.length === 1 ? '' : 's'}`;
-  document.getElementById('xb-custom-count').textContent = customGroups.length ? `(${customGroups.length})` : '';
   renderFilterShelf();
 }
 function renderFilterShelf() {
@@ -1498,9 +1609,10 @@ function renderFilterShelf() {
   document.getElementById('xb-filter-empty').hidden = n > 0;
 }
 for (const drop of document.querySelectorAll('#crosstabs-section [data-shelf]')) {
-  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('is-over'); });
+  drop.addEventListener('dragover', (e) => { if (dragTableId == null) { e.preventDefault(); drop.classList.add('is-over'); } });
   drop.addEventListener('dragleave', (e) => { if (!drop.contains(e.relatedTarget)) drop.classList.remove('is-over'); });
   drop.addEventListener('drop', (e) => {
+    if (dragTableId != null) return;
     e.preventDefault(); drop.classList.remove('is-over');
     if (dragKey) dropOn(drop.dataset.shelf, dragKey);
     dragKey = null;
@@ -1508,8 +1620,12 @@ for (const drop of document.querySelectorAll('#crosstabs-section [data-shelf]'))
 }
 // A drag that ends anywhere clears the drop highlights (dragleave isn't always sent)
 document.addEventListener('dragend', () => document.querySelectorAll('.is-over, .drop-before').forEach(n => n.classList.remove('is-over', 'drop-before')));
-// Filter rows edit themselves (variable, operator, value): redraw the tables when they change
-document.getElementById('filter-conditions').addEventListener('change', () => { renderFieldList(); schedulePreview(); });
+// Filter rows edit themselves (variable, operator, value): keep them on the table and redraw
+document.getElementById('filter-conditions').addEventListener('change', () => { saveFilterRows(); renderRail(); renderFieldList(); schedulePreview(); });
+document.getElementById('filter-conditions').addEventListener('click', (e) => {
+  if (e.target.closest('[aria-label="Remove condition"]')) setTimeout(() => { saveFilterRows(); renderFilterShelf(); renderRail(); schedulePreview(); });
+});
+document.getElementById('xb-table-title').addEventListener('change', (e) => { const t = currentTable(); if (t) renameTable(t, e.target.value); });
 
 // ── Values: mirrors of the Options step's controls ──
 const VALUE_MIRRORS = [['xb-t2b', 'opt-t2b'], ['xb-row-pct', 'opt-row-pct']];
@@ -1543,18 +1659,19 @@ function useBannerSheets() {
 }
 for (const id of ['xb-show-pct', 'xb-show-counts']) document.getElementById(id).addEventListener('change', () => drawPreview());
 for (const r of document.querySelectorAll('input[name="output-mode"]')) r.addEventListener('change', renderLayoutHint);
-for (const id of ['opt-bonferroni', 'weight-select', 'cg-banner-name']) document.getElementById(id).addEventListener('change', () => { renderShelves(); schedulePreview(); });
+for (const id of ['opt-bonferroni', 'weight-select', 'cg-banner-name']) document.getElementById(id).addEventListener('change', () => { renderCrosstabs(); });
 
-function renderCrosstabs() {
+function renderCrosstabs({ filters = false } = {}) {
   if (!metadata) return;
+  if (filters) setConditionRows('filter-conditions', currentTable()?.filters);
+  renderRail();
   renderFieldList();
   renderShelves();
   schedulePreview();
 }
 
-// ── Live tables (/v1/tabulate/preview) ──
-const PREVIEW_PAGE = 6, PREVIEW_MAX = 50;
-let previewLimit = PREVIEW_PAGE, previewTimer = null, previewCtl = null, previewSeq = 0, lastPreview = null;
+// ── Live table (/v1/tabulate/preview): the selected table only ──
+let previewTimer = null, previewCtl = null, previewSeq = 0, lastPreview = null;
 function setLive(state, text) {
   const live = document.getElementById('xb-live');
   live.className = `xb-live${state === 'busy' ? ' is-busy' : state === 'error' ? ' is-error' : ''}`;
@@ -1568,11 +1685,10 @@ function schedulePreview() {
   previewTimer = setTimeout(runPreview, 250);
 }
 async function runPreview() {
-  const included = currentTables().filter(t => !tablesOff.has(t.key));
-  const shown = included.slice(0, Math.min(previewLimit, PREVIEW_MAX));
-  if (!shown.length) { lastPreview = null; drawPreview(); setLive('ok', 'Live'); return; }
-  const spec = buildSpec();
-  spec.tables = shown.map(t => t.name);
+  const t = currentTable();
+  if (!t || !fieldByKey(t.row)) { lastPreview = null; drawPreview(); setLive('ok', 'Live'); return; }
+  const spec = buildSpec([t]);
+  spec.tables = [tableName(t)];
   delete spec.output_mode; delete spec.title;
   const form = new FormData();
   appendData(form);
@@ -1585,7 +1701,7 @@ async function runPreview() {
     const body = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(body.detail?.message || body.error?.message || `HTTP ${resp.status}`);
     if (seq !== previewSeq) return;
-    lastPreview = { data: body.data, included: included.length, shown: shown.length };
+    lastPreview = { data: body.data, tableId: t.id };
     drawPreview();
     setLive('ok', 'Live');
   } catch (e) {
@@ -1600,40 +1716,39 @@ function baseMark(n) { return n < 30 ? ' **' : n < 100 ? ' *' : ''; }
 function drawPreview() {
   const host = document.getElementById('xb-tables');
   const meta = document.getElementById('xb-result-meta'), legend = document.getElementById('xb-legend');
-  const nFilter = readConditions('filter-conditions').length;
-  if (!lastPreview) {
+  const t = currentTable();
+  if (!lastPreview || !t || lastPreview.tableId !== t.id) {
     host.replaceChildren(IC.el('div', { class: 'ic-empty' }, IC.icon('table', 36),
-      IC.el('div', { style: { fontWeight: 600, color: 'var(--ic-text)' } }, 'Drop a question into Rows'),
-      IC.el('div', {}, 'Each one becomes a table. Columns are shared by every table.')));
+      IC.el('div', { style: { fontWeight: 600, color: 'var(--ic-text)' } }, t ? 'Drop a question into Rows' : 'No table selected'),
+      IC.el('div', {}, t ? 'This table shows here as you build it.' : 'Pick a table on the left, or add one.')));
     meta.textContent = ''; legend.textContent = '';
     return;
   }
-  const { data, included, shown } = lastPreview;
-  meta.textContent = [`${IC.number(data.n_cases)} respondents in the file`, nFilter ? `${nFilter} filter condition${nFilter > 1 ? 's' : ''}` : 'everyone counted',
-    included > shown ? `showing ${shown} of ${included} tables` : `${included} table${included === 1 ? '' : 's'}`].join(' · ');
+  const { data } = lastPreview;
+  const nf = t.filters.length;
+  meta.textContent = [`Table ${xtTables.indexOf(t) + 1} of ${xtTables.length}`, `${IC.number(data.n_cases)} respondents in the file`,
+    nf ? `${nf} filter condition${nf > 1 ? 's' : ''}` : 'everyone counted'].join(' · ');
   legend.textContent = `${data.significance.note}. * base under 100, ** under 30.`;
-  const blocks = data.tables.map(t => previewTable(t, data));
-  for (const f of data.failed) blocks.push(IC.el('p', { class: 'ic-alert ic-alert--warning' }, `${f.variable}: ${f.error}`));
-  if (included > shown) {
-    const more = Math.min(PREVIEW_PAGE, PREVIEW_MAX - shown);
-    blocks.push(more > 0
-      ? IC.el('button', { type: 'button', class: 'ic-btn ic-btn--secondary', style: { alignSelf: 'center' },
-          onclick: () => { previewLimit += PREVIEW_PAGE; schedulePreview(); } }, `Show ${more} more table${more === 1 ? '' : 's'}`)
-      : IC.el('p', { class: 'ic-help', style: { textAlign: 'center' } }, `The preview shows the first ${PREVIEW_MAX} tables; all ${included} are in the Excel.`));
+  const blocks = data.tables.map(x => previewTable(x, data));
+  for (const f of data.failed) {
+    const why = /no valid observations/i.test(f.error || '')
+      ? (nf ? 'Nobody counted by this table’s filter answered it. Check the filter.' : 'Nobody answered it.') : f.error;
+    blocks.push(IC.el('p', { class: 'ic-alert ic-alert--warning' }, `This table can’t be built: ${why}`));
   }
   host.replaceChildren(...blocks);
 }
 
 function previewTable(t, data) {
+  const banners = t.banners || data.banners;
   const showPct = document.getElementById('xb-show-pct').checked;
   const showCounts = document.getElementById('xb-show-counts').checked || (!showPct && !document.getElementById('xb-row-pct').checked);
   const blocks = t.items.map(item => {
     const th = (text, attrs = {}) => IC.el('th', attrs, text);
     const head = IC.el('thead', {},
       IC.el('tr', {}, th('', { class: 'lt', rowspan: '3' }), th('Total', { rowspan: '2', class: 'xb-tot' }),
-        ...data.banners.map(b => th(b.label, { class: 'grp', colspan: String(b.columns.length) }))),
-      IC.el('tr', {}, ...data.banners.flatMap(b => b.columns.map((c, i) => th(c.label, { class: i === 0 ? 'gl' : '' })))),
-      IC.el('tr', { class: 'letters' }, th(''), ...data.banners.flatMap(b => b.columns.map((c, i) => th(`(${c.letter})`, { class: i === 0 ? 'gl' : '' })))));
+        ...banners.map(b => th(b.label, { class: 'grp', colspan: String(b.columns.length) }))),
+      IC.el('tr', {}, ...banners.flatMap(b => b.columns.map((c, i) => th(c.label, { class: i === 0 ? 'gl' : '' })))),
+      IC.el('tr', { class: 'letters' }, th(''), ...banners.flatMap(b => b.columns.map((c, i) => th(`(${c.letter})`, { class: i === 0 ? 'gl' : '' })))));
     const baseCell = (n, cls = '') => IC.el('td', { class: `${cls}${n < 30 ? ' low' : ''}`, title: n < 100 ? 'Small base' : null }, `${IC.number(Math.round(n))}${baseMark(n)}`);
     const body = IC.el('tbody', {},
       IC.el('tr', { class: 'base' }, IC.el('td', { class: 'rl' }, item.is_mrs ? 'Base: answered' : 'Base'),
@@ -1647,13 +1762,8 @@ function previewTable(t, data) {
       t.is_grid ? IC.el('p', { class: 'xb-item' }, item.label) : null,
       IC.el('div', { class: 'xb-wrap' }, IC.el('table', { class: 'xb-xt' }, head, body)));
   });
-  const key = t.key;
-  const tableInfo = currentTables().find(x => x.name === key);
   return IC.el('section', { class: 'xb-table' },
-    IC.el('div', { class: 'xb-table-title' }, IC.el('h3', {}, t.title),
-      IC.el('span', { class: 'xb-q' }, t.is_grid ? `${key} · grid` : tableInfo?.kind === 'multi' ? `${key} · multi-select` : key),
-      tableInfo ? IC.el('button', { type: 'button', class: 'ic-icon-btn', style: { marginLeft: 'auto' }, 'aria-label': `Remove ${t.title} from Rows`,
-        title: 'Remove from Rows', onclick: () => { tablesOff.add(tableInfo.key); updateSummary(); } }, IC.icon('x', 14)) : null),
+    IC.el('div', { class: 'xb-table-title' }, IC.el('h3', {}, t.title), IC.el('span', { class: 'xb-q' }, t.key)),
     ...blocks);
 }
 function valueCell(c, cls, showPct, showCounts) {
@@ -1707,20 +1817,22 @@ function saveSoon() {
 const KEPT_VALUES = ['sig-select', 'weight-select', 'title-input', 'cg-banner-name', 'opt-sort'];
 const KEPT_CHECKS = ['opt-t2b', 'opt-means', 'opt-bonferroni', 'opt-row-pct', 'xb-show-pct', 'xb-show-counts'];
 function currentChoices() {
+  saveFilterRows();
   return {
     fileName: savFile.name, fileSize: savFile.size, savedAt: Date.now(),
     step: currentStep, furthest: furthestStep, codebook: reviewedCodebook, libraryId: openLibraryId,
-    selectedBanners, tableOrder, tablesOff: [...tablesOff], tableTitles, mrsGroups, gridGroups, customGroups, hiddenCodes,
-    filters: readConditions('filter-conditions'), outputMode: outputMode(),
+    xtTables, currentTableId, nextTableId, mrsGroups, gridGroups, customGroups, hiddenCodes, outputMode: outputMode(),
     values: Object.fromEntries(KEPT_VALUES.map(id => [id, document.getElementById(id).value])),
     checks: Object.fromEntries(KEPT_CHECKS.map(id => [id, document.getElementById(id).checked])),
   };
 }
 function applyChoices(s) {
-  selectedBanners = (s.selectedBanners || []).filter(name => varByName(name));
   mrsGroups = s.mrsGroups || {}; gridGroups = s.gridGroups || {}; customGroups = s.customGroups || [];
-  hiddenCodes = s.hiddenCodes || {}; tableOrder = s.tableOrder || []; tablesOff = new Set(s.tablesOff || []);
-  tableTitles = s.tableTitles || {}; openLibraryId = s.libraryId || null;
+  hiddenCodes = s.hiddenCodes || {}; openLibraryId = s.libraryId || null;
+  if (Array.isArray(s.xtTables)) {  // older saves (one set of columns for all tables) keep the fresh tables
+    xtTables = s.xtTables; nextTableId = s.nextTableId || xtTables.reduce((m, t) => Math.max(m, t.id + 1), 1);
+    currentTableId = xtTables.some(t => t.id === s.currentTableId) ? s.currentTableId : xtTables[0]?.id ?? null;
+  }
   for (const [id, value] of Object.entries(s.values || {})) {
     const input = document.getElementById(id);
     if (input && (input.tagName !== 'SELECT' || [...input.options].some(o => o.value === value))) input.value = value;
@@ -1728,17 +1840,6 @@ function applyChoices(s) {
   for (const [id, on] of Object.entries(s.checks || {})) { const box = document.getElementById(id); if (box) box.checked = on; }
   const mode = document.querySelector(`input[name="output-mode"][value="${s.outputMode}"]`);
   if (mode) mode.checked = true;
-  document.getElementById('filter-conditions').replaceChildren();
-  for (const c of s.filters || []) {
-    if (!varByName(c.variable)) continue;
-    const row = addConditionRow('filter-conditions');
-    const sel = row.querySelector('.cg-var');
-    sel.value = c.variable; onCgVarChange(sel);
-    row.querySelector('.cg-op').value = c.operator;
-    const val = row.querySelector('.cg-val');
-    const match = val.tagName === 'SELECT' && [...val.options].find(o => Number(o.value) === Number(c.value) || o.value === String(c.value));
-    val.value = match ? match.value : String(c.value);
-  }
   renderCustomGroups();
   furthestStep = Math.max(s.furthest || 0, 1);
   updateSummary();
@@ -1836,6 +1937,7 @@ function saveCustomGroup() {
   if (conditions.length === 0) { alert('Add at least one condition'); return; }
 
   customGroups.push({ name, conditions });
+  if (currentTable()) currentTable().customGroups = true;
   renderCustomGroups();
   cancelCustomGroup();
   updateSummary();
@@ -1873,15 +1975,14 @@ function updateSummary() {
   saveSoon();
   const el = document.getElementById('spec-summary');
   if (!metadata) { el.textContent = 'Upload a file to get started'; return; }
-  const included = currentTables().filter(t => !tablesOff.has(t.key));
-  const nCg = customGroups.length;
-  const parts = [];
-  if (selectedBanners.length > 0) parts.push(`Banners: ${selectedBanners.join(' + ')}`);
-  const nFilter = readConditions('filter-conditions').length;
-  if (nFilter) parts.push(`Filter: ${nFilter} condition${nFilter > 1 ? 's' : ''}`);
-  parts.push(`Tables: ${included.length}`);
-  renderTables();  // a question chosen as a banner leaves Rows; redraws the Crosstabs step
-  if (nCg > 0) parts.push(`Custom: ${nCg}`);
+  const ready = xtTables.filter(t => fieldByKey(t.row));
+  const parts = [`Tables: ${ready.length}`];
+  if (xtTables.length > ready.length) parts.push(`${xtTables.length - ready.length} without a question (left out)`);
+  const setups = [...new Set(ready.map(columnsText))];
+  parts.push(setups.length === 1 ? (setups[0] === 'Total only' ? 'Total only' : `Columns: ${setups[0].slice(3)}`) : `${setups.length} different column setups`);
+  const filtered = ready.filter(t => t.filters.length).length;
+  if (filtered) parts.push(`${filtered} filtered`);
+  renderTables();  // redraws the Crosstabs step
   el.textContent = parts.join(' | ');
 }
 
@@ -1919,6 +2020,12 @@ async function generate() {
   progressText.textContent = 'Uploading file and running crosstabs...';
 
   const spec = buildSpec();
+  if (!spec.table_order.length) {
+    progress.classList.add('hidden'); error.classList.remove('hidden');
+    document.getElementById('error-text').textContent = 'No tables yet: give at least one table a question on the Crosstabs step.';
+    btn.disabled = false; btn.innerHTML = '<ic-icon name="file-sheet" size="18"></ic-icon> Generate Excel';
+    return;
+  }
   const form = new FormData();
   appendData(form);
   form.append('spec', JSON.stringify(spec));
@@ -1926,35 +2033,36 @@ async function generate() {
   await sendTabulate(form, btn, progress, progressText, result, error);
 }
 
-// The tabulation spec from the steps (the export and the Crosstabs preview use the same one)
-function buildSpec() {
-  // Rows: included tables, in order, with their titles
-  const tables = currentTables().filter(t => !tablesOff.has(t.key));
-  const stubs = tables.filter(t => t.kind === 'single').map(t => t.name);
-  const includedMrs = Object.fromEntries(tables.filter(t => t.kind === 'multi').map(t => [t.name, mrsGroups[t.name]]));
-  const includedGrids = Object.fromEntries(tables.filter(t => t.kind === 'grid').map(t => [t.name, gridGroups[t.name]]));
+// The tabulation spec from the tables (the export and the Crosstabs preview use the same one):
+// each table's own columns, custom-groups switch and filter go in table_specs
+function buildSpec(only = null) {
+  if (isCrosstabsStep()) saveFilterRows();
+  const tables = (only || xtTables).filter(t => fieldByKey(t.row));
+  const fields = tables.map(t => fieldByKey(t.row));
+  const stubs = fields.filter(f => f.kind === 'single').map(f => f.name);
+  const includedMrs = Object.fromEntries(fields.filter(f => f.kind === 'multi').map(f => [f.name, mrsGroups[f.name]]));
+  const includedGrids = Object.fromEntries(fields.filter(f => f.kind === 'grid').map(f => [f.name, gridGroups[f.name]]));
+  const columnsInUse = [...new Set(tables.flatMap(t => t.columns))];
 
-  const outputMode = document.querySelector('input[name="output-mode"]:checked')?.value || 'multi_sheet';
   const spec = {
     stubs,
-    table_order: tables.map(t => t.name),
-    table_titles: Object.fromEntries(tables.filter(t => t.kind === 'single' && tableTitles[t.name]).map(t => [t.name, tableTitles[t.name]])),
+    table_order: fields.map(f => f.name),
+    table_titles: Object.fromEntries(tables.filter(t => t.title && fieldByKey(t.row).kind === 'single').map(t => [tableName(t), t.title])),
+    table_specs: tables.map(t => ({ table: tableName(t), banners: t.columns, filters: t.filters,
+                                    custom_groups: !!t.customGroups && customGroups.length > 0 })),
     ...sigLevels(document.getElementById('sig-select').value),
     include_means: document.getElementById('opt-means').checked,
     bonferroni: document.getElementById('opt-bonferroni').checked,
     include_total_column: true,
-    output_mode: outputMode,
+    output_mode: outputMode(),
     sort_rows: document.getElementById('opt-sort').value || undefined,
     show_row_pct: document.getElementById('opt-row-pct').checked || undefined,
     custom_groups_label: document.getElementById('cg-banner-name').value.trim() || undefined,
     title: document.getElementById('title-input').value || undefined,
   };
-
-  if (selectedBanners.length > 0) spec.banners = selectedBanners;
-  const filters = readConditions('filter-conditions');
-  if (filters.length) spec.filters = filters;
-  if (customGroups.length > 0) spec.custom_groups = customGroups;
+  if (tables.some(t => t.customGroups) && customGroups.length > 0) spec.custom_groups = customGroups;
   if (Object.keys(includedGrids).length > 0) spec.grid_groups = includedGrids;
+  if (Object.keys(includedMrs).length > 0) spec.mrs_groups = includedMrs;
 
   const weight = document.getElementById('weight-select').value;
   if (weight) spec.weight = weight;
@@ -1964,17 +2072,15 @@ function buildSpec() {
   if (document.getElementById('opt-t2b').checked) {
     spec.nets = {};
     // Nets set on Variables come with the codebook; auto T2B/B2B would replace them
-    const skip = new Set([...selectedBanners, ...reviewedNetNames()]);
+    const skip = new Set([...columnsInUse, ...reviewedNetNames()]);
     for (const [varName, nets] of Object.entries(metadata.preset_nets || {})) {
       if (!skip.has(varName)) spec.nets[varName] = nets;
     }
     if (Object.keys(spec.nets).length === 0) delete spec.nets;
   }
 
-  // MRS
-  if (Object.keys(includedMrs).length > 0) spec.mrs_groups = includedMrs;
   // Answers / columns hidden on the Crosstabs step, for the tables and columns in use
-  const inUse = new Set([...selectedBanners, ...tables.map(t => t.name)]);
+  const inUse = new Set([...columnsInUse, ...fields.map(f => f.name)]);
   const hide = Object.fromEntries(Object.entries(hiddenCodes).filter(([name, codes]) => codes.length && inUse.has(name)));
   if (Object.keys(hide).length) spec.hide_codes = hide;
   return spec;
@@ -1999,8 +2105,9 @@ async function sendTabulate(form, btn, progress, progressText, result, error) {
     resultFilename = fn ? fn[1] : `tabulation.xlsx`;
 
     progress.classList.add('hidden'); result.classList.remove('hidden');
-    document.getElementById('result-text').textContent = `${success}/${total} tables generated` + (parseInt(failed) > 0 ? ` (${failed} failed)` : '');
-    document.getElementById('result-meta').textContent = `${resultFilename} • ${(resultBlob.size/1024).toFixed(0)} KB • ${serverMs}ms server / ${elapsed}ms total • ${selectedBanners.length} banner(s)`;
+    const nTables = xtTables.filter(t => fieldByKey(t.row)).length;
+    document.getElementById('result-text').textContent = `${nTables} table${nTables === 1 ? '' : 's'} in the workbook` + (parseInt(failed) > 0 ? ` (${failed} couldn't be built)` : '');
+    document.getElementById('result-meta').textContent = `${resultFilename} • ${(resultBlob.size/1024).toFixed(0)} KB • ${serverMs}ms server / ${elapsed}ms total • ${success}/${total} tabulations`;
   } catch (e) {
     progress.classList.add('hidden'); error.classList.remove('hidden');
     document.getElementById('error-text').textContent = `Error: ${e.message}`;

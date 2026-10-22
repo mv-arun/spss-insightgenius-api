@@ -12,7 +12,10 @@ Tier 1 features:
 - T1-4: Dual bases (weighted + unweighted)
 """
 
+import copy
+import dataclasses
 import io
+import json
 import logging
 import math
 import string
@@ -147,6 +150,10 @@ class TabulateSpec:
     stub_filters: dict[str, dict[str, Any]] | None = None  # Per-stub conditional filters
     nested_banners: list[dict[str, Any]] | None = None  # Nested/cross-product banners
     title: str = ""
+    # Per-table columns and filters: [{"table": "Q1", "banners": ["Gender"], "filters": [...], "custom_groups": true}].
+    # A table not listed uses banners / filters / custom_groups above. Tables with the same setup are
+    # tabulated together; every layout writes each table with its own columns.
+    table_specs: list[dict[str, Any]] | None = None
 
     def __post_init__(self):
         if self.significance_levels:
@@ -259,13 +266,99 @@ class TabulationResult:
     banner_columns: list[BannerColumn] = field(default_factory=list)
     executive_summary: str = ""  # AI-generated summary (Story #4)
     nested_banner_info: list[dict[str, Any]] = field(default_factory=list)  # For Excel header rendering
+    parts: list[Any] = field(default_factory=list)  # table_specs: one TabulationPart per setup
 
 
 def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec, build_excel: bool = True) -> TabulationResult:
     """Run all crosstabs and build the Excel workbook (build_excel=False: the tables only, for
     a preview). CPU-bound — call via asyncio.to_thread()."""
     with multiple_comparison_correction(spec.bonferroni):
-        return _build_tabulation(engine_cls, data, spec, build_excel)
+        if not spec.table_specs:
+            return _build_tabulation(engine_cls, data, spec, build_excel)
+        result = _merge_parts(_build_parts(engine_cls, data, spec), spec)
+        if build_excel:
+            result.excel_bytes = _build_excel(result, spec, data)
+        return result
+
+
+# ── Per-table columns and filters (TabulateSpec.table_specs) ──
+
+@dataclass
+class TabulationPart:
+    """Tables that share columns, filters and custom groups, tabulated together."""
+    tables: list[str]
+    result: "TabulationResult"
+    spec: TabulateSpec
+    data: Any
+
+
+def _table_names(spec: TabulateSpec) -> list[str]:
+    """Every table the spec asks for, in output order (table_order first, then as listed)."""
+    stubs = [] if spec.stubs == ["_all_"] else list(spec.stubs)
+    names = list(dict.fromkeys(stubs + list(spec.mrs_groups or {}) + list(spec.grid_groups or {})))
+    if spec.table_order:
+        rank = {key: i for i, key in enumerate(spec.table_order)}
+        names.sort(key=lambda n: rank.get(n, len(rank)))
+    return names
+
+
+def _build_parts(engine_cls: Any, data: Any, spec: TabulateSpec) -> list[TabulationPart]:
+    if spec.stubs == ["_all_"]:
+        raise ValueError("table_specs needs the tables named in 'stubs' (and the groups), not [\"_all_\"]")
+    by_table = {ts.get("table"): ts for ts in spec.table_specs or []}
+    setups: dict[tuple, list[str]] = {}
+    for name in _table_names(spec):
+        ts = by_table.get(name, {})
+        banners = ts["banners"] if ts.get("banners") is not None else spec.resolved_banners
+        filters = ts["filters"] if ts.get("filters") is not None else (spec.filters or [])
+        use_cg = bool(ts["custom_groups"]) if "custom_groups" in ts else bool(spec.custom_groups)
+        key = (tuple(banners), json.dumps(filters, sort_keys=True), use_cg)
+        setups.setdefault(key, []).append(name)
+    stub_set = set([] if spec.stubs == ["_all_"] else spec.stubs)
+    parts = []
+    for (banners, filters_json, use_cg), names in setups.items():
+        in_part = set(names)
+        sub = dataclasses.replace(
+            spec, banner="", banners=list(banners), filters=json.loads(filters_json) or None,
+            custom_groups=spec.custom_groups if use_cg else None, table_specs=None,
+            stubs=[n for n in names if n in stub_set],
+            mrs_groups={k: v for k, v in (spec.mrs_groups or {}).items() if k in in_part} or None,
+            grid_groups={k: v for k, v in (spec.grid_groups or {}).items() if k in in_part} or None,
+            table_order=names)
+        # Tabulation adds columns (_total_, custom groups) and labels to the data it's given
+        own = type(data)(df=data.df.copy(), meta=copy.deepcopy(data.meta), mrx_dataset=data.mrx_dataset,
+                         file_name=data.file_name)
+        parts.append(TabulationPart(tables=names, result=_build_tabulation(engine_cls, own, sub, build_excel=False),
+                                    spec=sub, data=own))
+    return parts
+
+
+def _merge_parts(parts: list[TabulationPart], spec: TabulateSpec) -> TabulationResult:
+    """One result for headers and the Summary sheet; the parts keep each table's own columns."""
+    order = {name: i for i, name in enumerate(_table_names(spec))}
+    banners, columns, seen = [], [], set()
+    for part in parts:
+        for b in part.result.banners:
+            if b not in banners:
+                banners.append(b)
+        for bc in part.result.banner_columns:
+            if (bc.banner_var, bc.value) not in seen:
+                seen.add((bc.banner_var, bc.value))
+                columns.append(bc)
+    labels = {b: lbl for part in parts for b, lbl in zip(part.result.banners, part.result.banner_labels)}
+    sheets = sorted((s for part in parts for s in part.result.sheets),
+                    key=lambda s: order.get(s.group or s.variable, len(order)))
+    return TabulationResult(
+        banners=banners, banner_labels=[labels.get(b, b) for b in banners],
+        total_stubs=sum(p.result.total_stubs for p in parts), successful=sum(p.result.successful for p in parts),
+        failed=sum(p.result.failed for p in parts), sheets=sheets, banner_columns=columns, parts=parts)
+
+
+def part_of(result: TabulationResult, sheet: "SheetResult") -> TabulationPart | None:
+    for part in result.parts:
+        if any(s is sheet for s in part.result.sheets):
+            return part
+    return None
 
 
 def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec, build_excel: bool = True) -> TabulationResult:
@@ -1038,6 +1131,8 @@ def _build_excel(result: TabulationResult, spec: TabulateSpec, data: Any) -> byt
     if spec.output_mode == "banner_sheets":
         from services.banner_workbook import build_banner_workbook
         return build_banner_workbook(result, spec, data)
+    # table_specs: each table is written with its own part (columns, filters, data)
+    parts = result.parts or [TabulationPart(tables=[], result=result, spec=spec, data=data)]
 
     wb = Workbook()
 
@@ -1064,21 +1159,24 @@ def _build_excel(result: TabulationResult, spec: TabulateSpec, data: Any) -> byt
     _write_summary_sheet(ws_summary, result, spec, data)
 
     if spec.output_mode == "single_sheet":
-        ws = wb.create_sheet(title="Tabulation")
-        _write_single_sheet(ws, result, spec, data)
+        for i, part in enumerate(parts):  # one sheet per setup of columns and filters
+            ws = wb.create_sheet(title="Tabulation" if i == 0 else f"Tabulation ({i + 1})")
+            _write_single_sheet(ws, part.result, part.spec, part.data)
     else:
         for sheet_result in result.sheets:
             if sheet_result.status != "success":
                 continue
+            part = part_of(result, sheet_result) or parts[0]
             sheet_name = _sanitize_sheet_name(sheet_result.variable)
             existing = [ws.title for ws in wb.worksheets]
             if sheet_name in existing:
                 sheet_name = sheet_name[:28] + "_" + str(existing.count(sheet_name))
             ws = wb.create_sheet(title=sheet_name)
             if sheet_result.is_grid and sheet_result.grid_data:
-                _write_grid_sheet(ws, sheet_result, spec, result.banner_columns, result.nested_banner_info)
+                _write_grid_sheet(ws, sheet_result, part.spec, part.result.banner_columns, part.result.nested_banner_info)
             elif sheet_result.crosstab_data:
-                _write_crosstab_sheet(ws, sheet_result, spec, data, result.banner_columns, result.nested_banner_info)
+                _write_crosstab_sheet(ws, sheet_result, part.spec, part.data, part.result.banner_columns,
+                                      part.result.nested_banner_info)
 
     buf = io.BytesIO()
     wb.save(buf)

@@ -710,3 +710,65 @@ def test_row_pct_in_preview_and_its_own_sheet(client, auth_headers, tmp_path):
     assert block[1][0] == "Row %"
     rows = {r[0]: r[1:5] for r in block[2:] if r[0]}
     assert rows["Apple"] == pytest.approx([1 / 3, 1 / 3, 1 / 3, 1.0])
+
+
+# ── Per-table columns and filters (table_specs) ──
+
+def _per_table_df():
+    import pandas as pd
+    df = _letters_df()
+    return df.assign(size=([1.0, 2.0] * 60))
+
+
+_PER_TABLE_LABELS = {**_FRUIT_LABELS, "size": {1.0: "Small", 2.0: "Large"}}
+
+
+def test_table_specs_give_each_table_its_own_columns_and_filter(client, auth_headers, tmp_path):
+    sav = _sav(tmp_path, _per_table_df(), _PER_TABLE_LABELS)
+    spec = {"stubs": ["fruit", "size"], "table_specs": [
+        {"table": "fruit", "banners": ["cut"]},
+        {"table": "size", "banners": [], "filters": [{"variable": "cut", "operator": "eq", "value": 1}]}]}
+    preview = _preview(client, auth_headers, sav, {**spec, "tables": ["fruit", "size"]})
+    fruit, size = preview["tables"]
+    assert [b["label"] for b in fruit["banners"]] == ["cut"] and size["banners"] == []
+    assert size["items"][0]["total"]["base"] == 40                       # its own filter
+    assert fruit["items"][0]["total"]["base"] == 120
+    # the same numbers as tabulating that table on its own
+    alone = _preview(client, auth_headers, sav, {"banners": ["cut"], "tables": ["fruit"]})["tables"][0]
+    assert fruit["items"] == alone["items"] and fruit["rows"] == alone["rows"]
+
+
+def test_table_specs_banner_sheets_put_tables_on_their_banners_sheets(client, auth_headers, tmp_path):
+    sav = _sav(tmp_path, _per_table_df(), _PER_TABLE_LABELS)
+    spec = {"stubs": ["fruit", "size"], "output_mode": "banner_sheets", "table_order": ["size", "fruit"],
+            "table_specs": [{"table": "fruit", "banners": ["cut"]}, {"table": "size", "banners": ["fruit"]}]}
+    resp, wb = _tabulate(client, auth_headers, sav, spec)
+    assert wb.sheetnames == ["Total", "By fruit", "By fruit (Stat)", "By cut", "By cut (Stat)"]
+    titles = lambda ws: [r[0] for r in ws.iter_rows(values_only=True)
+                         if r[0] and r[1] is None and " by " in str(r[0]) and not str(r[0]).startswith("sample")]
+    assert titles(wb["By cut"])[0] == "fruit by cut" and "size by cut" not in titles(wb["By cut"])
+    assert titles(wb["By fruit"])[0] == "size by fruit"
+    total_titles = [r[0] for r in wb["Total"].iter_rows(values_only=True) if r[0] in ("size", "fruit")]
+    assert total_titles == ["size", "fruit"]                              # table_order across setups
+    assert resp.headers["X-Stubs-Success"] == "2"
+
+
+def test_table_specs_one_sheet_per_question_uses_each_tables_columns(client, auth_headers, tmp_path):
+    sav = _sav(tmp_path, _per_table_df(), _PER_TABLE_LABELS)
+    _, wb = _tabulate(client, auth_headers, sav, {"stubs": ["fruit", "size"], "table_specs": [
+        {"table": "fruit", "banners": ["cut"]}, {"table": "size", "banners": ["fruit"]}]})
+    _, fruit_cols = _crosstab_rows(wb["fruit"])
+    _, size_cols = _crosstab_rows(wb["size"])
+    assert {"North", "South", "West"} <= set(fruit_cols) and "Apple" not in fruit_cols
+    assert {"Apple", "Banana", "Pear"} <= set(size_cols) and "North" not in size_cols
+
+
+def test_table_specs_are_validated(client, auth_headers, tmp_path):
+    sav = _sav(tmp_path, _per_table_df(), _PER_TABLE_LABELS)
+    unknown = {"stubs": ["fruit"], "table_specs": [{"table": "fruit", "banners": ["nope"]}], "tables": ["fruit"]}
+    assert _preview(client, auth_headers, sav, unknown, 400)["detail"]["code"] == "VARIABLE_NOT_FOUND"
+    resp = client.post("/v1/tabulate", headers=auth_headers, files={"file": ("t.sav", sav, "application/octet-stream")},
+                       data={"spec": json.dumps({"table_specs": [{"table": "fruit", "banners": ["cut"]}]})})
+    assert resp.status_code == 400 and resp.json()["detail"]["code"] == "VALIDATION_ERROR"
+    bad = {"stubs": ["fruit"], "table_specs": [{"table": "fruit", "banners": "cut"}], "tables": ["fruit"]}
+    assert _preview(client, auth_headers, sav, bad, 400)["detail"]["code"] == "VALIDATION_ERROR"
