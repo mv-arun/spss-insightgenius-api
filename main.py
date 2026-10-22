@@ -279,7 +279,7 @@ def create_application() -> FastAPI:
         for path, name in app_pages.items():
             app.add_api_route(path, signed_in_page(name), methods=["GET"], include_in_schema=False)
 
-        # Old sections now live in the flow: Home and Workflows open it, Datasets is its first step
+        # Old addresses (bookmarks) of sections that are now steps of the flow
         def to_app():
             async def handler(request: Request):
                 return RedirectResponse("/app", status_code=303)

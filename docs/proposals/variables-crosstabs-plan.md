@@ -1,6 +1,6 @@
 # Variables + Crosstabs: implementation plan
 
-Status: phases 0–4 built (app bar + Dataset step, Variables grid, `/v1/tabulate/preview` + parsed-data cache, Crosstabs step; Row %, A→Z, hidden answers, restore after refresh). Phase 5 clean-up to do. Preview: [variables-crosstabs-preview.html](variables-crosstabs-preview.html), with sample data and nothing saved.
+Status: all five phases built. QA (2026-10-22): Job 3 through the new UI scores 1312/1464 cells (every in-scope cell) and 953/953 letters, the same as the API run; example3's live preview matches its exported workbook in every value, Row %, letter and base. Preview: [variables-crosstabs-preview.html](variables-crosstabs-preview.html), with sample data and nothing saved.
 
 ## Goal
 

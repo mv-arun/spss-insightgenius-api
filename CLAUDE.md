@@ -67,9 +67,9 @@ User identity = `key.name`. NEVER accept user_id from client input.
 
 Static pages in `public/`, routed in `main.py`. One design system for every page:
 - `public/ui/ic.css`: tokens and component classes (`.ic-btn`, `.ic-card`, `.ic-table`, `.ic-stepper`, `.ic-dropzone`, `.ic-option`, `.ic-result`, `.ic-modal`…).
-- `public/ui/ic.js`: `<ic-appbar>` (brand, steps via `IC.appbarSteps`, API docs, user menu) and `<ic-icon>`, plus the `window.IC` helpers. `<ic-sidebar>` / `<ic-topbar>` remain only for the old pages below.
+- `public/ui/ic.js`: `<ic-appbar>` (brand, steps via `IC.appbarSteps`, API docs, user menu) and `<ic-icon>`, plus the `window.IC` helpers (`popMenu` / `popover` for pop-ups).
 - `public/ui/tw.js`: Tailwind theme for pages whose scripts still build utility-class markup.
-- `public/ui/datasets.js`: library calls and the shared datasets table.
+- `public/ui/datasets.js`: the library calls the Dataset step uses.
 - New pages use `<div class="ic-app ic-app--bar"><ic-appbar></ic-appbar><div class="ic-main"><main class="ic-page">` (see `settings.html`). Don't add new colours or a second style system.
 
 Optional features (off by default; `ENABLE_DATASETS`, `ENABLE_AI_CHAT`):
@@ -83,7 +83,7 @@ Navigation: no sidebar. The app is one stepped flow at `/app` (also `/export`), 
 - Values: Column %, Row %, Counts, T2B/B2B, answer order (file / Total / A→Z), significance. Chip menu → "Choose answers…" hides answers or columns (`hide_codes`; bases unchanged). Order, Row % (`show_row_pct`: a "(Row %)" sheet per banner) and hidden answers are written by `output_mode: "banner_sheets"` only, like the preview.
 - A refresh picks up where the analyst left off: the file, its reviewed coding and every choice are kept in IndexedDB (`indico-crosstab`; ≤ 100 MB, 7 days, cleared on sign-out).
 - Plan and what's left: `docs/proposals/variables-crosstabs-plan.md`
-- `/home`, `/workflows` (and `/datasets*` when Datasets is on) redirect to `/app`; `home.html`, `workflows.html`, `datasets.html`, `dataset*.html` are no longer served.
+- `/home`, `/workflows` (and `/datasets*` when Datasets is on) redirect to `/app` (their pages were removed).
 - Off the bar but served: `/review` (standalone Variables), `/express`, `/wizard`, `/export-mcp`, `/settings` (account menu)
 
 Sign-in:

@@ -56,12 +56,10 @@
 
   /* Groups (MRS / grid / custom) */
   .subsection { border-top: 1px solid var(--ic-border); margin-top: 20px; padding-top: 20px; }
-  .subsection-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
   .list-stack { display: flex; flex-direction: column; gap: 8px; }
   .group-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--ic-border); border-radius: var(--ic-radius); background: var(--ic-surface); }
   .group-row-main { flex: 1; min-width: 0; }
   .group-row-title { font-weight: 600; font-size: 13.5px; }
-  .auto-badge { margin-bottom: 8px; }
   select[multiple].ic-select { min-height: 140px; }
   .check-row { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
   .cg-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -443,7 +441,6 @@
                   <button type="button" onclick="toggleMrsPanel()" class="ic-btn ic-btn--secondary ic-btn--sm"><ic-icon name="plus" size="14"></ic-icon>Multi-select set</button>
                   <button type="button" onclick="toggleGridPanel()" class="ic-btn ic-btn--secondary ic-btn--sm" id="grid-add-btn"><ic-icon name="plus" size="14"></ic-icon>Grid</button>
                 </div>
-                <div id="mrs-groups" hidden></div>
                 <div id="mrs-panel" class="hidden ic-panel fade-in" style="margin-top:12px">
                   <div class="ic-field">
                     <label class="ic-label" for="mrs-name">Group name</label>
@@ -458,7 +455,6 @@
                     <button type="button" onclick="toggleMrsPanel()" class="ic-btn ic-btn--secondary ic-btn--sm">Cancel</button>
                   </div>
                 </div>
-                <div id="grid-groups" hidden></div>
                 <div id="grid-panel" class="hidden ic-panel fade-in" style="margin-top:12px">
                   <div class="ic-field">
                     <label class="ic-label" for="grid-name">Group name</label>
@@ -568,7 +564,7 @@
                 <span class="ic-option-icon"><ic-icon name="layers" size="16"></ic-icon></span>
                 <div class="option-text">
                   <div class="ic-option-title">Top 2 Box / Bottom 2 Box</div>
-                  <div class="ic-option-desc">Auto-applies T2B/B2B nets to scale variables (4-11 point scales).</div>
+                  <div class="ic-option-desc">Adds Top 2 / Bottom 2 Box nets to questions with 5 or 7 answers, and Promoter / Passive / Detractor bands to 0-10 questions.</div>
                 </div>
                 <input type="checkbox" id="opt-t2b" checked class="ic-checkbox">
               </label>
@@ -1151,7 +1147,6 @@ function addMrsGroup() {
   updateSummary();
 }
 
-function removeMrsGroup(name) { delete mrsGroups[name]; renderMrsGroups(); updateSummary(); }
 
 function filterMrsMembers() {
   const q = document.getElementById('mrs-filter').value.toLowerCase();
@@ -1213,7 +1208,6 @@ function addGridGroup() {
   updateSummary();
 }
 
-function removeGridGroup(name) { delete gridGroups[name]; renderGridGroups(); updateSummary(); }
 
 function renderGridGroups() { renderTables(); }
 
@@ -1251,14 +1245,6 @@ function currentTables() {
 }
 
 function renderTables() { renderCrosstabs(); }
-
-function moveTable(key, step) {
-  currentTables();  // order is in sync with the tables there are
-  const i = tableOrder.indexOf(key), j = i + step;
-  if (i < 0 || j < 0 || j >= tableOrder.length) return;
-  [tableOrder[i], tableOrder[j]] = [tableOrder[j], tableOrder[i]];
-  renderTables();
-}
 
 function renameTable(t, title) {
   title = title.trim();
@@ -1899,18 +1885,6 @@ function updateSummary() {
   el.textContent = parts.join(' | ');
 }
 
-// ── Scale detection ──
-function detectScaleVars() {
-  if (!metadata) return [];
-  return metadata.variables.filter(v => {
-    if (!v.value_labels) return false;
-    const n = Object.keys(v.value_labels).length;
-    if (n < 4 || n > 11) return false;
-    const vals = Object.keys(v.value_labels).map(Number).filter(x => !isNaN(x)).sort((a,b) => a-b);
-    return vals.length >= 4;
-  }).map(v => ({ name: v.name, values: Object.keys(v.value_labels).map(Number).filter(x => !isNaN(x)).sort((a,b) => a-b) }));
-}
-
 // Two questions can share a label (e.g. the same question about two products): keep both groups
 function uniqueGroupName(groups, name) {
   if (!(name in groups)) return name;
@@ -1985,24 +1959,14 @@ function buildSpec() {
   const weight = document.getElementById('weight-select').value;
   if (weight) spec.weight = weight;
 
-  // Auto T2B/B2B — use preset_nets from backend when available, else local detection
+  // Auto T2B/B2B where the server proposes it (metadata.preset_nets: 5- and 7-answer questions, 0-10 NPS),
+  // not on every 4-11 answer question: Gender or "Mild / Moderate / Severe / None" are not scales.
   if (document.getElementById('opt-t2b').checked) {
     spec.nets = {};
-    // Nets set in Review data come with the codebook; auto T2B/B2B would replace them
-    const bannerSet = new Set([...selectedBanners, ...reviewedNetNames()]);
-    const presetNets = metadata.preset_nets || {};
-    if (Object.keys(presetNets).length > 0) {
-      // Use backend-detected nets (Likert-5, Likert-7, NPS scales)
-      for (const [varName, nets] of Object.entries(presetNets)) {
-        if (!bannerSet.has(varName)) spec.nets[varName] = nets;
-      }
-    }
-    // Also add any scales not covered by presets (local fallback)
-    const scales = detectScaleVars();
-    for (const s of scales) {
-      if (!spec.nets[s.name] && !bannerSet.has(s.name)) {
-        spec.nets[s.name] = { 'Top 2 Box': s.values.slice(-2), 'Bottom 2 Box': s.values.slice(0, 2) };
-      }
+    // Nets set on Variables come with the codebook; auto T2B/B2B would replace them
+    const skip = new Set([...selectedBanners, ...reviewedNetNames()]);
+    for (const [varName, nets] of Object.entries(metadata.preset_nets || {})) {
+      if (!skip.has(varName)) spec.nets[varName] = nets;
     }
     if (Object.keys(spec.nets).length === 0) delete spec.nets;
   }

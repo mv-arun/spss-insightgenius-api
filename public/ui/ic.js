@@ -1,7 +1,5 @@
 /* Indico Crosstab UI kit — shared components and helpers.
    <ic-icon name="database" size="18">   outline icon
-   <ic-sidebar active="datasets">        app navigation (auto-detects the section from the URL)
-   <ic-topbar>                           search + signed-in user menu
    <ic-appbar>                           one top bar: brand, steps (IC.appbarSteps), docs, user menu
    window.IC                             DOM, API, format and toast helpers
    Everything that shows data builds DOM nodes and sets textContent, never markup. */
@@ -100,41 +98,11 @@
   }
   const icon = (name, size) => el('ic-icon', { name, size: size || 18 });
 
-  // ── Nav ────────────────────────────────────────────────────
   // Optional features (served by /static/config.js); everything on if it hasn't loaded
   const FEATURES = Object.assign({ datasets: true, chat: true }, window.__INDICO_FEATURES__ || {});
-  const NAV = [
-    { key: 'home', label: 'Home', href: '/home', icon: 'home', paths: ['/home'] },
-    ...(FEATURES.datasets ? [{ key: 'datasets', label: 'Datasets', href: '/datasets', icon: 'database', paths: ['/datasets'] }] : []),
-    { key: 'transformations', label: 'Transformations', href: '/review', icon: 'repeat', paths: ['/review'] },
-    { key: 'workflows', label: 'Workflows', href: '/workflows', icon: 'workflow', paths: ['/workflows', '/export', '/app', '/express', '/wizard', '/export-mcp'] },
-    { key: 'settings', label: 'Settings', href: '/settings', icon: 'settings', paths: ['/settings'] },
-  ];
-  function activeSection() {
-    const p = location.pathname.replace(/\/+$/, '') || '/';
-    const hit = NAV.find(n => n.paths.some(x => p === x || p.startsWith(x + '/')));
-    return hit ? hit.key : '';
-  }
 
-  const brand = (href) => el('a', { class: 'ic-brand', href: href || '/home' },
+  const brand = (href) => el('a', { class: 'ic-brand', href },
     el('span', { class: 'ic-brand-mark' }, icon('logo', 16)), 'Indico Crosstab');
-
-  class IcSidebar extends HTMLElement {
-    connectedCallback() {
-      if (this.dataset.ready) return;
-      this.dataset.ready = '1';
-      const active = this.getAttribute('active') || activeSection();
-      const nav = el('nav', { class: 'ic-nav', 'aria-label': 'Main' },
-        NAV.map(n => el('a', { class: 'ic-nav-link', href: n.href, 'aria-current': n.key === active ? 'page' : null },
-          icon(n.icon, 18), n.label)));
-      const wave = '<svg viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C 30 10, 50 38, 80 24 S 130 6, 160 22 S 190 30, 200 18" fill="none" stroke="#8ea3e6" stroke-width="2"/><path d="M0 36 C 40 22, 70 40, 110 30 S 170 18, 200 30" fill="none" stroke="#c5d1f3" stroke-width="2"/></svg>';
-      const promo = el('div', { class: 'ic-sidebar-promo' },
-        el('strong', { text: 'Better data.' }), el('strong', { text: 'Sharper insights.' }),
-        el('p', { text: 'Prepare your market research data for deeper analysis.' }));
-      promo.insertAdjacentHTML('beforeend', wave);
-      this.append(brand(), nav, promo);
-    }
-  }
 
   // ── Session (who is signed in) ─────────────────────────────
   let mePromise = null;
@@ -157,23 +125,6 @@
     return ((parts[0] || '?')[0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
   }
   function firstName(name) { return String(name || '').trim().split(/\s+/)[0] || ''; }
-
-  class IcTopbar extends HTMLElement {
-    connectedCallback() {
-      if (this.dataset.ready) return;
-      this.dataset.ready = '1';
-      const input = el('input', { type: 'search', placeholder: 'Search datasets…', 'aria-label': 'Search datasets' });
-      const q = new URLSearchParams(location.search).get('q');
-      if (q && location.pathname.startsWith('/datasets')) input.value = q;
-      input.addEventListener('keydown', e => {
-        if (e.key !== 'Enter') return;
-        const v = input.value.trim();
-        location.href = '/datasets' + (v ? '?q=' + encodeURIComponent(v) : '');
-      });
-      const search = el('div', { class: 'ic-search', role: 'search', hidden: !FEATURES.datasets }, icon('search', 16), input);
-      this.append(this.hasAttribute('no-search') ? el('div') : search, userMenu());
-    }
-  }
 
   // Signed-in user: avatar, name and a menu with Settings and Sign out
   function userMenu() {
@@ -202,7 +153,7 @@
 
   // ── App bar ────────────────────────────────────────────────
   // <ic-appbar>: brand, the flow's steps (filled by IC.appbarSteps), API docs and the user menu.
-  // It replaces the sidebar + topbar: the app is one stepped flow, so the steps are the navigation.
+  // The app is one stepped flow, so the steps are the navigation.
   class IcAppbar extends HTMLElement {
     connectedCallback() {
       if (this.dataset.ready) return;
@@ -254,8 +205,6 @@
 
   customElements.define('ic-illustration', IcIllustration);
   customElements.define('ic-icon', IcIcon);
-  customElements.define('ic-sidebar', IcSidebar);
-  customElements.define('ic-topbar', IcTopbar);
   customElements.define('ic-appbar', IcAppbar);
 
   // ── API ────────────────────────────────────────────────────
@@ -302,10 +251,6 @@
       v /= div;
     }
     return '—';
-  }
-  function greeting(date) {
-    const h = (date || new Date()).getHours();
-    return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
   }
   function fileIcon(name) {
     const ext = String(name || '').split('.').pop().toLowerCase();
@@ -363,5 +308,5 @@
     });
   }
 
-  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, greeting, fileIcon, toast, popover, popMenu, closePop, stepper, appbarSteps, NAV, FEATURES };
+  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, fileIcon, toast, popover, popMenu, closePop, stepper, appbarSteps, FEATURES };
 })();
