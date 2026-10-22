@@ -15,6 +15,9 @@ Conventions:
   - rows nobody gave (Total 0 across the table) are left out
   - letters: uppercase at the higher confidence level, lowercase at the lower one; the
     Total column isn't tested ("-"), nor a column nobody in the table answered
+  - hide_codes: answers (rows) and banner values (columns) left out of the tables; bases and
+    the other columns' tests are unchanged, and letters pointing at a hidden column are dropped
+  - show_row_pct: one more sheet per banner, "(Row %)": each column's share of the row's Total
 """
 
 import io
@@ -121,8 +124,21 @@ def _answer_rows(sheet) -> list[Row]:
     return rows
 
 
+def _code(x):
+    """Codes compare as numbers when they are numbers (1, 1.0 and "1" are the same answer)."""
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return str(x)
+
+
+def _hidden(spec, *names) -> set:
+    hide = spec.hide_codes or {}
+    return {_code(c) for name in names for c in hide.get(name, [])}
+
+
 def _layout_rows(table: Table, spec, calc) -> None:
-    """Rows of a table: answers (or the nets that merge them), other nets, NET; empty rows out."""
+    """Rows of a table: answers (or the nets that merge them), other nets, NET; empty and hidden rows out."""
     rows: list[Row] = []
     for item in table.items:
         answers = _answer_rows(item.sheet)
@@ -135,11 +151,16 @@ def _layout_rows(table: Table, spec, calc) -> None:
                 rows.append(r)
     # A row nobody gave (Total) in any item is left out
     rows = [r for r in rows if any(calc.count(item, calc.total, r) > 0 for item in table.items)]
+    hidden = _hidden(spec, table.key, *(item.sheet.variable for item in table.items))
+    rows = [r for r in rows if not (r.kind == "answer" and _code(r.key) in hidden)]
     if spec.sort_rows:
         answers = [r for r in rows if r.kind == "answer"]
         last = [r for r in answers if _goes_last(r.label)]
         firsts = [r for r in answers if r not in last]
-        firsts.sort(key=lambda r: -max(calc.value(item, calc.total, r) or 0 for item in table.items))
+        if spec.sort_rows == "az":
+            firsts.sort(key=lambda r: r.label.casefold())
+        else:
+            firsts.sort(key=lambda r: -max(calc.value(item, calc.total, r) or 0 for item in table.items))
         rows = firsts + last + [r for r in rows if r.kind == "net"]
     table.rows = rows + [Row(key="NET", label="NET", kind="NET")]
 
@@ -208,6 +229,11 @@ class Calc:
         base = self.base(item, bc) if bc else 0
         return self.count(item, bc, row) / base if base else None
 
+    def row_value(self, item, bc, row: Row) -> float | None:
+        """Row %: this column's share of the row's Total."""
+        total = self.count(item, self.total, row) if self.total else 0
+        return self.count(item, bc, row) / total if total else None
+
     def letters(self, item, cols, bc, row: Row) -> str:
         """Columns this one is significantly higher than ('-' where there is no test)."""
         if bc.banner_var == "_total_" or row.kind == "NET" or not self.base(item, bc):
@@ -268,13 +294,14 @@ def _sample_line(calc, table, n_cases) -> str:
     return f"sample size = {n}" + (f"; total sample size = {n_cases}; {n_cases - n} missing" if n < n_cases else "")
 
 
-def _write_table(ws, r, table: Table, calc, cols, stat: bool, banner: str | None, n_cases: int) -> int:
-    """One table at row r; returns the next free row."""
+def _write_table(ws, r, table: Table, calc, cols, stat: bool, banner: str | None, n_cases: int, row_pct: bool = False) -> int:
+    """One table at row r; returns the next free row. row_pct: values are Row % (no letters)."""
+    value_of = calc.row_value if row_pct else calc.value
     title = f"{table.title} by {banner}" if banner else table.title
     _put(ws, r, 1, title, font=TITLE, align=None, fill=None)
     r += 1
     grid = len(table.items) > 1
-    corner = "Column %" + ("\nColumn Comparisons" if stat else "")
+    corner = ("Row %" if row_pct else "Column %") + ("\nColumn Comparisons" if stat else "")
     if not banner and not grid:
         corner = " "
     width = len(cols)
@@ -302,7 +329,7 @@ def _write_table(ws, r, table: Table, calc, cols, stat: bool, banner: str | None
         _put(ws, r, 1, row.label, font=LABEL, align=LEFT)
         for k, item in enumerate(table.items):
             for j, (_, bc) in enumerate(cols):
-                v = calc.value(item, bc, row)
+                v = value_of(item, bc, row)
                 _put(ws, r, 2 + k * width + j, v, fmt="0%")
                 if names:
                     _put(ws, r + 1, 2 + k * width + j, get_column_letter(j + 1), align=CENTER)
@@ -365,11 +392,11 @@ def _widths(ws, n_cols: int):
         ws.column_dimensions[get_column_letter(c)].width = 13
 
 
-def _banner_groups(result) -> list[list]:
-    """Banner columns by banner group (the Total column on its own)."""
+def _banner_groups(result, spec) -> list[list]:
+    """Banner columns by banner group (the Total column on its own), hidden values left out."""
     groups: dict[int, list] = {}
     for bc in result.banner_columns:
-        if bc.banner_var != "_total_":
+        if bc.banner_var != "_total_" and _code(bc.value) not in _hidden(spec, bc.banner_var):
             groups.setdefault(bc.banner_index, []).append(bc)
     return list(groups.values())
 
@@ -383,12 +410,12 @@ def preview_tables(result, spec, data) -> dict:
     tables = _tables(result, spec)
     for table in tables:
         _layout_rows(table, spec, calc)
-    groups = _banner_groups(result)
+    groups = _banner_groups(result, spec)
 
     def cell(item, bc, tested, row) -> dict:
         v = calc.value(item, bc, row)
         letters = calc.letters(item, tested, bc, row) if v is not None and tested else "-"
-        return {"count": round(calc.count(item, bc, row), 4), "pct": v, "sig": letters}
+        return {"count": round(calc.count(item, bc, row), 4), "pct": v, "row_pct": calc.row_value(item, bc, row), "sig": letters}
 
     def item_json(table, item) -> dict:
         total = calc.total
@@ -432,14 +459,15 @@ def build_banner_workbook(result, spec, data) -> bytes:
             r = _write_table(ws, r, table, calc, total_cols, stat=False, banner=None, n_cases=n_cases)
         _widths(ws, max((len(t.items) for t in tables), default=1))
 
-    for group in _banner_groups(result):
+    for group in _banner_groups(result, spec):
         banner = group[0].banner_label
         cols = [(bc.value_label, bc) for bc in group] + total_cols
-        for stat in (False, True):
-            ws = _sheet(wb, f"By {banner}" + (" (Stat)" if stat else ""))
+        sheets = [("", False, False), (" (Stat)", True, False)] + ([(" (Row %)", False, True)] if spec.show_row_pct else [])
+        for suffix, stat, row_pct in sheets:
+            ws = _sheet(wb, f"By {banner}{suffix}")
             r = FIRST_ROW
             for table in tables:
-                r = _write_table(ws, r, table, calc, cols, stat=stat, banner=banner, n_cases=n_cases)
+                r = _write_table(ws, r, table, calc, cols, stat=stat, banner=banner, n_cases=n_cases, row_pct=row_pct)
             _widths(ws, len(cols) * max((len(t.items) for t in tables), default=1))
 
     if not wb.worksheets:

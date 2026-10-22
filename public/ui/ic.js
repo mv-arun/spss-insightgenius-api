@@ -149,6 +149,7 @@
   }
   async function signOut() {
     try { await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch (_) { /* leave anyway */ }
+    try { indexedDB.deleteDatabase('indico-crosstab'); } catch (_) { /* nothing kept */ }  // the app's saved file + choices
     location.href = '/';
   }
   function initials(name) {
@@ -323,22 +324,27 @@
   // ── Pop-up menu ────────────────────────────────────────────
   // IC.popMenu(button, 'Title' | null, [{ label, run, danger? }]): fixed to the viewport so a
   // scrolling container doesn't clip it; closes on outside click, Escape or scroll.
+  // IC.popover(button, nodes, { role }): the same box with any content (e.g. a checkbox list).
   let popEl = null;
   function closePop() { if (popEl) { popEl.remove(); popEl = null; } }
-  function popMenu(anchor, title, entries) {
+  function popover(anchor, nodes, opts) {
     closePop();
-    popEl = el('div', { class: 'ic-menu ic-pop', role: 'menu' },
-      title ? el('div', { class: 'ic-menu-label', text: title }) : null,
-      entries.map(x => el('button', { class: 'ic-menu-item', type: 'button', role: 'menuitem', style: x.danger ? { color: 'var(--ic-danger)' } : null,
-        onclick: (e) => { e.stopPropagation(); closePop(); x.run(); } }, x.label)));
+    popEl = el('div', { class: 'ic-menu ic-pop', role: (opts && opts.role) || 'dialog' }, ...[nodes].flat(Infinity));
     document.body.append(popEl);
     const r = anchor.getBoundingClientRect(), w = popEl.offsetWidth, h = popEl.offsetHeight;
     popEl.style.left = `${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`;
     popEl.style.top = `${r.bottom + h + 8 > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6}px`;
+    return popEl;
   }
-  document.addEventListener('click', (e) => { if (popEl && !popEl.contains(e.target)) closePop(); });
+  function popMenu(anchor, title, entries) {
+    return popover(anchor, [
+      title ? el('div', { class: 'ic-menu-label', text: title }) : null,
+      entries.map(x => el('button', { class: 'ic-menu-item', type: 'button', role: 'menuitem', style: x.danger ? { color: 'var(--ic-danger)' } : null,
+        onclick: (e) => { e.stopPropagation(); closePop(); x.run(); } }, x.label))], { role: 'menu' });
+  }
+  document.addEventListener('click', (e) => { if (popEl && popEl.isConnected && !popEl.contains(e.target)) closePop(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
-  window.addEventListener('scroll', closePop, true);
+  window.addEventListener('scroll', (e) => { if (popEl && !popEl.contains(e.target)) closePop(); }, true);
 
   // ── Stepper ────────────────────────────────────────────────
   // IC.stepper(container, ['Banners', 'Stubs'], currentIndex, { onSelect(i), vertical })
@@ -357,5 +363,5 @@
     });
   }
 
-  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, greeting, fileIcon, toast, popMenu, stepper, appbarSteps, NAV, FEATURES };
+  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, greeting, fileIcon, toast, popover, popMenu, closePop, stepper, appbarSteps, NAV, FEATURES };
 })();

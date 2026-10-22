@@ -80,7 +80,9 @@ Optional features (off by default; `ENABLE_DATASETS`, `ENABLE_AI_CHAT`):
 Navigation: no sidebar. The app is one stepped flow at `/app` (also `/export`), with its steps in the app bar:
 - Dataset (library table when Datasets is on + upload) → Variables (`/review?embed=1` in a frame: the Variables grid) → Crosstabs → Options → Generate
 - Crosstabs: variable list; Columns (= banners, + custom groups), Rows (= the tables, in order; multi-select / grid groups), Filter (respondent conditions), Values; live tables from `/v1/tabulate/preview` (6 at a time, up to 50). The shelves edit the same state the export spec is built from (`buildSpec()`).
-- Plan and what's left (Row %, A→Z sort, hiding categories, nested columns): `docs/proposals/variables-crosstabs-plan.md`
+- Values: Column %, Row %, Counts, T2B/B2B, answer order (file / Total / A→Z), significance. Chip menu → "Choose answers…" hides answers or columns (`hide_codes`; bases unchanged). Order, Row % (`show_row_pct`: a "(Row %)" sheet per banner) and hidden answers are written by `output_mode: "banner_sheets"` only, like the preview.
+- A refresh picks up where the analyst left off: the file, its reviewed coding and every choice are kept in IndexedDB (`indico-crosstab`; ≤ 100 MB, 7 days, cleared on sign-out).
+- Plan and what's left: `docs/proposals/variables-crosstabs-plan.md`
 - `/home`, `/workflows` (and `/datasets*` when Datasets is on) redirect to `/app`; `home.html`, `workflows.html`, `datasets.html`, `dataset*.html` are no longer served.
 - Off the bar but served: `/review` (standalone Variables), `/express`, `/wizard`, `/export-mcp`, `/settings` (account menu)
 
@@ -94,7 +96,7 @@ Sign-in:
 ## Testing
 
 ```bash
-python -m pytest tests/ -x -q --tb=short  # 278 tests, ~40s
+python -m pytest tests/ -x -q --tb=short  # 281 tests, ~40s
 ```
 
 - `tests/test_tabulation_real.py` — golden standard tests vs R export

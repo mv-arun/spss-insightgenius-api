@@ -59,7 +59,9 @@ def _tab_spec(spec_dict: dict, cb) -> TabulateSpec:
             include_total_column=spec_dict.get("include_total_column", True),
             output_mode=spec_dict.get("output_mode", "multi_sheet"),
             custom_groups_label=spec_dict.get("custom_groups_label") or "Custom Groups",
-            sort_rows=bool(spec_dict.get("sort_rows", False)),
+            sort_rows=_sort_rows(spec_dict.get("sort_rows", False)),
+            hide_codes=_hide_codes(spec_dict.get("hide_codes")),
+            show_row_pct=bool(spec_dict.get("show_row_pct", False)),
             table_order=spec_dict.get("table_order"),
             table_titles=spec_dict.get("table_titles"),
             show_counts=spec_dict.get("show_counts", True),
@@ -72,6 +74,26 @@ def _tab_spec(spec_dict: dict, cb) -> TabulateSpec:
         )
     except (ValueError, TypeError) as e:
         raise HTTPException(400, detail={"code": "VALIDATION_ERROR", "message": str(e)})
+
+
+def _sort_rows(value) -> bool | str:
+    """sort_rows: false / true (= "total") / "total" / "az"."""
+    if value in (False, None, "", "none", "survey"):
+        return False
+    if value is True or value == "total":
+        return "total"
+    if value == "az":
+        return "az"
+    raise ValueError("sort_rows must be false, true, \"total\" or \"az\"")
+
+
+def _hide_codes(value) -> dict | None:
+    """hide_codes: {"Q1": [98, 99], "Brand awareness": ["AWARE_X"]} — answers / columns left out of the tables."""
+    if not value:
+        return None
+    if not isinstance(value, dict) or not all(isinstance(v, list) for v in value.values()):
+        raise ValueError("hide_codes must map a variable or group name to a list of codes")
+    return value
 
 
 async def _load(file_bytes: bytes, filename: str, cb):

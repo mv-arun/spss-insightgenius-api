@@ -131,7 +131,10 @@ class TabulateSpec:
     include_total_column: bool = True  # Total as first column (T2-5)
     output_mode: str = "multi_sheet"  # "multi_sheet", "single_sheet" or "banner_sheets"
     custom_groups_label: str = "Custom Groups"  # banner name of the custom groups ("By Data Cut")
-    sort_rows: bool = False  # banner_sheets: answers by Total, highest first ("Other" / "None" stay last)
+    # banner_sheets (and /v1/tabulate/preview) only:
+    sort_rows: bool | str = False  # True / "total": answers by Total, highest first; "az": by label ("Other" / "None" stay last)
+    hide_codes: dict[str, list[Any]] | None = None  # variable (or group) → answers / columns not shown; bases unchanged
+    show_row_pct: bool = False  # also a "(Row %)" sheet per banner: each column's share of the row's Total
     # banner_sheets: tables in this order (stub variables and group names; others follow) and their titles
     table_order: list[str] | None = None
     table_titles: dict[str, str] | None = None

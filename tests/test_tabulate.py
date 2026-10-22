@@ -657,3 +657,56 @@ def test_tabulate_preview_rejects_unbounded_or_unknown_tables(client, auth_heade
     assert _preview(client, auth_headers, sav, too_many, 400)["detail"]["code"] == "VALIDATION_ERROR"
     unknown = {"banners": ["cut"], "tables": ["nope"]}
     assert _preview(client, auth_headers, sav, unknown, 400)["detail"]["code"] == "VARIABLE_NOT_FOUND"
+
+
+# ── Phase 4: answer order, hidden answers / columns, Row % (banner sheets + preview) ──
+
+def _letters_df():
+    import pandas as pd
+    fruit = ([3.0] * 20 + [1.0] * 12 + [2.0] * 8) * 3   # Pear 50%, Apple 30%, Banana 20%
+    return pd.DataFrame({"cut": [1.0] * 40 + [2.0] * 40 + [3.0] * 40, "fruit": fruit})
+
+
+_FRUIT_LABELS = {"cut": {1.0: "North", 2.0: "South", 3.0: "West"}, "fruit": {1.0: "Apple", 2.0: "Banana", 3.0: "Pear"}}
+
+
+def test_sort_rows_by_label_or_total(client, auth_headers, tmp_path):
+    sav = _sav(tmp_path, _letters_df(), _FRUIT_LABELS)
+    base = {"banners": ["cut"], "tables": ["fruit"]}
+    labels = lambda spec: [r["label"] for r in _preview(client, auth_headers, sav, spec)["tables"][0]["rows"] if r["kind"] == "answer"]
+    assert labels(base) == ["Apple", "Banana", "Pear"]                       # file order
+    assert labels({**base, "sort_rows": "total"}) == ["Pear", "Apple", "Banana"]
+    assert labels({**base, "sort_rows": True}) == ["Pear", "Apple", "Banana"]   # the old boolean still works
+    assert labels({**base, "sort_rows": "az"}) == ["Apple", "Banana", "Pear"]
+    assert _preview(client, auth_headers, sav, {**base, "sort_rows": "zz"}, 400)["detail"]["code"] == "VALIDATION_ERROR"
+
+
+def test_hidden_answers_and_columns_keep_their_bases(client, auth_headers, tmp_path):
+    sav = _sav(tmp_path, _letters_df(), _FRUIT_LABELS)
+    spec = {"banners": ["cut"], "stubs": ["fruit"], "output_mode": "banner_sheets", "hide_codes": {"fruit": [2], "cut": ["3"]}}
+    preview = _preview(client, auth_headers, sav, {**spec, "tables": ["fruit"]})
+    table = preview["tables"][0]
+    assert [r["label"] for r in table["rows"]] == ["Apple", "Pear", "NET"]
+    assert [c["label"] for c in preview["banners"][0]["columns"]] == ["North", "South"]
+    item = table["items"][0]
+    assert item["banners"][0]["bases"] == [40, 40] and item["total"]["base"] == 120   # bases unchanged
+    assert item["total"]["cells"][0]["pct"] == pytest.approx(0.3)
+    _, wb = _tabulate(client, auth_headers, sav, spec)
+    block = _block(wb["By cut"], "fruit by cut")
+    assert block[1][:4] == ["Column %", "North", "South", "Total"]
+    assert [r[0] for r in block[2:] if r[0]][:3] == ["Apple", "Pear", "NET"]
+
+
+def test_row_pct_in_preview_and_its_own_sheet(client, auth_headers, tmp_path):
+    sav = _sav(tmp_path, _letters_df(), _FRUIT_LABELS)
+    spec = {"banners": ["cut"], "stubs": ["fruit"], "output_mode": "banner_sheets", "show_row_pct": True}
+    preview = _preview(client, auth_headers, sav, {**spec, "tables": ["fruit"]})
+    apple = preview["tables"][0]["items"][0]
+    assert [c["row_pct"] for c in apple["banners"][0]["cells"][0]] == pytest.approx([1 / 3] * 3)
+    assert apple["total"]["cells"][0]["row_pct"] == pytest.approx(1.0)
+    _, wb = _tabulate(client, auth_headers, sav, spec)
+    assert wb.sheetnames == ["Total", "By cut", "By cut (Stat)", "By cut (Row %)"]
+    block = _block(wb["By cut (Row %)"], "fruit by cut")
+    assert block[1][0] == "Row %"
+    rows = {r[0]: r[1:5] for r in block[2:] if r[0]}
+    assert rows["Apple"] == pytest.approx([1 / 3, 1 / 3, 1 / 3, 1.0])

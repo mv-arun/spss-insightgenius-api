@@ -139,6 +139,12 @@
   .xb-chip .xb-glyph { width: auto; height: 18px; }
   .xb-chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .xb-grip { display: inline-flex; color: var(--ic-text-subtle); }
+  .xb-chip-note { font-size: 11px; font-weight: 600; color: var(--ic-blue-600); background: var(--ic-blue-50); border-radius: 999px; padding: 1px 6px; flex-shrink: 0; }
+  .xb-choices { max-height: 260px; overflow: auto; padding: 4px; display: flex; flex-direction: column; }
+  .xb-choice { padding: 5px 6px; border-radius: 6px; font-size: 13px; }
+  .xb-choice:hover { background: var(--ic-surface-muted); }
+  .xb-choices-foot { display: flex; align-items: center; gap: 4px; padding: 6px 4px 2px; border-top: 1px solid var(--ic-border); margin-top: 4px; }
+  .xb-choices-foot .ic-help { margin-left: auto; }
   .xb-values { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
   .xb-values .ic-check { font-size: 13px; }
   .xb-swap { height: 24px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--ic-border); font-size: 11.5px; color: var(--ic-text-muted); background: var(--ic-surface); }
@@ -415,11 +421,15 @@
                 <div class="xb-shelf-head"><span class="t">Values</span><span class="sub">in each cell</span></div>
                 <div class="xb-values">
                   <label class="ic-check"><input type="checkbox" id="xb-show-pct" checked> Column %</label>
+                  <label class="ic-check"><input type="checkbox" id="xb-row-pct"> Row %</label>
                   <label class="ic-check"><input type="checkbox" id="xb-show-counts"> Counts</label>
                   <label class="ic-check"><input type="checkbox" id="xb-t2b" checked> Top 2 / Bottom 2 Box</label>
-                  <label class="ic-check"><input type="checkbox" id="xb-sort"> Sort by Total</label>
+                  <label class="ic-check">Order
+                    <select id="xb-sort" class="ic-select ic-select--sm" style="width:auto" aria-label="Answer order"></select></label>
                   <label class="ic-check">Significance
                     <select id="xb-sig" class="ic-select ic-select--sm" style="width:auto" aria-label="Significance level"></select></label>
+                  <p id="xb-layout-hint" class="ic-help" hidden style="flex-basis:100%">Answer order, Row % and hidden answers go into the
+                    "Total and banner sheets" Excel. <button type="button" class="ic-link" onclick="useBannerSheets()">Use that layout</button></p>
                 </div>
                 <div></div>
               </div>
@@ -608,13 +618,25 @@
                 </div>
                 <input type="radio" name="output-mode" value="banner_sheets" class="ic-checkbox">
               </label>
-              <label class="ic-option" for="opt-sort">
+              <div class="ic-option">
                 <span class="ic-option-icon"><ic-icon name="sliders" size="16"></ic-icon></span>
                 <div class="option-text">
-                  <div class="ic-option-title">Sort answers by Total</div>
-                  <div class="ic-option-desc">Highest first; "Other" and "None" stay at the bottom.</div>
+                  <div class="ic-option-title">Answer order</div>
+                  <div class="ic-option-desc">Total and banner sheets: by Total (highest first) or by label; "Other" and "None" stay at the bottom.</div>
                 </div>
-                <input type="checkbox" id="opt-sort" class="ic-checkbox">
+                <select id="opt-sort" class="ic-select ic-select--sm" style="width:auto;margin-left:auto" aria-label="Answer order">
+                  <option value="">As in the file</option>
+                  <option value="total">Total, highest first</option>
+                  <option value="az">Label, A → Z</option>
+                </select>
+              </div>
+              <label class="ic-option" for="opt-row-pct">
+                <span class="ic-option-icon"><ic-icon name="table" size="16"></ic-icon></span>
+                <div class="option-text">
+                  <div class="ic-option-title">Row % sheets</div>
+                  <div class="ic-option-desc">Total and banner sheets: one more sheet per banner with each column's share of the row's Total.</div>
+                </div>
+                <input type="checkbox" id="opt-row-pct" class="ic-checkbox">
               </label>
             </div>
           </div>
@@ -778,6 +800,7 @@ function goStep(i) {
   if (i > 0 && !metaReady) return;
   currentStep = i;
   furthestStep = Math.max(furthestStep, i);
+  saveSoon();
   STEP_PANELS.forEach((id, k) => { document.getElementById(id).hidden = k !== i; });
   document.getElementById('library-section').hidden = i !== 0 || !IC.FEATURES.datasets;
   renderStepper();
@@ -876,7 +899,7 @@ let reviewFrameReady = false;
 reviewFrame.addEventListener('load', () => { reviewFrameReady = true; if (savFile) startReview(); });
 function startReview() {
   document.getElementById('review-state').textContent = 'Reading the file…';
-  if (reviewFrameReady && reviewFrame.contentWindow.start) reviewFrame.contentWindow.start(savFile);
+  if (reviewFrameReady && reviewFrame.contentWindow.start) reviewFrame.contentWindow.start(savFile, reviewedCodebook);
 }
 function syncReviewHeight() {
   try { if (reviewFrame.contentWindow.notifyParent) reviewFrame.contentWindow.notifyParent('review-height'); } catch (_) { /* not loaded yet */ }
@@ -894,6 +917,7 @@ window.addEventListener('message', async (e) => {
     status.textContent = 'Setup applied';
     await loadMetadata();
   }
+  if (msg.type === 'review-updated' || msg.type === 'review-setup' || msg.type === 'review-continue') saveSoon();
   if (msg.type === 'review-updated') {
     status.textContent = msg.edited ? 'Edited: click "Use this coding" to apply it to the next steps' : 'Inferred coding';
   }
@@ -936,8 +960,9 @@ setupDropZone('sav-drop', 'sav-input', 'sav-label', 'sav-icon', async (f, label,
 });
 
 // The data file every step works on (uploaded, or opened from the library)
-async function useDataFile(f) {
-  savFile = f; reviewedCodebook = null; metadata = null;
+async function useDataFile(f, { codebook = null, restoring = false } = {}) {
+  savFile = f; reviewedCodebook = codebook; metadata = null;
+  if (!restoring) Saved.keepFile(f);
   metaReady = false; furthestStep = 0; renderStepper();  // lock the later steps until this file's metadata loads
   renderContext();
   startReview();
@@ -971,7 +996,7 @@ async function loadMetadata() {
     metadata = data;
     infoText.textContent = `${metadata.file_name} — ${metadata.n_cases.toLocaleString()} cases × ${metadata.n_variables} variables`;
     // Reset ALL state from previous file
-    selectedBanners = []; mrsGroups = {}; gridGroups = {}; customGroups = []; resetTables();
+    selectedBanners = []; mrsGroups = {}; gridGroups = {}; customGroups = []; hiddenCodes = {}; resetTables();
     document.getElementById('filter-conditions').replaceChildren();
     for (const k of Object.keys(detectedNotes)) delete detectedNotes[k];
     resultBlob = null; resultFilename = '';
@@ -1272,6 +1297,7 @@ function setAllTables(on) {
 // groups), Filter = the respondent conditions. The tables below come from /v1/tabulate/preview,
 // i.e. the same calculation as the Excel.
 let suggestedBannerNames = new Set();
+let hiddenCodes = {};  // variable or group name → answers (rows) / values (columns) left out of the tables
 const varByName = (name) => metadata?.variables.find(v => v.name === name);
 const nLabels = (v) => Object.keys(v?.value_labels || {}).length;
 const bannerable = (name) => { const n = nLabels(varByName(name)); return n >= 2 && n <= 15; };
@@ -1352,6 +1378,42 @@ function openCustomGroups() {
   d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
+// ── Choose answers: hide some of a question's answers (rows) or values (columns) ──
+const codeValue = (c) => (isNaN(Number(c)) ? c : Number(c));
+function answersOf(name) {
+  if (mrsGroups[name]) return mrsGroups[name].map(m => [m, varByName(m)?.label || m]);
+  const v = varByName(gridGroups[name] ? gridGroups[name].variables[0] : name);
+  return Object.entries(v?.value_labels || {}).map(([code, label]) => [codeValue(code), label]);
+}
+const sameCode = (a, b) => String(codeValue(a)) === String(codeValue(b));
+function hiddenNote(name) {
+  const all = answersOf(name), hidden = (hiddenCodes[name] || []).length;
+  return hidden ? `${all.length - hidden}/${all.length}` : '';
+}
+function chooseAnswers(anchor, name, title) {
+  const answers = answersOf(name);
+  if (!answers.length) { IC.toast('This question has no answer list to choose from.'); return; }
+  const hidden = () => hiddenCodes[name] || [];
+  const apply = (codes) => {
+    hiddenCodes[name] = codes;
+    if (!codes.length) delete hiddenCodes[name];
+    renderShelves(); renderLayoutHint(); schedulePreview();
+  };
+  const boxes = answers.map(([code, label]) => IC.el('label', { class: 'ic-check xb-choice' },
+    IC.el('input', { type: 'checkbox', checked: !hidden().some(c => sameCode(c, code)),
+      onchange: (e) => apply(e.target.checked ? hidden().filter(c => !sameCode(c, code)) : [...hidden(), code]) }), label));
+  const setAll = (on) => { boxes.forEach(b => { b.querySelector('input').checked = on; }); apply(on ? [] : answers.map(([c]) => c)); };
+  IC.popover(anchor, [
+    IC.el('div', { class: 'ic-menu-label' }, `Show answers of “${title}”`),
+    IC.el('div', { class: 'xb-choices' }, boxes),
+    IC.el('div', { class: 'xb-choices-foot' },
+      IC.el('button', { type: 'button', class: 'ic-btn ic-btn--ghost ic-btn--sm', onclick: () => setAll(true) }, 'All'),
+      IC.el('button', { type: 'button', class: 'ic-btn ic-btn--ghost ic-btn--sm', onclick: () => setAll(false) }, 'None'),
+      IC.el('span', { class: 'ic-help' }, 'Bases stay the same')),
+  ]);
+}
+const chipAnchor = (shelf, key) => [...document.querySelectorAll(`#shelf-${shelf} .xb-chip`)].find(c => c.dataset.key === key) || document.getElementById(`shelf-${shelf}`);
+
 // ── Variable list ──
 let dragKey = null;
 function renderFieldList() {
@@ -1391,12 +1453,13 @@ function fieldItem(f) {
 document.getElementById('xb-field-search').addEventListener('input', renderFieldList);
 
 // ── Shelves ──
-function shelfChip(shelf, key, label, kind, menu, onRemove) {
+function shelfChip(shelf, key, label, kind, menu, onRemove, note) {
   const more = IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': `Options for ${label}` }, IC.icon('chevron-down', 14));
   more.addEventListener('click', (e) => { e.stopPropagation(); IC.popMenu(more, label, menu); });
   const chip = IC.el('div', { class: 'xb-chip', draggable: 'true', 'data-key': key },
     IC.el('span', { class: 'xb-grip' }, IC.icon('grip', 14)), kindGlyph(kind),
-    IC.el('span', { class: 'xb-chip-label', title: label }, label), menu.length ? more : null,
+    IC.el('span', { class: 'xb-chip-label', title: label }, label),
+    note ? IC.el('span', { class: 'xb-chip-note', title: 'Answers shown' }, note) : null, menu.length ? more : null,
     IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': `Remove ${label}`, onclick: onRemove }, IC.icon('x', 13)));
   chip.addEventListener('dragstart', (e) => { dragKey = key; e.dataTransfer.setData('text/plain', key); chip.classList.add('is-dragging'); });
   chip.addEventListener('dragend', () => chip.classList.remove('is-dragging'));
@@ -1415,8 +1478,9 @@ function renderShelves() {
   const colChips = selectedBanners.map(name => {
     const v = varByName(name);
     return shelfChip('columns', `v:${name}`, v?.label || name, 'single',
-      [{ label: 'Move to Rows', run: () => toRows(`v:${name}`) }],
-      () => { selectedBanners = selectedBanners.filter(b => b !== name); updateSummary(); });
+      [{ label: 'Choose answers…', run: () => chooseAnswers(chipAnchor('columns', `v:${name}`), name, v?.label || name) },
+       { label: 'Move to Rows', run: () => toRows(`v:${name}`) }],
+      () => { selectedBanners = selectedBanners.filter(b => b !== name); updateSummary(); }, hiddenNote(name));
   });
   if (customGroups.length) {
     const label = `${document.getElementById('cg-banner-name').value.trim() || 'Custom groups'}: ${customGroups.map(g => g.name).join(', ')}`;
@@ -1429,13 +1493,14 @@ function renderShelves() {
 
   const included = currentTables().filter(t => !tablesOff.has(t.key));
   rows.replaceChildren(...(included.length ? included.map(t => {
-    const menu = [{ label: 'Rename table…', run: () => { const title = prompt('Table title', t.title); if (title != null) renameTable(t, title); } }];
+    const menu = [{ label: 'Choose answers…', run: () => chooseAnswers(chipAnchor('rows', t.key), t.name, t.title) },
+                  { label: 'Rename table…', run: () => { const title = prompt('Table title', t.title); if (title != null) renameTable(t, title); } }];
     if (t.kind === 'single' && bannerable(t.name)) menu.push({ label: 'Move to Columns', run: () => toColumns(t.name) });
     if (t.kind !== 'single') {
       menu.push({ label: t.kind === 'multi' ? 'Show as a grid' : 'Show as a multi-select set', run: () => setGroupKind(t, t.kind === 'multi' ? 'grid' : 'multi') });
       menu.push({ label: 'Ungroup (one table per question)', run: () => { delete (t.kind === 'multi' ? mrsGroups : gridGroups)[t.name]; updateSummary(); } });
     }
-    return shelfChip('rows', t.key, t.title, t.kind, menu, () => { tablesOff.add(t.key); updateSummary(); });
+    return shelfChip('rows', t.key, t.title, t.kind, menu, () => { tablesOff.add(t.key); updateSummary(); }, hiddenNote(t.name));
   }) : [IC.el('p', { class: 'xb-drop-empty' }, 'Drop questions here. Each becomes a table.')]));
   rows.classList.toggle('has', included.length > 0);
   document.getElementById('xb-rows-count').textContent = `${included.length} table${included.length === 1 ? '' : 's'}`;
@@ -1461,18 +1526,37 @@ document.addEventListener('dragend', () => document.querySelectorAll('.is-over, 
 document.getElementById('filter-conditions').addEventListener('change', () => { renderFieldList(); schedulePreview(); });
 
 // ── Values: mirrors of the Options step's controls ──
-const VALUE_MIRRORS = [['xb-t2b', 'opt-t2b'], ['xb-sort', 'opt-sort']];
+const VALUE_MIRRORS = [['xb-t2b', 'opt-t2b'], ['xb-row-pct', 'opt-row-pct']];
+const SELECT_MIRRORS = [['xb-sig', 'sig-select'], ['xb-sort', 'opt-sort']];
 function syncValues() {
-  const sig = document.getElementById('sig-select'), mine = document.getElementById('xb-sig');
-  if (!mine.options.length) mine.append(...[...sig.options].map(o => IC.el('option', { value: o.value }, o.textContent)));
-  mine.value = sig.value;
+  for (const [a, b] of SELECT_MIRRORS) {
+    const theirs = document.getElementById(b), mine = document.getElementById(a);
+    if (!mine.options.length) mine.append(...[...theirs.options].map(o => IC.el('option', { value: o.value }, o.textContent)));
+    mine.value = theirs.value;
+  }
   for (const [a, b] of VALUE_MIRRORS) document.getElementById(a).checked = document.getElementById(b).checked;
+  renderLayoutHint();
 }
-document.getElementById('xb-sig').addEventListener('change', (e) => { document.getElementById('sig-select').value = e.target.value; schedulePreview(); });
+for (const [a, b] of SELECT_MIRRORS) {
+  document.getElementById(a).addEventListener('change', (e) => { document.getElementById(b).value = e.target.value; renderLayoutHint(); schedulePreview(); });
+}
 for (const [a, b] of VALUE_MIRRORS) {
-  document.getElementById(a).addEventListener('change', (e) => { document.getElementById(b).checked = e.target.checked; schedulePreview(); });
+  document.getElementById(a).addEventListener('change', (e) => { document.getElementById(b).checked = e.target.checked; renderLayoutHint(); schedulePreview(); });
+}
+// Answer order, Row % and hidden answers are written by the banner-sheets layout (like the preview)
+function outputMode() { return document.querySelector('input[name="output-mode"]:checked')?.value || 'multi_sheet'; }
+function renderLayoutHint() {
+  const used = document.getElementById('opt-sort').value || document.getElementById('opt-row-pct').checked
+    || Object.values(hiddenCodes).some(c => c.length);
+  document.getElementById('xb-layout-hint').hidden = !used || outputMode() === 'banner_sheets';
+}
+function useBannerSheets() {
+  document.querySelector('input[name="output-mode"][value="banner_sheets"]').checked = true;
+  renderLayoutHint();
+  IC.toast('The Excel will have a Total sheet and By-banner sheets');
 }
 for (const id of ['xb-show-pct', 'xb-show-counts']) document.getElementById(id).addEventListener('change', () => drawPreview());
+for (const r of document.querySelectorAll('input[name="output-mode"]')) r.addEventListener('change', renderLayoutHint);
 for (const id of ['opt-bonferroni', 'weight-select', 'cg-banner-name']) document.getElementById(id).addEventListener('change', () => { renderShelves(); schedulePreview(); });
 
 function renderCrosstabs() {
@@ -1491,6 +1575,7 @@ function setLive(state, text) {
   live.textContent = text;
 }
 function schedulePreview() {
+  saveSoon();
   if (!isCrosstabsStep() || !metadata) return;
   setLive('busy', 'Updating…');
   clearTimeout(previewTimer);
@@ -1554,7 +1639,8 @@ function drawPreview() {
 }
 
 function previewTable(t, data) {
-  const showPct = document.getElementById('xb-show-pct').checked, showCounts = document.getElementById('xb-show-counts').checked || !showPct;
+  const showPct = document.getElementById('xb-show-pct').checked;
+  const showCounts = document.getElementById('xb-show-counts').checked || (!showPct && !document.getElementById('xb-row-pct').checked);
   const blocks = t.items.map(item => {
     const th = (text, attrs = {}) => IC.el('th', attrs, text);
     const head = IC.el('thead', {},
@@ -1585,11 +1671,110 @@ function previewTable(t, data) {
     ...blocks);
 }
 function valueCell(c, cls, showPct, showCounts) {
-  const sig = c.sig && c.sig !== '-' ? c.sig.replace(/\s+/g, '') : '';
-  const main = showPct ? pctText(c.pct) : IC.number(Math.round(c.count));
+  const showRow = document.getElementById('xb-row-pct').checked;
+  const sig = showPct && c.sig && c.sig !== '-' ? c.sig.replace(/\s+/g, '') : '';
+  const main = showPct ? pctText(c.pct) : showRow ? pctText(c.row_pct) : IC.number(Math.round(c.count));
   return IC.el('td', { class: `${cls}${c.pct == null ? ' dim' : ''}` }, main,
     sig ? IC.el('span', { class: 'xb-sig' }, sig) : null,
-    showPct && showCounts ? IC.el('span', { class: 'xb-count' }, IC.number(Math.round(c.count))) : null);
+    showPct && showRow ? IC.el('span', { class: 'xb-count' }, `${pctText(c.row_pct)} row`) : null,
+    (showPct || showRow) && showCounts ? IC.el('span', { class: 'xb-count' }, IC.number(Math.round(c.count))) : null);
+}
+
+// ── Pick up where you left off ──
+// The data file, its reviewed coding and every choice are kept in this browser (IndexedDB), so a
+// refresh doesn't lose the shelves. Not kept: files over 100 MB; dropped after 7 days or on sign-out.
+const KEEP_DAYS = 7, KEEP_MAX_BYTES = 100 * 1024 * 1024;
+const Saved = {
+  db: null,
+  open() {
+    if (!this.db) this.db = new Promise((resolve, reject) => {
+      const req = indexedDB.open('indico-crosstab', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('session');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return this.db;
+  },
+  async run(mode, fn) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('session', mode), req = fn(tx.objectStore('session'));
+      tx.oncomplete = () => resolve(req?.result);
+      tx.onerror = () => reject(tx.error);
+    });
+  },
+  async get(key) { try { return await this.run('readonly', s => s.get(key)); } catch (_) { return null; } },
+  async put(key, value) { try { await this.run('readwrite', s => s.put(value, key)); } catch (_) { /* storage off or full: nothing kept */ } },
+  async keepFile(file) {
+    if (file.size > KEEP_MAX_BYTES) { await this.put('file', null); return; }
+    await this.put('file', { file, savedAt: Date.now() });
+    await this.put('state', null);
+  },
+};
+
+let restoring = false, saveTimer = null;
+function saveSoon() {
+  if (restoring || !savFile || !metaReady) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => Saved.put('state', currentChoices()), 400);
+}
+const KEPT_VALUES = ['sig-select', 'weight-select', 'title-input', 'cg-banner-name', 'opt-sort'];
+const KEPT_CHECKS = ['opt-t2b', 'opt-means', 'opt-bonferroni', 'opt-row-pct', 'xb-show-pct', 'xb-show-counts'];
+function currentChoices() {
+  return {
+    fileName: savFile.name, fileSize: savFile.size, savedAt: Date.now(),
+    step: currentStep, furthest: furthestStep, codebook: reviewedCodebook, libraryId: openLibraryId,
+    selectedBanners, tableOrder, tablesOff: [...tablesOff], tableTitles, mrsGroups, gridGroups, customGroups, hiddenCodes,
+    filters: readConditions('filter-conditions'), outputMode: outputMode(),
+    values: Object.fromEntries(KEPT_VALUES.map(id => [id, document.getElementById(id).value])),
+    checks: Object.fromEntries(KEPT_CHECKS.map(id => [id, document.getElementById(id).checked])),
+  };
+}
+function applyChoices(s) {
+  selectedBanners = (s.selectedBanners || []).filter(name => varByName(name));
+  mrsGroups = s.mrsGroups || {}; gridGroups = s.gridGroups || {}; customGroups = s.customGroups || [];
+  hiddenCodes = s.hiddenCodes || {}; tableOrder = s.tableOrder || []; tablesOff = new Set(s.tablesOff || []);
+  tableTitles = s.tableTitles || {}; openLibraryId = s.libraryId || null;
+  for (const [id, value] of Object.entries(s.values || {})) {
+    const input = document.getElementById(id);
+    if (input && (input.tagName !== 'SELECT' || [...input.options].some(o => o.value === value))) input.value = value;
+  }
+  for (const [id, on] of Object.entries(s.checks || {})) { const box = document.getElementById(id); if (box) box.checked = on; }
+  const mode = document.querySelector(`input[name="output-mode"][value="${s.outputMode}"]`);
+  if (mode) mode.checked = true;
+  document.getElementById('filter-conditions').replaceChildren();
+  for (const c of s.filters || []) {
+    if (!varByName(c.variable)) continue;
+    const row = addConditionRow('filter-conditions');
+    const sel = row.querySelector('.cg-var');
+    sel.value = c.variable; onCgVarChange(sel);
+    row.querySelector('.cg-op').value = c.operator;
+    const val = row.querySelector('.cg-val');
+    const match = val.tagName === 'SELECT' && [...val.options].find(o => Number(o.value) === Number(c.value) || o.value === String(c.value));
+    val.value = match ? match.value : String(c.value);
+  }
+  renderCustomGroups();
+  furthestStep = Math.max(s.furthest || 0, 1);
+  updateSummary();
+  goStep(Math.min(s.step || 1, STEP_PANELS.length - 1));
+}
+async function restoreSaved() {
+  const kept = await Saved.get('file');
+  if (!kept?.file || Date.now() - kept.savedAt > KEEP_DAYS * 864e5) return;
+  const choices = await Saved.get('state');
+  const same = choices && choices.fileName === kept.file.name && choices.fileSize === kept.file.size;
+  if (savFile) return;  // the analyst picked a file while we were reading
+  restoring = true;
+  try {
+    _markFile('sav-drop', kept.file, document.getElementById('sav-label'), document.getElementById('sav-icon'), 30);
+    await useDataFile(kept.file, { codebook: same ? choices.codebook : null, restoring: true });
+    if (!metaReady) return;
+    if (same) applyChoices(choices);
+    IC.toast(`Picked up where you left off: ${kept.file.name}`);
+  } finally {
+    restoring = false;
+  }
+  saveSoon();
 }
 
 // ── Custom Groups ──
@@ -1699,6 +1884,7 @@ function renderCustomGroups() {
 
 // ── Summary bar ──
 function updateSummary() {
+  saveSoon();
   const el = document.getElementById('spec-summary');
   if (!metadata) { el.textContent = 'Upload a file to get started'; return; }
   const included = currentTables().filter(t => !tablesOff.has(t.key));
@@ -1784,7 +1970,8 @@ function buildSpec() {
     bonferroni: document.getElementById('opt-bonferroni').checked,
     include_total_column: true,
     output_mode: outputMode,
-    sort_rows: document.getElementById('opt-sort').checked,
+    sort_rows: document.getElementById('opt-sort').value || undefined,
+    show_row_pct: document.getElementById('opt-row-pct').checked || undefined,
     custom_groups_label: document.getElementById('cg-banner-name').value.trim() || undefined,
     title: document.getElementById('title-input').value || undefined,
   };
@@ -1822,6 +2009,10 @@ function buildSpec() {
 
   // MRS
   if (Object.keys(includedMrs).length > 0) spec.mrs_groups = includedMrs;
+  // Answers / columns hidden on the Crosstabs step, for the tables and columns in use
+  const inUse = new Set([...selectedBanners, ...tables.map(t => t.name)]);
+  const hide = Object.fromEntries(Object.entries(hiddenCodes).filter(([name, codes]) => codes.length && inUse.has(name)));
+  if (Object.keys(hide).length) spec.hide_codes = hide;
   return spec;
 }
 
@@ -2263,6 +2454,7 @@ function applyComputedWeight() {
 
 goStep(0);
 loadLibrary();
+restoreSaved();
 </script>
 
 <!-- Weight Wizard Modal -->

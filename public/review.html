@@ -384,9 +384,10 @@ drop.addEventListener('dragleave', () => drop.classList.remove('is-over'));
 drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('is-over'); if (e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
 input.addEventListener('change', () => input.files[0] && start(input.files[0]));
 
-async function start(file) {
-  // A new file starts from its own inferred coding (never the previous file's edits)
-  state.file = file; state.fileId = null; state.codebook = null; state.edited = false; state.load = (state.load || 0) + 1;
+async function start(file, codebook = null) {
+  // A new file starts from its own inferred coding (never the previous file's edits),
+  // or from the coding it had before a refresh (the app passes it back)
+  state.file = file; state.fileId = null; state.codebook = codebook; state.edited = false; state.load = (state.load || 0) + 1;
   const status = $('upload-status');
   status.classList.remove('hidden');
   status.replaceChildren(el('span', { class: 'spinner mr-2 align-middle' }), `Reading ${file.name}…`);
@@ -397,18 +398,18 @@ async function start(file) {
     if (res.ok) state.fileId = (await res.json()).file_id || null;
   } catch (_) { /* fall back to direct upload */ }
   try {
-    const data = await api('/v1/codebook', fileForm());
+    const data = await api('/v1/codebook', fileForm({}, !!codebook));
     state.codebook = data.codebook; state.summary = data.summary;
     state.spss = ['sav', 'zsav', 'por'].includes(data.codebook.source.format);
     state.editable = true;  // SPSS edits overlay the file's own labels
-    state.edited = false; state.history = []; state.ops = []; state.setup = null; state.suggest = null;
+    state.edited = !!codebook; state.history = []; state.ops = []; state.setup = null; state.suggest = null;
     state.vfilter = 'all'; state.checked = new Set(); state.expanded = new Set();
     $('search').value = '';
     status.classList.add('hidden');
     $('upload').classList.add('hidden');
     render();
     notifyParent('review-loaded');
-    if (!state.spss) checkSetups();  // client setups are rules for survey-platform exports
+    if (!state.spss && !codebook) checkSetups();  // client setups are rules for survey-platform exports
   } catch (e) {
     status.replaceChildren(el('span', { class: 'text-danger' }, `Couldn't read the file: ${e.message}`));
     $('summary').classList.add('hidden'); $('workspace').classList.add('hidden');  // not the previous file's data
