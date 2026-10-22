@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variables &amp; Crosstabs preview · Indico Crosstab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Indico Crosstab design system — tokens + reusable components.
+   Every page loads this file; page-specific CSS stays in the page. */
+
+:root {
+  --ic-navy-900: #0f1b3d;
+  --ic-navy-800: #16244f;
+  --ic-navy-700: #1f3266;
+  --ic-blue-600: #2f4fb3;
+  --ic-blue-500: #4a6cd4;
+  --ic-blue-100: #e7ecfa;
+  --ic-blue-50: #f2f5fd;
+
+  --ic-bg: #f6f7fb;
+  --ic-surface: #ffffff;
+  --ic-surface-muted: #f9fafc;
+  --ic-border: #e5e8f0;
+  --ic-border-strong: #d3d8e4;
+
+  --ic-text: #141a2e;
+  --ic-text-muted: #5b6478;
+  --ic-text-subtle: #8a92a6;
+
+  --ic-success: #1a7f4b;
+  --ic-success-bg: #e6f6ed;
+  --ic-warning: #a15c07;
+  --ic-warning-bg: #fdf3e2;
+  --ic-danger: #b42318;
+  --ic-danger-bg: #fdecea;
+  --ic-info: #2f4fb3;
+  --ic-info-bg: #e7ecfa;
+
+  --ic-radius-sm: 6px;
+  --ic-radius: 10px;
+  --ic-radius-lg: 14px;
+  --ic-shadow-sm: 0 1px 2px rgba(16, 24, 40, .05);
+  --ic-shadow: 0 1px 3px rgba(16, 24, 40, .06), 0 1px 2px rgba(16, 24, 40, .04);
+  --ic-shadow-lg: 0 12px 32px rgba(16, 24, 40, .12);
+
+  --ic-sidebar-w: 232px;
+  --ic-topbar-h: 64px;
+  --ic-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Minimal base reset. Tailwind's preflight is turned off (tw.js) so it can't
+   override these component classes; this keeps the parts of it pages rely on. */
+*, *::before, *::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: var(--ic-border); }
+html, body { margin: 0; }
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, pre { margin: 0; }
+h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+button, input, select, textarea { font: inherit; color: inherit; margin: 0; }
+button { cursor: pointer; background: transparent; padding: 0; }
+img, svg, video, canvas { display: block; max-width: 100%; }
+ic-icon svg { display: block; }
+a { color: inherit; }
+table { border-collapse: collapse; }
+[hidden] { display: none !important; }
+body.ic-body {
+  font-family: var(--ic-font);
+  background: var(--ic-bg);
+  color: var(--ic-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── App shell ─────────────────────────────────────────────── */
+.ic-app { display: grid; grid-template-columns: var(--ic-sidebar-w) minmax(0, 1fr); min-height: 100vh; }
+.ic-main { display: flex; flex-direction: column; min-width: 0; }
+.ic-page { flex: 1; padding: 28px 32px 48px; max-width: 1280px; width: 100%; }
+.ic-page--wide { max-width: none; }
+.ic-page--flush { padding: 0; max-width: none; display: flex; flex-direction: column; min-height: 0; }
+.is-embed .ic-app, .ic-app.is-embed { display: block; }
+.is-embed ic-sidebar, .is-embed ic-topbar { display: none; }
+.is-embed .ic-page { padding: 0; max-width: none; }
+
+ic-sidebar {
+  display: flex; flex-direction: column; gap: 4px;
+  position: sticky; top: 0; height: 100vh;
+  background: var(--ic-surface); border-right: 1px solid var(--ic-border);
+  padding: 20px 14px;
+}
+.ic-brand { display: flex; align-items: center; gap: 10px; padding: 2px 8px 22px; font-weight: 700; font-size: 15px; color: var(--ic-text); text-decoration: none; letter-spacing: -.01em; }
+.ic-brand-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--ic-navy-800); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+.ic-nav { display: flex; flex-direction: column; gap: 2px; }
+.ic-nav-link {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px;
+  color: var(--ic-text-muted); text-decoration: none; font-weight: 500; font-size: 13.5px;
+}
+.ic-nav-link:hover { background: var(--ic-surface-muted); color: var(--ic-text); }
+.ic-nav-link[aria-current="page"] { background: var(--ic-blue-100); color: var(--ic-navy-800); font-weight: 600; }
+.ic-sidebar-promo {
+  margin-top: auto; border-radius: var(--ic-radius); padding: 14px 14px 0;
+  background: linear-gradient(180deg, var(--ic-blue-50), var(--ic-blue-100)); overflow: hidden;
+}
+.ic-sidebar-promo strong { display: block; font-size: 12.5px; color: var(--ic-navy-800); line-height: 1.35; }
+.ic-sidebar-promo p { margin: 6px 0 0; font-size: 11.5px; color: var(--ic-text-muted); line-height: 1.4; }
+.ic-sidebar-promo svg { display: block; width: 100%; height: 40px; margin-top: 8px; }
+
+ic-topbar {
+  display: flex; align-items: center; gap: 16px; height: var(--ic-topbar-h);
+  padding: 0 32px; background: var(--ic-surface); border-bottom: 1px solid var(--ic-border);
+  position: sticky; top: 0; z-index: 20;
+}
+.ic-search { position: relative; flex: 1; max-width: 420px; }
+.ic-search input {
+  width: 100%; height: 38px; padding: 0 12px 0 36px; border-radius: 8px;
+  border: 1px solid transparent; background: var(--ic-surface-muted); font: inherit; font-size: 13px; color: var(--ic-text);
+}
+.ic-search input:focus { outline: none; border-color: var(--ic-blue-500); background: #fff; box-shadow: 0 0 0 3px var(--ic-blue-100); }
+.ic-search ic-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ic-text-subtle); }
+.ic-user { position: relative; margin-left: auto; }
+.ic-user-btn { display: flex; align-items: center; gap: 10px; border: 0; background: none; font: inherit; color: var(--ic-text); cursor: pointer; padding: 4px; border-radius: 8px; }
+.ic-user-btn:hover { background: var(--ic-surface-muted); }
+.ic-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--ic-navy-800); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 600; }
+.ic-user-name { font-size: 13px; font-weight: 500; }
+.ic-menu {
+  position: absolute; right: 0; top: calc(100% + 6px); min-width: 200px; z-index: 40;
+  background: #fff; border: 1px solid var(--ic-border); border-radius: var(--ic-radius); box-shadow: var(--ic-shadow-lg); padding: 6px;
+}
+.ic-menu[hidden] { display: none; }
+.ic-menu-label { padding: 8px 10px 6px; font-size: 12px; color: var(--ic-text-subtle); border-bottom: 1px solid var(--ic-border); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; }
+.ic-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; background: none; border-radius: 6px; font: inherit; font-size: 13px; color: var(--ic-text); text-decoration: none; cursor: pointer; text-align: left; }
+.ic-menu-item:hover { background: var(--ic-surface-muted); }
+
+/* ── Public (no sidebar) header ───────────────────────────── */
+.ic-public-header { display: flex; align-items: center; gap: 24px; height: var(--ic-topbar-h); padding: 0 32px; background: #fff; border-bottom: 1px solid var(--ic-border); }
+.ic-public-header nav { display: flex; gap: 20px; margin-left: auto; }
+.ic-public-header nav a { color: var(--ic-text-muted); text-decoration: none; font-size: 13.5px; font-weight: 500; }
+.ic-public-header nav a:hover { color: var(--ic-text); }
+
+/* ── Typography / page header ─────────────────────────────── */
+.ic-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.ic-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.015em; color: var(--ic-text); }
+.ic-subtitle { margin: 4px 0 0; color: var(--ic-text-muted); font-size: 13.5px; }
+.ic-section-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--ic-text); }
+.ic-label { display: block; font-size: 12.5px; font-weight: 500; color: var(--ic-text); margin-bottom: 6px; }
+.ic-help { font-size: 12px; color: var(--ic-text-subtle); }
+.ic-muted { color: var(--ic-text-muted); }
+.ic-back { display: inline-flex; align-items: center; gap: 6px; color: var(--ic-text-muted); text-decoration: none; font-size: 13px; font-weight: 500; margin-bottom: 12px; background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; }
+.ic-back:hover { color: var(--ic-text); }
+.ic-link { color: var(--ic-blue-600); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.ic-link:hover { text-decoration: underline; }
+.ic-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.ic-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 38px; padding: 0 16px; border-radius: 8px; border: 1px solid transparent;
+  font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.ic-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ic-blue-100); }
+.ic-btn:disabled, .ic-btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.ic-btn--primary { background: var(--ic-navy-800); color: #fff; }
+.ic-btn--primary:hover:not(:disabled) { background: var(--ic-navy-900); }
+.ic-btn--secondary { background: #fff; color: var(--ic-text); border-color: var(--ic-border-strong); }
+.ic-btn--secondary:hover:not(:disabled) { background: var(--ic-surface-muted); }
+.ic-btn--ghost { background: transparent; color: var(--ic-text-muted); }
+.ic-btn--ghost:hover:not(:disabled) { background: var(--ic-surface-muted); color: var(--ic-text); }
+.ic-btn--danger { background: #fff; color: var(--ic-danger); border-color: #f3c7c2; }
+.ic-btn--danger:hover:not(:disabled) { background: var(--ic-danger-bg); }
+.ic-btn--success { background: var(--ic-success); color: #fff; }
+.ic-btn--sm { height: 30px; padding: 0 10px; font-size: 12.5px; border-radius: 6px; gap: 6px; }
+.ic-btn--lg { height: 44px; padding: 0 20px; font-size: 14px; }
+.ic-btn--block { width: 100%; }
+.ic-icon-btn { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; border: 0; background: none; color: var(--ic-text-subtle); cursor: pointer; }
+.ic-icon-btn:hover { background: var(--ic-surface-muted); color: var(--ic-text); }
+
+/* ── Cards / surfaces ─────────────────────────────────────── */
+.ic-card { background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: var(--ic-radius-lg); box-shadow: var(--ic-shadow-sm); }
+.ic-card-body { padding: 20px; }
+.ic-card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--ic-border); }
+.ic-card-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--ic-border); }
+.ic-hero {
+  position: relative; overflow: hidden; border-radius: var(--ic-radius-lg); padding: 32px 36px;
+  background: linear-gradient(120deg, #f1f4fd 0%, #e8edfb 55%, #dfe6fa 100%); border: 1px solid #e1e7f7;
+}
+.ic-hero h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+.ic-hero p { margin: 10px 0 22px; color: var(--ic-text-muted); max-width: 420px; }
+.ic-hero-art { position: absolute; right: 36px; top: 50%; transform: translateY(-50%); width: 200px; pointer-events: none; }
+
+.ic-stat { padding: 16px 18px; background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: var(--ic-radius); }
+.ic-stat-label { font-size: 12px; color: var(--ic-text-subtle); font-weight: 500; }
+.ic-stat-value { margin-top: 6px; font-size: 22px; font-weight: 700; letter-spacing: -.01em; color: var(--ic-text); }
+.ic-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+
+/* ── Forms ────────────────────────────────────────────────── */
+.ic-input, .ic-select, .ic-textarea {
+  width: 100%; height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--ic-border-strong);
+  background: #fff; font: inherit; font-size: 13.5px; color: var(--ic-text);
+}
+.ic-textarea { height: auto; padding: 10px 12px; resize: vertical; }
+.ic-select { appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238a92a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+select.ic-select[multiple] { height: auto; padding: 6px; background-image: none; }
+.ic-input:focus, .ic-select:focus, .ic-textarea:focus { outline: none; border-color: var(--ic-blue-500); box-shadow: 0 0 0 3px var(--ic-blue-100); }
+.ic-input--sm, .ic-select--sm { height: 32px; font-size: 12.5px; }
+.ic-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer; color: var(--ic-text); }
+.ic-check input[type="checkbox"], .ic-check input[type="radio"], input.ic-checkbox { width: 16px; height: 16px; accent-color: var(--ic-navy-800); cursor: pointer; margin: 0; }
+.ic-field { margin-bottom: 16px; }
+.ic-error-text { color: var(--ic-danger); font-size: 12.5px; }
+
+/* ── Badges / chips ───────────────────────────────────────── */
+.ic-badge { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; background: var(--ic-surface-muted); color: var(--ic-text-muted); border: 1px solid var(--ic-border); }
+.ic-badge--success { background: var(--ic-success-bg); color: var(--ic-success); border-color: transparent; }
+.ic-badge--warning { background: var(--ic-warning-bg); color: var(--ic-warning); border-color: transparent; }
+.ic-badge--danger { background: var(--ic-danger-bg); color: var(--ic-danger); border-color: transparent; }
+.ic-badge--info { background: var(--ic-info-bg); color: var(--ic-info); border-color: transparent; }
+.ic-badge-dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ic-type { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 11.5px; font-weight: 500; background: var(--ic-surface-muted); color: var(--ic-text-muted); border: 1px solid var(--ic-border); }
+.ic-type--numeric { background: var(--ic-info-bg); color: var(--ic-info); border-color: transparent; }
+
+/* ── Tables ───────────────────────────────────────────────── */
+.ic-table-wrap { overflow-x: auto; }
+.ic-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ic-table th { text-align: left; font-size: 12px; font-weight: 500; color: var(--ic-text-subtle); padding: 10px 16px; background: var(--ic-surface-muted); border-bottom: 1px solid var(--ic-border); white-space: nowrap; }
+.ic-table td { padding: 12px 16px; border-bottom: 1px solid var(--ic-border); color: var(--ic-text); vertical-align: middle; }
+.ic-table tr:last-child td { border-bottom: 0; }
+.ic-table tbody tr:hover td { background: #fbfcfe; }
+.ic-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.ic-file-cell { display: flex; align-items: center; gap: 10px; font-weight: 500; }
+.ic-file-icon { color: var(--ic-blue-600); flex-shrink: 0; }
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+.ic-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--ic-border); margin-bottom: 20px; }
+.ic-tab { padding: 10px 0; border: 0; background: none; font: inherit; font-size: 13.5px; font-weight: 500; color: var(--ic-text-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ic-tab:hover { color: var(--ic-text); }
+.ic-tab[aria-selected="true"] { color: var(--ic-navy-800); border-bottom-color: var(--ic-navy-800); font-weight: 600; }
+
+/* ── Stepper (horizontal + vertical) ──────────────────────── */
+.ic-stepper { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.ic-step { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ic-text-subtle); font-weight: 500; background: none; border: 0; padding: 0; font-family: inherit; cursor: default; }
+button.ic-step { cursor: pointer; }
+.ic-step-num { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 600; border: 1px solid var(--ic-border-strong); color: var(--ic-text-subtle); background: #fff; flex-shrink: 0; }
+.ic-step.is-current { color: var(--ic-text); font-weight: 600; }
+.ic-step.is-current .ic-step-num { background: var(--ic-navy-800); border-color: var(--ic-navy-800); color: #fff; }
+.ic-step.is-done .ic-step-num { background: var(--ic-blue-100); border-color: var(--ic-blue-100); color: var(--ic-navy-800); }
+.ic-step-line { flex: 1; min-width: 24px; max-width: 120px; height: 1px; background: var(--ic-border-strong); }
+.ic-stepper--vertical { flex-direction: column; align-items: flex-start; gap: 0; margin: 0; }
+.ic-stepper--vertical .ic-step-line { width: 1px; height: 20px; min-width: 0; margin-left: 11px; flex: none; }
+
+/* ── Drop zone ────────────────────────────────────────────── */
+.ic-dropzone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px;
+  padding: 40px 24px; border: 1.5px dashed var(--ic-border-strong); border-radius: var(--ic-radius-lg);
+  background: var(--ic-surface-muted); cursor: pointer; transition: border-color .15s, background .15s;
+}
+.ic-dropzone:hover, .ic-dropzone.is-over, .ic-dropzone.dragover, .ic-dropzone.drag-over { border-color: var(--ic-blue-500); background: var(--ic-blue-50); }
+.ic-dropzone.has-file, .ic-dropzone.has-file:hover { border-style: solid; border-color: #b8e2c9; background: var(--ic-success-bg); }
+.ic-dropzone-icon { color: var(--ic-navy-800); margin-bottom: 6px; }
+.ic-dropzone-title { font-weight: 600; font-size: 14.5px; color: var(--ic-text); }
+.ic-dropzone-hint { font-size: 12px; color: var(--ic-text-subtle); }
+.ic-dropzone--sm { padding: 18px 14px; }
+
+/* ── Option card (selectable row, e.g. "Remove duplicates") ── */
+.ic-option { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--ic-border); border-radius: var(--ic-radius); background: #fff; cursor: pointer; transition: border-color .15s, background .15s; }
+.ic-option:hover { border-color: var(--ic-border-strong); }
+.ic-option.is-selected, .ic-option:has(input:checked) { border-color: #c8d3f3; background: var(--ic-blue-50); }
+.ic-option-icon { width: 34px; height: 34px; border-radius: 8px; background: var(--ic-surface-muted); color: var(--ic-navy-800); display: grid; place-items: center; flex-shrink: 0; border: 1px solid var(--ic-border); }
+.ic-option-title { font-weight: 600; font-size: 13.5px; color: var(--ic-text); }
+.ic-option-desc { font-size: 12px; color: var(--ic-text-subtle); margin-top: 1px; }
+.ic-option > :last-child:is(input) { margin-left: auto; }
+
+/* ── Sample/feature tile ─────────────────────────────────── */
+.ic-tile { display: block; padding: 18px; border: 1px solid var(--ic-border); border-radius: var(--ic-radius); background: #fff; text-decoration: none; color: inherit; transition: border-color .15s, box-shadow .15s; }
+a.ic-tile:hover, button.ic-tile:hover { border-color: #c8d3f3; box-shadow: var(--ic-shadow); }
+button.ic-tile { font: inherit; text-align: left; cursor: pointer; width: 100%; }
+.ic-tile-icon { width: 34px; height: 34px; border-radius: 8px; background: var(--ic-blue-100); color: var(--ic-navy-800); display: grid; place-items: center; margin-bottom: 14px; }
+.ic-tile-title { font-weight: 600; font-size: 14px; }
+.ic-tile-desc { font-size: 12.5px; color: var(--ic-text-subtle); margin-top: 3px; }
+
+/* ── Result / processing complete ────────────────────────── */
+.ic-result { display: flex; align-items: center; gap: 18px; padding: 22px 24px; }
+.ic-result-icon { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--ic-success-bg); color: var(--ic-success); flex-shrink: 0; border: 6px solid #f2fbf6; box-sizing: content-box; }
+.ic-result-title { font-weight: 600; font-size: 15px; }
+.ic-result-meta { font-size: 12.5px; color: var(--ic-text-subtle); margin-top: 2px; }
+.ic-next-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ── Alerts / empty / loading ────────────────────────────── */
+.ic-alert { display: flex; gap: 10px; padding: 12px 14px; border-radius: var(--ic-radius); font-size: 13px; border: 1px solid; }
+.ic-alert--info { background: var(--ic-info-bg); border-color: #d3dcf6; color: var(--ic-navy-800); }
+.ic-alert--warning { background: var(--ic-warning-bg); border-color: #f6dfb6; color: var(--ic-warning); }
+.ic-alert--danger { background: var(--ic-danger-bg); border-color: #f6cbc6; color: var(--ic-danger); }
+.ic-alert--success { background: var(--ic-success-bg); border-color: #c4e8d3; color: var(--ic-success); }
+.ic-empty { text-align: center; padding: 40px 20px; color: var(--ic-text-subtle); font-size: 13px; }
+.ic-empty ic-icon { color: var(--ic-border-strong); margin-bottom: 8px; }
+.ic-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--ic-border-strong); border-top-color: var(--ic-navy-800); border-radius: 50%; animation: ic-spin .7s linear infinite; flex-shrink: 0; }
+.ic-btn--primary .ic-spinner { border-color: rgba(255,255,255,.35); border-top-color: #fff; }
+@keyframes ic-spin { to { transform: rotate(360deg); } }
+.ic-skeleton { background: linear-gradient(90deg, #eef0f5 25%, #f6f7fa 50%, #eef0f5 75%); background-size: 200% 100%; animation: ic-shimmer 1.2s infinite; border-radius: 6px; height: 14px; }
+@keyframes ic-shimmer { to { background-position: -200% 0; } }
+
+/* ── Modal (native <dialog> or overlay div) ──────────────── */
+.ic-modal-backdrop { position: fixed; inset: 0; background: rgba(15, 27, 61, .4); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50; }
+.ic-modal-backdrop.hidden { display: none; }
+.ic-modal { background: #fff; border-radius: var(--ic-radius-lg); box-shadow: var(--ic-shadow-lg); width: 100%; max-width: 640px; max-height: calc(100vh - 48px); display: flex; flex-direction: column; overflow: hidden; border: 0; padding: 0; color: var(--ic-text); }
+dialog.ic-modal::backdrop { background: rgba(15, 27, 61, .4); }
+dialog.ic-modal:not([open]) { display: none; }
+.ic-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid var(--ic-border); }
+.ic-modal-body { padding: 20px 22px; overflow-y: auto; }
+.ic-modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--ic-border); background: var(--ic-surface-muted); }
+
+/* ── Toast ───────────────────────────────────────────────── */
+.ic-toast-stack { position: fixed; right: 24px; bottom: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 60; }
+.ic-toast { min-width: 240px; max-width: 380px; padding: 12px 16px; border-radius: var(--ic-radius); background: var(--ic-navy-900); color: #fff; font-size: 13px; box-shadow: var(--ic-shadow-lg); animation: ic-rise .2s ease-out; }
+.ic-toast--danger { background: var(--ic-danger); }
+@keyframes ic-rise { from { opacity: 0; transform: translateY(6px); } }
+
+/* ── Layout helpers ──────────────────────────────────────── */
+.ic-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.ic-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.ic-row { display: flex; align-items: center; gap: 10px; }
+.ic-stack { display: flex; flex-direction: column; gap: 16px; }
+.ic-divider { height: 1px; background: var(--ic-border); border: 0; margin: 20px 0; }
+.ic-split-step { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 28px; align-items: start; }
+
+@media (max-width: 960px) {
+  .ic-app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }  /* nav row: its own height */
+  ic-sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--ic-border); }
+  ic-sidebar .ic-brand { padding: 0 8px 0 0; }
+  ic-sidebar .ic-nav { flex-direction: row; flex-wrap: wrap; gap: 0; }
+  ic-sidebar .ic-nav-link { padding: 6px 8px; font-size: 13px; gap: 6px; }
+  .ic-sidebar-promo { display: none; }
+  ic-topbar { padding: 0 16px; position: static; }
+  .ic-page { padding: 20px 16px 40px; }
+  .ic-grid-2, .ic-grid-3, .ic-split-step { grid-template-columns: 1fr; }
+  .ic-hero-art { display: none; }
+  .ic-user-name { display: none; }
+}
+
+</style>
+<style>
+/* ── Preview-only page CSS (would live in the page, per CLAUDE.md) ── */
+.pv-note { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+.ws { display:grid; gap:16px; }
+
+/* Variables grid */
+.vt-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--ic-border); }
+.vt-filters { display:flex; gap:4px; flex-wrap:wrap; }
+.pill { height:28px; padding:0 10px; border-radius:999px; font-size:12.5px; font-weight:500; color:var(--ic-text-muted); border:1px solid var(--ic-border); background:#fff; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; flex-shrink:0; }
+.pill[aria-pressed="true"] { background:var(--ic-blue-100); border-color:transparent; color:var(--ic-navy-800); font-weight:600; }
+.pill b { font-weight:600; color:var(--ic-text-subtle); }
+.pill[aria-pressed="true"] b { color:var(--ic-blue-600); }
+.vt { width:100%; border-collapse:collapse; font-size:13px; }
+.vt th { position:sticky; top:0; z-index:1; text-align:left; font-size:12px; font-weight:500; color:var(--ic-text-subtle); padding:9px 10px; background:var(--ic-surface-muted); border-bottom:1px solid var(--ic-border); white-space:nowrap; }
+.vt td { padding:7px 10px; border-bottom:1px solid var(--ic-border); vertical-align:middle; }
+.vt tr:hover td { background:#fbfcfe; }
+.vt tr.is-sel td { background:var(--ic-blue-50); }
+.vt tr.child td { background:var(--ic-surface-muted); }
+.vt tr.child td.c-name { padding-left:34px; }
+.vt .c-check { width:34px; }
+.vt .c-type { width:150px; }
+.vt th.c-name { font-family:inherit; font-size:12px; color:var(--ic-text-subtle); }
+.vt .c-name { width:150px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:var(--ic-text-muted); white-space:nowrap; }
+.vt .c-vals { width:170px; }
+.vt .c-miss { width:150px; color:var(--ic-text-muted); font-size:12.5px; }
+.vt .c-base { width:70px; text-align:right; font-variant-numeric:tabular-nums; color:var(--ic-text-muted); }
+.vt .c-act { width:40px; }
+.vt-scroll { max-height:calc(100vh - 330px); min-height:360px; overflow:auto; }
+.lbl { display:flex; align-items:center; gap:6px; min-width:0; border-radius:6px; padding:3px 6px; margin:-3px -6px; cursor:text; }
+.lbl:hover { background:#fff; box-shadow:inset 0 0 0 1px var(--ic-border-strong); }
+.lbl span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lbl-input { width:100%; height:28px; padding:0 8px; border-radius:6px; border:1px solid var(--ic-blue-500); box-shadow:0 0 0 3px var(--ic-blue-100); font-size:13px; }
+.grp-toggle { display:inline-grid; place-items:center; width:18px; height:18px; color:var(--ic-text-subtle); margin-right:2px; transition:transform .15s; }
+.grp-toggle.open { transform:rotate(90deg); }
+.items-note { font-size:11.5px; color:var(--ic-text-subtle); white-space:nowrap; }
+
+/* Type chip (button → menu) */
+.tchip { display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 8px 0 6px; border-radius:6px; font-size:12px; font-weight:500; border:1px solid var(--ic-border); background:#fff; color:var(--ic-text-muted); white-space:nowrap; }
+.tchip:hover { border-color:var(--ic-border-strong); color:var(--ic-text); }
+.tglyph { display:inline-grid; place-items:center; width:20px; height:18px; border-radius:4px; font-size:9.5px; font-weight:700; letter-spacing:-.02em; background:var(--ic-surface-muted); color:var(--ic-text-muted); border:1px solid var(--ic-border); flex-shrink:0; }
+.tglyph svg { width:12px; height:12px; }
+.t-single .tglyph { background:var(--ic-blue-100); color:var(--ic-navy-800); border-color:transparent; }
+.t-multi .tglyph { background:#ece9fb; color:#4b3fa8; border-color:transparent; }
+.t-numeric .tglyph { background:var(--ic-success-bg); color:var(--ic-success); border-color:transparent; }
+.t-rating .tglyph { background:var(--ic-warning-bg); color:var(--ic-warning); border-color:transparent; }
+.t-ignore { opacity:.7; }
+.pop { position:fixed; z-index:70; min-width:220px; background:#fff; border:1px solid var(--ic-border); border-radius:var(--ic-radius); box-shadow:var(--ic-shadow-lg); padding:6px; }
+.pop .ic-menu-item.is-on { background:var(--ic-blue-50); font-weight:600; }
+.pop .ic-menu-item .hint { margin-left:auto; font-size:11.5px; color:var(--ic-text-subtle); font-weight:400; }
+.pop-title { padding:8px 10px 6px; font-size:12px; color:var(--ic-text-subtle); border-bottom:1px solid var(--ic-border); margin-bottom:4px; }
+.pop-checks { max-height:240px; overflow:auto; padding:2px 4px; }
+.pop-checks label { display:flex; align-items:center; gap:8px; padding:5px 6px; font-size:13px; border-radius:6px; cursor:pointer; }
+.pop-checks label:hover { background:var(--ic-surface-muted); }
+.pop-checks .n { margin-left:auto; color:var(--ic-text-subtle); font-size:12px; font-variant-numeric:tabular-nums; }
+.pop-foot { display:flex; gap:6px; justify-content:space-between; padding:6px 4px 2px; border-top:1px solid var(--ic-border); margin-top:4px; }
+.bulkbar { display:flex; align-items:center; gap:8px; padding:8px 16px; background:var(--ic-navy-800); color:#fff; font-size:13px; }
+.bulkbar .ic-btn--ghost { color:#dfe6fa; }
+.bulkbar .ic-btn--ghost:hover { background:rgba(255,255,255,.1); color:#fff; }
+
+/* Crosstabs builder */
+.xb { display:grid; grid-template-columns: 250px minmax(0,1fr); gap:16px; align-items:start; }
+.panel { background:#fff; border:1px solid var(--ic-border); border-radius:var(--ic-radius-lg); box-shadow:var(--ic-shadow-sm); }
+.panel-h { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 14px; border-bottom:1px solid var(--ic-border); }
+.panel-t { font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--ic-text-subtle); }
+.fields { position:sticky; top:80px; display:flex; flex-direction:column; max-height:calc(100vh - 110px); }
+.fields-list { overflow:auto; padding:6px; flex:1; }
+.fgroup { font-size:11.5px; font-weight:600; color:var(--ic-text-subtle); padding:10px 8px 4px; text-transform:uppercase; letter-spacing:.04em; }
+.field { display:flex; align-items:center; gap:8px; padding:6px 6px 6px 8px; border-radius:8px; cursor:grab; user-select:none; font-size:13px; position:relative; }
+.field:hover { background:var(--ic-surface-muted); }
+.field.is-used .f-label { color:var(--ic-text-subtle); }
+.field.is-off { cursor:not-allowed; opacity:.55; }
+.field .f-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.field .f-add { opacity:0; }
+.field:hover .f-add, .field:focus-within .f-add { opacity:1; }
+.field .f-used { font-size:10.5px; color:var(--ic-blue-600); font-weight:600; }
+.dragging { opacity:.4; }
+
+.right { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.shelves { padding:6px 0; }
+.shelf { display:grid; grid-template-columns: 96px minmax(0,1fr) auto; align-items:center; gap:10px; padding:6px 14px; }
+.shelf + .shelf { border-top:1px solid var(--ic-border); }
+.shelf-h { display:flex; flex-direction:column; line-height:1.25; }
+.shelf-h .t { font-weight:600; font-size:13.5px; display:flex; align-items:center; gap:6px; }
+.shelf-h .sub { font-size:11px; color:var(--ic-text-subtle); }
+.drop { min-height:40px; border:1.5px dashed var(--ic-border-strong); border-radius:10px; padding:4px; display:flex; flex-wrap:wrap; align-items:center; gap:6px; transition:border-color .15s, background .15s; }
+.drop.has { border-style:solid; border-color:transparent; padding-left:0; }
+.drop.is-over { border-color:var(--ic-blue-500); background:var(--ic-blue-50); border-style:dashed; }
+.drop-empty { font-size:12px; color:var(--ic-text-subtle); padding:4px 8px; }
+.chip { display:inline-flex; align-items:center; gap:6px; height:32px; max-width:300px; padding:0 2px 0 4px; border-radius:8px; background:#fff; border:1px solid var(--ic-border-strong); font-size:12.5px; font-weight:500; cursor:grab; box-shadow:var(--ic-shadow-sm); }
+.chip:hover { border-color:var(--ic-blue-500); }
+.chip .grip { color:var(--ic-text-subtle); display:inline-flex; }
+.chip .c-l { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chip .c-f { font-size:11px; color:var(--ic-blue-600); font-weight:600; white-space:nowrap; background:var(--ic-blue-50); border-radius:999px; padding:1px 6px; }
+.chip .ic-icon-btn { width:22px; height:22px; }
+.chip.drop-before { box-shadow:-3px 0 0 var(--ic-blue-500); }
+.shelf-act { display:flex; gap:4px; }
+.values { display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+.values .ic-check { font-size:13px; }
+.swap { height:22px; padding:0 7px; border-radius:999px; border:1px solid var(--ic-border); font-size:11px; color:var(--ic-text-muted); background:#fff; }
+.swap:hover { color:var(--ic-text); border-color:var(--ic-border-strong); }
+
+.result { min-width:0; }
+.result-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--ic-border); }
+.live { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--ic-success); font-weight:600; }
+.live::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 0 3px var(--ic-success-bg); }
+.live.busy { color:var(--ic-warning); }
+.live.busy::before { box-shadow:0 0 0 3px var(--ic-warning-bg); }
+.result-body { padding:14px; display:flex; flex-direction:column; gap:20px; min-height:420px; }
+.xt-wrap { overflow-x:auto; border:1px solid var(--ic-border); border-radius:var(--ic-radius); }
+.xt-title { display:flex; align-items:baseline; gap:8px; margin-bottom:8px; }
+.xt-title h3 { font-size:14px; font-weight:600; }
+.xt-title .q { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:11.5px; color:var(--ic-text-subtle); }
+.xt { border-collapse:collapse; font-size:12.5px; width:100%; }
+.xt th, .xt td { padding:6px 10px; border-bottom:1px solid var(--ic-border); white-space:nowrap; }
+.xt thead th { background:var(--ic-surface-muted); font-weight:600; color:var(--ic-text); text-align:right; }
+.xt thead th.grp { text-align:center; border-left:1px solid var(--ic-border); color:var(--ic-navy-800); }
+.xt thead th.lt { text-align:left; }
+.xt thead tr.letters th { font-weight:500; color:var(--ic-text-subtle); font-size:11px; padding-top:0; }
+.xt thead tr.base th { font-weight:500; color:var(--ic-text-muted); background:#fff; }
+.xt thead th.sortable { cursor:pointer; }
+.xt thead th.sortable:hover { color:var(--ic-blue-600); }
+.xt .gl { border-left:1px solid var(--ic-border); }
+.xt td { text-align:right; font-variant-numeric:tabular-nums; }
+.xt td.rl { text-align:left; white-space:normal; min-width:160px; max-width:260px; }
+.xt tr.net td { background:var(--ic-blue-50); font-weight:600; }
+.xt tr.stat td { font-style:italic; color:var(--ic-text-muted); }
+.xt tr:last-child td { border-bottom:0; }
+.xt .tot { color:var(--ic-text-muted); }
+.xt .cnt { display:block; font-size:11px; color:var(--ic-text-subtle); }
+.xt .sig { color:var(--ic-blue-600); font-weight:700; font-size:10.5px; margin-left:3px; vertical-align:super; }
+.xt .lowb { color:var(--ic-warning); }
+.xt td.dim { color:var(--ic-text-subtle); }
+.result-foot { padding:10px 14px; border-top:1px solid var(--ic-border); }
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:8px; padding:60px 20px; color:var(--ic-text-subtle); }
+.empty-state svg { color:var(--ic-border-strong); }
+.bar { height:8px; border-radius:4px; background:var(--ic-blue-500); }
+
+/* Placeholder steps */
+.later { display:grid; gap:12px; }
+
+/* Drawer */
+.drawer-bg { position:fixed; inset:0; background:rgba(15,27,61,.25); z-index:60; }
+.drawer { position:fixed; top:0; right:0; bottom:0; width:min(460px, 100vw); background:#fff; z-index:61; box-shadow:var(--ic-shadow-lg); display:flex; flex-direction:column; animation: slidein .18s ease-out; }
+@keyframes slidein { from { transform: translateX(30px); opacity:0; } }
+
+/* App shell without a sidebar: one top bar carries brand, steps and account */
+.ap-top { position:sticky; top:0; z-index:30; display:flex; align-items:center; gap:20px; height:60px; padding:0 24px; background:var(--ic-surface); border-bottom:1px solid var(--ic-border); }
+.ap-brand { padding:0; flex-shrink:0; }
+.ap-steps { flex:1; display:flex; justify-content:safe center; align-items:center; gap:4px; min-width:0; overflow-x:auto; scrollbar-width:none; }
+.ap-steps::-webkit-scrollbar { display:none; }
+.ap-step { display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 12px 0 8px; border-radius:999px; font-size:13px; font-weight:500; color:var(--ic-text-subtle); white-space:nowrap; }
+.ap-step:hover:not(:disabled) { background:var(--ic-surface-muted); color:var(--ic-text); }
+.ap-step:disabled { cursor:not-allowed; opacity:.6; }
+.ap-step .ic-step-num { width:22px; height:22px; }
+.ap-step.is-current { background:var(--ic-blue-100); color:var(--ic-navy-800); font-weight:600; }
+.ap-step.is-current .ic-step-num { background:var(--ic-navy-800); border-color:var(--ic-navy-800); color:#fff; }
+.ap-step.is-done { color:var(--ic-text-muted); }
+.ap-step.is-done .ic-step-num { background:var(--ic-blue-100); border-color:var(--ic-blue-100); color:var(--ic-navy-800); }
+.ap-sep { width:18px; height:1px; background:var(--ic-border-strong); flex-shrink:0; }
+.ap-right { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.ap-page { max-width:1560px; margin:0 auto; padding:20px 24px 48px; }
+.ap-ctx { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin-bottom:16px; min-height:38px; }
+.ap-ctx h1 { font-size:20px; font-weight:700; letter-spacing:-.015em; }
+.ap-file { display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 6px 0 10px; border-radius:8px; border:1px solid var(--ic-border); background:#fff; font-size:13px; font-weight:600; }
+.ap-file .meta { font-weight:400; color:var(--ic-text-subtle); }
+.ap-file .ic-btn { height:26px; }
+.fields { top:76px; }
+
+/* Dataset step */
+.ds { display:grid; grid-template-columns: minmax(0,1fr) 340px; gap:16px; align-items:start; }
+.ds-table td { padding:10px 16px; }
+.ds-table tbody tr { cursor:pointer; }
+.ds-table tbody tr.is-pick td { background:var(--ic-blue-50); }
+.ds-name { display:flex; align-items:center; gap:10px; font-weight:600; }
+.ds-name small { display:block; font-weight:400; color:var(--ic-text-subtle); font-size:12px; }
+.fmt { font-size:10.5px; font-weight:700; letter-spacing:.03em; padding:2px 6px; border-radius:4px; background:var(--ic-blue-100); color:var(--ic-navy-800); }
+.fmt.xlsx, .fmt.csv { background:var(--ic-success-bg); color:var(--ic-success); }
+
+@media (max-width: 1100px) { .ap-brand-name { display:none; } .ap-step .lbl-t { display:none; } .ap-step.is-current .lbl-t { display:inline; } }
+@media (max-width: 860px) { .ds { grid-template-columns:1fr; } }
+@media (max-width: 640px) {
+  .ic-card-header { flex-wrap:wrap; }
+  .ap-file { flex-wrap:wrap; height:auto; padding:6px 6px 6px 10px; row-gap:2px; }
+  .ap-ctx .ic-badge { margin-left:0 !important; }
+  .vt-toolbar .ic-search { flex:1 1 100%; max-width:none !important; }
+  .vt-filters { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; max-width:100%; }
+  .result-bar > span[style*="flex:1"] { display:none; }
+  .bulkbar { flex-wrap:wrap; }
+  .ap-top { padding:0 12px; gap:8px; } .ap-page { padding:16px 16px 40px; } .ap-sep { width:8px; } .ap-step { padding:0 8px 0 6px; } .ds-table .hide-sm { display:none; } }
+@media (max-width: 1100px) { .xb { grid-template-columns: 210px minmax(0,1fr); } }
+@media (max-width: 760px) { .xb { grid-template-columns: 1fr; } .fields { position:static; max-height:none; } .fields-list { max-height:300px; } .shelf { grid-template-columns: 1fr; gap:4px; } .vt .c-miss, .vt .c-base, .vt .c-name { display:none; } }
+</style>
+</head>
+<body class="ic-body">
+<header class="ap-top">
+  <a class="ic-brand ap-brand" href="#" onclick="go('dataset');return false"><span class="ic-brand-mark"><ic-icon name="logo" size="16"></ic-icon></span><span class="ap-brand-name">Indico Crosstab</span></a>
+  <nav id="stepper" class="ap-steps" aria-label="Steps"></nav>
+  <div class="ap-right">
+    <button class="ic-icon-btn" type="button" title="Help" aria-label="Help" onclick="toast('Opens the docs')"><ic-icon name="help" size="18"></ic-icon></button>
+    <div class="ic-user">
+      <button id="user-btn" class="ic-user-btn" type="button" aria-haspopup="menu"><span class="ic-avatar">DA</span><ic-icon name="chevron-down" size="16"></ic-icon></button>
+    </div>
+  </div>
+</header>
+<main class="ap-page">
+      <div id="ctx" class="ap-ctx"></div>
+
+      <section id="view-dataset" hidden></section>
+      <section id="view-variables" class="ic-card" hidden></section>
+      <section id="view-crosstabs" hidden></section>
+      <section id="view-later" class="ic-card" hidden></section>
+</main>
+<div id="toasts" class="ic-toast-stack"></div>
+
+<script>
+/* Indico Crosstab UI kit — shared components and helpers.
+   <ic-icon name="database" size="18">   outline icon
+   <ic-sidebar active="datasets">        app navigation (auto-detects the section from the URL)
+   <ic-topbar>                           search + signed-in user menu
+   window.IC                             DOM, API, format and toast helpers
+   Everything that shows data builds DOM nodes and sets textContent, never markup. */
+(function () {
+  'use strict';
+
+  const ICONS = {
+    home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+    database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>',
+    repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+    workflow: '<rect x="3" y="3" width="8" height="8" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect x="13" y="13" width="8" height="8" rx="2"/>',
+    settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+    search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+    'chevron-up': '<path d="m18 15-6-6-6 6"/>',
+    'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+    'arrow-left': '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+    'arrow-right': '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+    'upload-cloud': '<path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+    file: '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/>',
+    'file-text': '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+    'file-sheet': '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/>',
+    plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+    more: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    'check-circle': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+    pencil: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+    'log-out': '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+    message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    table: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/>',
+    layers: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
+    filter: '<path d="M22 3H2l8 9.46V19l4 2v-8.54z"/>',
+    sliders: '<path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/>',
+    sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+    help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+    undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>',
+    book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    key: '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>',
+    chart: '<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+    external: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+    user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+    list: '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>',
+    zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+    lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/>',
+    eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+    'eye-off': '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="m2 2 20 20"/>',
+    send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+    scale: '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+    columns: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/>',
+    refresh: '<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>',
+    grip: '<circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>',
+    clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+    code: '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
+    logo: '<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M3.5 9.5h17"/><path d="M9.5 3.5v17"/>',
+  };
+
+  class IcIcon extends HTMLElement {
+    static get observedAttributes() { return ['name', 'size']; }
+    connectedCallback() { this.render(); }
+    attributeChangedCallback() { if (this.isConnected) this.render(); }
+    render() {
+      const size = this.getAttribute('size') || '18';
+      const body = ICONS[this.getAttribute('name')] || '';
+      this.style.display = 'inline-flex';
+      this.style.flexShrink = '0';
+      // Icon markup comes only from the static table above.
+      this.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+    }
+  }
+
+  // ── DOM helpers ────────────────────────────────────────────
+  function el(tag, attrs, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === 'class') node.className = v;
+      else if (k === 'text') node.textContent = v;
+      else if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+      else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v === true ? '' : v);
+    }
+    for (const c of children.flat()) {
+      if (c == null || c === false) continue;
+      node.append(c instanceof Node ? c : document.createTextNode(String(c)));
+    }
+    return node;
+  }
+  const icon = (name, size) => el('ic-icon', { name, size: size || 18 });
+
+  // ── Nav ────────────────────────────────────────────────────
+  // Optional features (served by /static/config.js); everything on if it hasn't loaded
+  const FEATURES = Object.assign({ datasets: true, chat: true }, window.__INDICO_FEATURES__ || {});
+  const NAV = [
+    { key: 'home', label: 'Home', href: '/home', icon: 'home', paths: ['/home'] },
+    ...(FEATURES.datasets ? [{ key: 'datasets', label: 'Datasets', href: '/datasets', icon: 'database', paths: ['/datasets'] }] : []),
+    { key: 'transformations', label: 'Transformations', href: '/review', icon: 'repeat', paths: ['/review'] },
+    { key: 'workflows', label: 'Workflows', href: '/workflows', icon: 'workflow', paths: ['/workflows', '/export', '/app', '/express', '/wizard', '/export-mcp'] },
+    { key: 'settings', label: 'Settings', href: '/settings', icon: 'settings', paths: ['/settings'] },
+  ];
+  function activeSection() {
+    const p = location.pathname.replace(/\/+$/, '') || '/';
+    const hit = NAV.find(n => n.paths.some(x => p === x || p.startsWith(x + '/')));
+    return hit ? hit.key : '';
+  }
+
+  const brand = (href) => el('a', { class: 'ic-brand', href: href || '/home' },
+    el('span', { class: 'ic-brand-mark' }, icon('logo', 16)), 'Indico Crosstab');
+
+  class IcSidebar extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.ready) return;
+      this.dataset.ready = '1';
+      const active = this.getAttribute('active') || activeSection();
+      const nav = el('nav', { class: 'ic-nav', 'aria-label': 'Main' },
+        NAV.map(n => el('a', { class: 'ic-nav-link', href: n.href, 'aria-current': n.key === active ? 'page' : null },
+          icon(n.icon, 18), n.label)));
+      const wave = '<svg viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C 30 10, 50 38, 80 24 S 130 6, 160 22 S 190 30, 200 18" fill="none" stroke="#8ea3e6" stroke-width="2"/><path d="M0 36 C 40 22, 70 40, 110 30 S 170 18, 200 30" fill="none" stroke="#c5d1f3" stroke-width="2"/></svg>';
+      const promo = el('div', { class: 'ic-sidebar-promo' },
+        el('strong', { text: 'Better data.' }), el('strong', { text: 'Sharper insights.' }),
+        el('p', { text: 'Prepare your market research data for deeper analysis.' }));
+      promo.insertAdjacentHTML('beforeend', wave);
+      this.append(brand(), nav, promo);
+    }
+  }
+
+  // ── Session (who is signed in) ─────────────────────────────
+  let mePromise = null;
+  function me() {
+    if (!mePromise) {
+      mePromise = fetch('/auth/me', { credentials: 'same-origin' })
+        .then(r => (r.ok ? r.json() : null))
+        .then(j => (j && j.success ? j.data : null))
+        .catch(() => null);
+    }
+    return mePromise;
+  }
+  async function signOut() {
+    try { await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch (_) { /* leave anyway */ }
+    location.href = '/';
+  }
+  function initials(name) {
+    const parts = String(name || '').trim().split(/[\s@._-]+/).filter(Boolean);
+    return ((parts[0] || '?')[0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+  }
+  function firstName(name) { return String(name || '').trim().split(/\s+/)[0] || ''; }
+
+  class IcTopbar extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.ready) return;
+      this.dataset.ready = '1';
+      const input = el('input', { type: 'search', placeholder: 'Search datasets…', 'aria-label': 'Search datasets' });
+      const q = new URLSearchParams(location.search).get('q');
+      if (q && location.pathname.startsWith('/datasets')) input.value = q;
+      input.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        const v = input.value.trim();
+        location.href = '/datasets' + (v ? '?q=' + encodeURIComponent(v) : '');
+      });
+      const search = el('div', { class: 'ic-search', role: 'search', hidden: !FEATURES.datasets }, icon('search', 16), input);
+
+      const avatar = el('span', { class: 'ic-avatar', 'aria-hidden': 'true' });
+      const name = el('span', { class: 'ic-user-name' });
+      const btn = el('button', { class: 'ic-user-btn', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false' },
+        avatar, name, icon('chevron-down', 16));
+      const label = el('div', { class: 'ic-menu-label' });
+      const menu = el('div', { class: 'ic-menu', role: 'menu', hidden: true }, label,
+        el('a', { class: 'ic-menu-item', href: '/settings', role: 'menuitem' }, icon('settings', 16), 'Settings'),
+        el('button', { class: 'ic-menu-item', type: 'button', role: 'menuitem', onclick: signOut }, icon('log-out', 16), 'Sign out'));
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        menu.hidden = !menu.hidden;
+        btn.setAttribute('aria-expanded', String(!menu.hidden));
+      });
+      document.addEventListener('click', () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); });
+      const user = el('div', { class: 'ic-user' }, btn, menu);
+      this.append(this.hasAttribute('no-search') ? el('div') : search, user);
+
+      me().then(u => {
+        if (!u) return;
+        avatar.textContent = initials(u.name || u.email);
+        name.textContent = u.name || u.email;
+        label.textContent = u.email;
+      });
+    }
+  }
+
+  // Decorative illustration: stacked data sheets with a trend chart (hero + sign-in).
+  const ART = `<svg viewBox="0 0 220 170" fill="none" aria-hidden="true">
+    <rect x="58" y="10" width="140" height="104" rx="12" fill="#dfe6fa" stroke="#c8d3f3"/>
+    <rect x="40" y="26" width="140" height="104" rx="12" fill="#eef2fd" stroke="#c8d3f3"/>
+    <rect x="22" y="42" width="140" height="104" rx="12" fill="#fff" stroke="#c8d3f3"/>
+    <rect x="36" y="58" width="60" height="7" rx="3.5" fill="#c8d3f3"/>
+    <rect x="36" y="74" width="96" height="5" rx="2.5" fill="#e7ecfa"/>
+    <rect x="36" y="86" width="80" height="5" rx="2.5" fill="#e7ecfa"/>
+    <rect x="36" y="98" width="88" height="5" rx="2.5" fill="#e7ecfa"/>
+    <rect x="116" y="96" width="70" height="62" rx="12" fill="#2f4fb3"/>
+    <path d="M128 144 L142 128 L154 136 L174 112" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="174" cy="112" r="4" fill="#fff"/>
+  </svg>`;
+  class IcIllustration extends HTMLElement {
+    connectedCallback() { if (!this.firstChild) this.innerHTML = ART; }
+  }
+
+  customElements.define('ic-illustration', IcIllustration);
+  customElements.define('ic-icon', IcIcon);
+  customElements.define('ic-sidebar', IcSidebar);
+  customElements.define('ic-topbar', IcTopbar);
+
+  // ── API ────────────────────────────────────────────────────
+  function apiKey() { return window.__INDICO_CROSSTAB_DEMO_KEY__ || 'demo'; }
+  async function api(path, opts) {
+    const o = Object.assign({}, opts || {});
+    o.headers = Object.assign({ Authorization: `Bearer ${apiKey()}` }, o.headers || {});
+    const res = await fetch(path, o);
+    let body = null;
+    try { body = await res.json(); } catch (_) { /* non-JSON */ }
+    if (!res.ok || (body && body.success === false)) {
+      const err = body && (body.error || body.detail);
+      const msg = (err && (err.message || (typeof err === 'string' ? err : ''))) || `Request failed (${res.status})`;
+      const e = new Error(msg);
+      e.status = res.status;
+      e.code = err && err.code;
+      throw e;
+    }
+    return body && 'data' in body ? body.data : body;
+  }
+
+  // ── Format ─────────────────────────────────────────────────
+  const nf = new Intl.NumberFormat();
+  function number(n) { return n == null || n === '' || isNaN(n) ? '—' : nf.format(Number(n)); }
+  function bytes(b) {
+    if (b == null || isNaN(b)) return '—';
+    const u = ['B', 'KB', 'MB', 'GB'];
+    let i = 0, v = Number(b);
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(v < 10 && i ? 1 : 0)} ${u[i]}`;
+  }
+  function timeAgo(iso) {
+    if (!iso) return '—';
+    const t = new Date(iso).getTime();
+    if (isNaN(t)) return '—';
+    const s = Math.max(0, (Date.now() - t) / 1000);
+    const steps = [[60, 'second'], [60, 'minute'], [24, 'hour'], [7, 'day'], [4.35, 'week'], [12, 'month'], [Infinity, 'year']];
+    let v = s;
+    for (const [div, unit] of steps) {
+      if (v < div) {
+        const n = Math.floor(v);
+        return n <= 0 && unit === 'second' ? 'just now' : `${n} ${unit}${n === 1 ? '' : 's'} ago`;
+      }
+      v /= div;
+    }
+    return '—';
+  }
+  function greeting(date) {
+    const h = (date || new Date()).getHours();
+    return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  }
+  function fileIcon(name) {
+    const ext = String(name || '').split('.').pop().toLowerCase();
+    return ['xlsx', 'xls', 'csv', 'tsv'].includes(ext) ? 'file-sheet' : 'file-text';
+  }
+
+  // ── Toast ──────────────────────────────────────────────────
+  function toast(message, tone) {
+    let stack = document.querySelector('.ic-toast-stack');
+    if (!stack) { stack = el('div', { class: 'ic-toast-stack', 'aria-live': 'polite' }); document.body.append(stack); }
+    const t = el('div', { class: 'ic-toast' + (tone === 'danger' ? ' ic-toast--danger' : ''), text: message });
+    stack.append(t);
+    setTimeout(() => t.remove(), 3600);
+  }
+
+  // ── Stepper ────────────────────────────────────────────────
+  // IC.stepper(container, ['Banners', 'Stubs'], currentIndex, { onSelect(i), vertical })
+  function stepper(container, steps, current, opts) {
+    const o = opts || {};
+    container.replaceChildren();
+    container.className = 'ic-stepper' + (o.vertical ? ' ic-stepper--vertical' : '');
+    steps.forEach((label, i) => {
+      if (i) container.append(el('span', { class: 'ic-step-line', 'aria-hidden': 'true' }));
+      const state = i < current ? 'is-done' : i === current ? 'is-current' : '';
+      const tag = o.onSelect ? 'button' : 'span';
+      const node = el(tag, { class: 'ic-step ' + state, type: o.onSelect ? 'button' : null, 'aria-current': i === current ? 'step' : null },
+        el('span', { class: 'ic-step-num' }, i < current ? icon('check', 12) : String(i + 1)), label);
+      if (o.onSelect) node.addEventListener('click', () => o.onSelect(i));
+      container.append(node);
+    });
+  }
+
+  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, greeting, fileIcon, toast, stepper, NAV, FEATURES };
+})();
+
+</script>
+<script>
+'use strict';
+const el = IC.el;
+
+// ── Type system: one glyph per role (would join ic.js ICONS) ───────────
+const TYPES = {
+  single:  { name: 'Coded',        glyph: '1·2', desc: 'One answer per respondent' },
+  multi:   { name: 'Multi-select', glyph: 'svg:check', desc: 'Select all that apply' },
+  rating:  { name: 'Rating',       glyph: '1–5', desc: 'Ordered scale; adds Top 2 / mean' },
+  numeric: { name: 'Number',       glyph: '123', desc: 'Means, bands' },
+  text:    { name: 'Open text',    glyph: 'Aa',  desc: 'Not tabulated' },
+  date:    { name: 'Date',         glyph: 'svg:cal', desc: 'Group by month / wave' },
+  ignore:  { name: 'Not used',     glyph: 'svg:off', desc: 'Hidden from tables' },
+};
+const GLYPH_SVG = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  off: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></svg>',
+};
+function glyph(role) {
+  const g = TYPES[role].glyph;
+  const s = el('span', { class: 'tglyph', 'aria-hidden': 'true' });
+  if (g.startsWith('svg:')) s.innerHTML = GLYPH_SVG[g.slice(4)]; else s.textContent = g;
+  return s;
+}
+
+// ── Synthetic dataset (deterministic) ──────────────────────────────────
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const pick = (w) => { let r = rnd() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; } return w.length - 1; };
+
+const VARS = [
+  { name: 'S1',    label: 'Gender', role: 'single', codes: ['Male', 'Female', 'Non-binary / other'], missing: [] },
+  { name: 'S2',    label: 'Age group', role: 'single', codes: ['18–34', '35–54', '55+'], missing: [] },
+  { name: 'S2_AGE',label: 'Age (years)', role: 'numeric', codes: [], missing: [] },
+  { name: 'S3',    label: 'Region', role: 'single', codes: ['Northeast', 'South', 'Midwest', 'West'], missing: [] },
+  { name: 'S4',    label: 'Household income', role: 'single', codes: ['Under $50k', '$50k–$100k', '$100k+', 'Prefer not to say'], missing: [3] },
+  { name: 'S5',    label: 'Education', role: 'single', codes: ['High school', 'Some college', "Bachelor's", 'Postgraduate'], missing: [] },
+  { name: 'Q10',   label: 'Primary skin condition', role: 'single', codes: ['Psoriasis', 'Eczema', 'Acne', 'Rosacea', 'Other'], missing: [] },
+  { name: 'Q11',   label: 'Severity of condition', role: 'rating', codes: ['Very mild', 'Mild', 'Moderate', 'Severe', 'Very severe'], missing: [] },
+  { name: 'Q12',   label: 'Treatments prescribed', role: 'multi', group: true,
+    items: ['Topical steroid', 'Biologic injection', 'Oral medication', 'Phototherapy', 'None of these'] },
+  { name: 'Q14',   label: 'Satisfaction with current treatment', role: 'rating', codes: ['Very dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very satisfied'], missing: [] },
+  { name: 'Q15',   label: 'Dermatologist visits per year', role: 'numeric', codes: [], missing: [] },
+  { name: 'Q16',   label: 'Likelihood to recommend (0–10)', role: 'numeric', codes: [], missing: [] },
+  { name: 'Q17',   label: 'Why did you choose this treatment?', role: 'text', codes: [], missing: [] },
+  { name: 'START', label: 'Interview start date', role: 'date', codes: [], missing: [] },
+  { name: 'RID',   label: 'Respondent ID', role: 'ignore', codes: [], missing: [] },
+  { name: 'STATUS',label: 'Survey finish state', role: 'single', codes: ['Completed', 'Partial'], missing: [] },
+];
+// Multi-select items become child variables Q12_1..Q12_n
+for (const v of VARS) if (v.group) v.children = v.items.map((l, i) => ({ name: `${v.name}_${i + 1}`, label: l, role: 'multi', codes: ['Not selected', 'Selected'], missing: [], parent: v.name }));
+
+const N = 420;
+const DATA = [];
+for (let i = 0; i < N; i++) {
+  const g = pick([46, 51, 3]), a = pick([34, 38, 28]);
+  const age = [18, 35, 55][a] + Math.floor(rnd() * [17, 20, 25][a]);
+  const reg = pick([20, 37, 21, 22]);
+  const inc = pick([a === 0 ? 42 : 30, 38, a === 0 ? 12 : 24, 8]);
+  const edu = pick([24, 28, 30, 18 + (inc === 2 ? 14 : 0)]);
+  const cond = pick(a === 0 ? [12, 22, 48, 6, 6] : g === 1 ? [26, 30, 10, 22, 8] : [34, 26, 14, 14, 8]);
+  const sev = pick(cond === 0 ? [6, 18, 38, 26, 12] : [14, 28, 34, 17, 7]);
+  const bio = sev >= 3 ? rnd() < 0.42 : rnd() < 0.10;
+  const tx = [rnd() < 0.62, bio, rnd() < (cond === 2 ? 0.48 : 0.24), rnd() < (cond === 0 ? 0.22 : 0.06), false];
+  if (!tx.some(Boolean)) tx[4] = true;
+  const sat = pick(bio ? [4, 8, 18, 42, 28] : a === 2 ? [8, 14, 24, 36, 18] : [12, 20, 28, 28, 12]);
+  const visits = Math.max(0, Math.round((bio ? 5 : 2.4) + (rnd() - 0.4) * 4));
+  const nps = Math.max(0, Math.min(10, Math.round(sat * 1.7 + 2 + (rnd() - 0.5) * 4)));
+  const row = { S1: g, S2: a, S2_AGE: age, S3: reg, S4: inc, S5: edu, Q10: cond, Q11: sev, Q14: sat, Q15: visits, Q16: nps, STATUS: rnd() < 0.93 ? 0 : 1 };
+  tx.forEach((t, k) => { row[`Q12_${k + 1}`] = t ? 1 : 0; });
+  DATA.push(row);
+}
+
+// ── State shared by both steps (codebook carry-over) ───────────────────
+const state = {
+  step: 'variables',
+  vfilter: 'all', vsearch: '', selected: new Set(), open: new Set(['Q12']),
+  columns: ['S1', 'S2'], rows: ['Q14', 'Q12', 'Q15'], filter: [{ name: 'STATUS', keep: [0] }],
+  cats: {},                 // name -> Set of hidden category codes (per field "Choose categories")
+  stats: { colpct: true, counts: false, rowpct: false, sig: true, level: '95/90' },
+  sort: 'survey', hideEmpty: true, lowBase: 30,
+};
+const byName = (n) => { for (const v of VARS) { if (v.name === n) return v; for (const c of v.children || []) if (c.name === n) return c; } };
+const usable = (v) => !['text', 'ignore', 'date'].includes(v.role);
+
+// ── Datasets (library rows; with ENABLE_DATASETS off only the upload card shows) ──
+const DATASETS = [
+  { name: 'derm_patient_survey_w2.sav', fmt: 'sav', n: 420, cols: 20, updated: 'Today, 09:42', by: 'Demo Analyst', tag: 'Wave 2' },
+  { name: 'derm_patient_survey_w1.sav', fmt: 'sav', n: 398, cols: 20, updated: '3 weeks ago', by: 'Demo Analyst', tag: 'Wave 1' },
+  { name: 'cx_pulse_q3.xlsx', fmt: 'xlsx', n: 1204, cols: 64, updated: 'Sep 30', by: 'Rob K.', tag: 'CX Pulse' },
+  { name: 'brand_tracker_sept.csv', fmt: 'csv', n: 2510, cols: 112, updated: 'Sep 18', by: 'Demo Analyst', tag: '' },
+  { name: 'example3_raw.sav', fmt: 'sav', n: 85, cols: 175, updated: 'Aug 2', by: 'Demo Analyst', tag: '' },
+];
+state.dataset = null;
+state.step = 'dataset';
+
+// ── Steps live in the top bar (no sidebar) ─────────────────────────────
+const STEPS = [
+  { key: 'dataset', label: 'Dataset' },
+  { key: 'variables', label: 'Variables' },
+  { key: 'crosstabs', label: 'Crosstabs' },
+  { key: 'options', label: 'Options' },
+  { key: 'generate', label: 'Generate' },
+];
+function drawStepper() {
+  const nav = document.getElementById('stepper'); nav.replaceChildren();
+  const cur = STEPS.findIndex(s => s.key === state.step);
+  STEPS.forEach((s, i) => {
+    if (i) nav.append(el('span', { class: 'ap-sep', 'aria-hidden': 'true' }));
+    const locked = i > 0 && state.dataset == null;
+    const cls = 'ap-step' + (i === cur ? ' is-current' : i < cur ? ' is-done' : '');
+    nav.append(el('button', { class: cls, type: 'button', disabled: locked || null, title: locked ? 'Choose a dataset first' : null,
+      'aria-current': i === cur ? 'step' : null, onclick: () => go(s.key) },
+      el('span', { class: 'ic-step-num' }, i < cur ? '✓' : String(i + 1)), el('span', { class: 'lbl-t' }, s.label)));
+  });  const now = nav.querySelector('.is-current');
+  if (now) nav.scrollLeft = now.offsetLeft - (nav.clientWidth - now.offsetWidth) / 2;
+}
+function drawCtx() {
+  const host = document.getElementById('ctx'); host.replaceChildren();
+  const badge = el('span', { class: 'ic-badge ic-badge--warning', style: 'margin-left:auto' }, 'Design preview · sample data');
+  if (state.step === 'dataset' || state.dataset == null) {
+    host.append(el('div', {}, el('h1', {}, 'Choose a dataset'),
+      el('p', { class: 'ic-help', style: 'font-size:13px' }, 'Pick one you’ve used before or upload a new file. Everything after this works on that file.')), badge);
+    return;
+  }
+  const d = DATASETS[state.dataset];
+  host.append(el('div', { class: 'ap-file' }, el('span', { class: 'ic-file-icon' }, el('ic-icon', { name: 'file-sheet', size: 16 })), d.name,
+    el('span', { class: 'meta' }, `${d.n.toLocaleString()} respondents · ${d.cols} columns`),
+    el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => go('dataset') }, 'Change')), badge);
+}
+function go(step) {
+  if (step !== 'dataset' && state.dataset == null) return toast('Choose a dataset first');
+  state.step = step; closePop();
+  for (const k of ['dataset', 'variables', 'crosstabs']) document.getElementById('view-' + k).hidden = step !== k;
+  document.getElementById('view-later').hidden = !['options', 'generate'].includes(step);
+  drawStepper(); drawCtx();
+  if (step === 'dataset') drawDataset();
+  else if (step === 'variables') drawVariables();
+  else if (step === 'crosstabs') drawCrosstabs();
+  else drawLater();
+  window.scrollTo({ top: 0 });
+}
+
+// ── Step 1: Dataset ───────────────────────────────────────────────────
+function drawDataset() {
+  const host = document.getElementById('view-dataset'); host.replaceChildren();
+  const q = el('input', { type: 'search', placeholder: 'Search datasets', 'aria-label': 'Search datasets' });
+  const body = el('tbody');
+  const pick = (i) => { state.dataset = i; toast(`Opened ${DATASETS[i].name}`); go('variables'); };
+  const rows = () => {
+    body.replaceChildren(...DATASETS.map((d, i) => ({ d, i })).filter(({ d }) => d.name.toLowerCase().includes(q.value.toLowerCase())).map(({ d, i }) =>
+      el('tr', { class: state.dataset === i ? 'is-pick' : '', tabindex: '0', onclick: () => pick(i), onkeydown: (e) => { if (e.key === 'Enter') pick(i); } },
+        el('td', {}, el('div', { class: 'ds-name' }, el('span', { class: `fmt ${d.fmt}` }, d.fmt.toUpperCase()),
+          el('div', { style: 'min-width:0' }, d.name, el('small', {}, d.tag ? `${d.tag} · ${d.by}` : d.by)))),
+        el('td', { class: 'num hide-sm' }, d.n.toLocaleString()),
+        el('td', { class: 'num hide-sm' }, String(d.cols)),
+        el('td', { class: 'hide-sm ic-muted' }, d.updated),
+        el('td', { class: 'num' }, el('button', { class: 'ic-btn ic-btn--' + (state.dataset === i ? 'primary' : 'secondary') + ' ic-btn--sm', type: 'button',
+          onclick: (e) => { e.stopPropagation(); pick(i); } }, state.dataset === i ? 'Continue' : 'Use')))));
+  };
+  q.addEventListener('input', rows); rows();
+  const lib = el('div', { class: 'ic-card' },
+    el('div', { class: 'ic-card-header' }, el('h2', { class: 'ic-section-title' }, 'Your datasets'),
+      el('div', { class: 'ic-search', style: 'max-width:260px' }, el('ic-icon', { name: 'search', size: 16 }), q)),
+    el('div', { class: 'ic-table-wrap' }, el('table', { class: 'ic-table ds-table' },
+      el('thead', {}, el('tr', {}, el('th', {}, 'Name'), el('th', { class: 'num hide-sm' }, 'Respondents'), el('th', { class: 'num hide-sm' }, 'Columns'),
+        el('th', { class: 'hide-sm' }, 'Updated'), el('th', {}))), body)));
+  const drop = el('div', { class: 'ic-dropzone', tabindex: '0', role: 'button', onclick: () => { DATASETS.unshift({ name: 'new_upload.sav', fmt: 'sav', n: 420, cols: 20, updated: 'Just now', by: 'Demo Analyst', tag: '' }); pick(0); } },
+    el('span', { class: 'ic-dropzone-icon' }, el('ic-icon', { name: 'upload-cloud', size: 32 })),
+    el('span', { class: 'ic-dropzone-title' }, 'Upload a new file'),
+    el('span', { class: 'ic-help' }, 'Drag it here or'),
+    el('span', { class: 'ic-btn ic-btn--primary ic-btn--sm', style: 'margin:4px 0 8px' }, 'Browse files'),
+    el('span', { class: 'ic-dropzone-hint' }, 'SPSS (.sav), Excel or CSV / TSV, including survey platform exports'));
+  const side = el('div', { class: 'ic-stack' },
+    el('div', { class: 'ic-card ic-card-body' }, drop),
+    el('div', { class: 'ic-card ic-card-body' }, el('p', { class: 'ic-label' }, 'Next wave of a study?'),
+      el('p', { class: 'ic-help', style: 'font-size:12.5px' }, 'Upload it here, then use Setup on the Variables step to reapply last wave’s recodes.')));
+  host.append(el('div', { class: 'ds' }, lib, side));
+}
+
+// ── Popover helper ────────────────────────────────────────────────────
+let popEl = null;
+function closePop() { if (popEl) { popEl.remove(); popEl = null; } }
+function openPop(anchor, content) {
+  closePop();
+  popEl = el('div', { class: 'pop', role: 'menu' }, content);
+  document.body.append(popEl);
+  const r = anchor.getBoundingClientRect(), w = popEl.offsetWidth, h = popEl.offsetHeight;
+  popEl.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+  popEl.style.top = (r.bottom + h + 8 > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6) + 'px';
+  setTimeout(() => document.addEventListener('click', outside, { once: true }), 0);
+  function outside(e) { if (popEl && popEl.contains(e.target)) { document.addEventListener('click', outside, { once: true }); return; } closePop(); }
+  return popEl;
+}
+function toast(msg) {
+  const t = el('div', { class: 'ic-toast' }, msg);
+  document.getElementById('toasts').append(t); setTimeout(() => t.remove(), 2600);
+}
+
+// ══════════════════════════ VARIABLES ═══════════════════════════════
+function countBy(role) { return VARS.filter(v => role === 'all' || v.role === role).length; }
+function baseOf(v) {
+  if (v.group) return DATA.filter(r => v.children.some(c => r[c.name])).length;
+  if (['text'].includes(v.role)) return 388;
+  if (['date', 'ignore'].includes(v.role)) return N;
+  return DATA.filter(r => r[v.name] != null).length;
+}
+function valuesCell(v) {
+  if (v.group) return el('span', { class: 'items-note' }, `${v.children.length} options`);
+  if (v.role === 'numeric') {
+    const xs = DATA.map(r => r[v.name]); return el('span', { class: 'ic-muted', style: 'font-size:12.5px' }, `${Math.min(...xs)} – ${Math.max(...xs)}`);
+  }
+  if (!v.codes.length) return el('span', { class: 'ic-help' }, '—');
+  return el('button', { class: 'ic-link', style: 'font-size:12.5px', type: 'button', onclick: (e) => { e.stopPropagation(); openDrawer(v); } },
+    `${v.codes.length} categories`);
+}
+function missingCell(v) {
+  if (!v.missing?.length) return '—';
+  return v.missing.map(m => `${m + 1} = ${v.codes[m]}`).join(', ');
+}
+
+function typeChip(v) {
+  const btn = el('button', { class: `tchip t-${v.role}`, type: 'button', title: 'Change type', 'aria-haspopup': 'menu' },
+    glyph(v.role), TYPES[v.role].name, el('ic-icon', { name: 'chevron-down', size: 12 }));
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const roles = v.parent || v.group ? ['multi', 'single', 'ignore'] : Object.keys(TYPES).filter(k => k !== 'multi');
+    openPop(btn, [el('div', { class: 'pop-title' }, `Read “${v.label}” as`),
+      ...roles.map(k => el('button', { class: 'ic-menu-item' + (k === v.role ? ' is-on' : ''), type: 'button', role: 'menuitemradio',
+        onclick: () => { setRole([v], k); closePop(); } },
+        el('span', { class: `t-${k}` }, glyph(k)), TYPES[k].name, el('span', { class: 'hint' }, TYPES[k].desc)))]);
+  });
+  return btn;
+}
+function setRole(vs, role) {
+  vs.forEach(v => { v.role = role; (v.children || []).forEach(c => { c.role = role === 'multi' ? 'multi' : role; }); });
+  toast(vs.length > 1 ? `${vs.length} variables now read as ${TYPES[role].name}` : `“${vs[0].label}” is now ${TYPES[role].name} — saved`);
+  // Carry-over: anything no longer tabulable leaves the Crosstabs shelves.
+  for (const k of ['rows', 'columns']) state[k] = state[k].filter(n => usable(byName(n)));
+  state.filter = state.filter.filter(f => usable(byName(f.name)));
+  drawVariables();
+}
+
+function labelCell(v) {
+  const wrap = el('div', { class: 'lbl', title: 'Double-click to rename', tabindex: '0' }, el('span', {}, v.label));
+  const edit = () => {
+    const inp = el('input', { class: 'lbl-input', value: v.label, 'aria-label': 'Label' });
+    wrap.replaceWith(inp); inp.focus(); inp.select();
+    const done = (save) => {
+      if (save && inp.value.trim() && inp.value.trim() !== v.label) { v.label = inp.value.trim(); toast('Label saved · used in tables and the Excel output'); }
+      inp.replaceWith(labelCell(v));
+    };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); });
+    inp.addEventListener('blur', () => done(true));
+  };
+  wrap.addEventListener('dblclick', edit);
+  wrap.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'F2') edit(); });
+  return wrap;
+}
+
+function variableRow(v, child) {
+  const sel = state.selected.has(v.name);
+  const isOpen = state.open.has(v.name);
+  const cb = el('input', { type: 'checkbox', class: 'ic-checkbox', 'aria-label': `Select ${v.name}`, checked: sel || null,
+    onchange: (e) => { e.target.checked ? state.selected.add(v.name) : state.selected.delete(v.name); drawVariables(); } });
+  const nameCell = el('td', { class: 'c-name' },
+    v.group ? el('button', { type: 'button', class: 'grp-toggle' + (isOpen ? ' open' : ''), 'aria-label': isOpen ? 'Collapse' : 'Expand',
+      onclick: () => { isOpen ? state.open.delete(v.name) : state.open.add(v.name); drawVariables(); } }, el('ic-icon', { name: 'chevron-right', size: 14 })) : null,
+    v.group ? `${v.name}_1…${v.children.length}` : v.name);
+  return el('tr', { class: (sel ? 'is-sel ' : '') + (child ? 'child' : '') },
+    el('td', { class: 'c-check' }, child ? null : cb),
+    el('td', { class: 'c-type' }, typeChip(v)),
+    nameCell,
+    el('td', {}, labelCell(v)),
+    el('td', { class: 'c-vals' }, child ? el('span', { class: 'ic-help' }, '0/1 flag') : valuesCell(v)),
+    el('td', { class: 'c-miss' }, child ? '' : missingCell(v)),
+    el('td', { class: 'c-base' }, child ? String(DATA.filter(r => r[v.name]).length) : String(baseOf(v))),
+    el('td', { class: 'c-act' }, child ? null : el('button', { class: 'ic-icon-btn', type: 'button', 'aria-label': 'More', title: 'Recode, nets, missing…',
+      onclick: (e) => { e.stopPropagation(); rowMenu(e.currentTarget, v); } }, el('span', { style: 'font-weight:700;letter-spacing:1px' }, '⋯'))));
+}
+function rowMenu(btn, v) {
+  openPop(btn, [
+    el('button', { class: 'ic-menu-item', type: 'button', onclick: () => { closePop(); openDrawer(v); } }, 'Edit values & nets…'),
+    el('button', { class: 'ic-menu-item', type: 'button', onclick: () => { closePop(); toast('Opens today’s “New variable” builder, pre-filled with this variable'); } }, 'Create variable from this…'),
+    el('button', { class: 'ic-menu-item', type: 'button', onclick: () => { closePop(); state.rows.includes(v.name) || state.rows.push(v.name); toast(`Added “${v.label}” to Rows`); } }, 'Add to Crosstabs rows'),
+    el('button', { class: 'ic-menu-item', type: 'button', onclick: () => { closePop(); setRole([v], 'ignore'); } }, 'Hide from tables'),
+  ]);
+}
+
+function drawVariables() {
+  const host = document.getElementById('view-variables'); host.replaceChildren();
+  const q = state.vsearch.toLowerCase();
+  const match = (v) => !q || v.name.toLowerCase().includes(q) || v.label.toLowerCase().includes(q) || (v.children || []).some(c => c.label.toLowerCase().includes(q));
+  const list = VARS.filter(v => (state.vfilter === 'all' || v.role === state.vfilter) && match(v));
+
+  const search = el('input', { type: 'search', placeholder: 'Search name or label', 'aria-label': 'Search variables', value: state.vsearch });
+  search.addEventListener('input', () => { state.vsearch = search.value; const pos = search.selectionStart; drawVariables(); const s = host.querySelector('input[type=search]'); s.focus(); s.setSelectionRange(pos, pos); });
+  const filters = el('div', { class: 'vt-filters', role: 'group', 'aria-label': 'Filter by type' },
+    ['all', 'single', 'multi', 'rating', 'numeric', 'text', 'date', 'ignore'].filter(k => k === 'all' || countBy(k)).map(k =>
+      el('button', { class: 'pill', type: 'button', 'aria-pressed': String(state.vfilter === k), onclick: () => { state.vfilter = k; drawVariables(); } },
+        k === 'all' ? 'All' : TYPES[k].name, el('b', {}, String(countBy(k))))));
+
+  const head = el('div', { class: 'ic-card-header' },
+    el('div', {}, el('h2', { class: 'ic-section-title' }, 'Variables'),
+      el('p', { class: 'ic-help' }, 'How each column is read. Double-click a label to rename it; click a type to change it. Changes save as you go.')),
+    el('div', { class: 'ic-row', style: 'gap:6px' },
+      el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => toast('Undo — same history stack as today') }, el('ic-icon', { name: 'undo', size: 14 }), 'Undo'),
+      el('button', { class: 'ic-btn ic-btn--secondary ic-btn--sm', type: 'button', onclick: () => toast('Opens today’s “New variable” builder') }, el('ic-icon', { name: 'plus', size: 14 }), 'New variable')));
+
+  const toolbar = el('div', { class: 'vt-toolbar' },
+    el('div', { class: 'ic-search', style: 'max-width:280px' }, el('ic-icon', { name: 'search', size: 16 }), search), filters);
+
+  let bulk = null;
+  if (state.selected.size) {
+    const vs = [...state.selected].map(byName);
+    const typeBtn = el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button' }, 'Change type', el('ic-icon', { name: 'chevron-down', size: 14 }));
+    typeBtn.addEventListener('click', (e) => { e.stopPropagation(); openPop(typeBtn, ['single', 'rating', 'numeric', 'ignore'].map(k =>
+      el('button', { class: 'ic-menu-item', type: 'button', onclick: () => { closePop(); state.selected.clear(); setRole(vs, k); } }, el('span', { class: `t-${k}` }, glyph(k)), TYPES[k].name))); });
+    bulk = el('div', { class: 'bulkbar' }, el('strong', {}, `${vs.length} selected`), typeBtn,
+      el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => { vs.forEach(v => state.rows.includes(v.name) || (usable(v) && state.rows.push(v.name))); state.selected.clear(); toast('Added to Crosstabs rows'); drawVariables(); } }, 'Add to rows'),
+      el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => { state.selected.clear(); setRole(vs, 'ignore'); } }, 'Hide from tables'),
+      el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', style: 'margin-left:auto', onclick: () => { state.selected.clear(); drawVariables(); } }, 'Clear'));
+  }
+
+  const allSel = list.length && list.every(v => state.selected.has(v.name));
+  const body = el('tbody');
+  for (const v of list) {
+    body.append(variableRow(v, false));
+    if (v.group && state.open.has(v.name)) v.children.forEach(c => body.append(variableRow(c, true)));
+  }
+  const table = el('table', { class: 'vt' },
+    el('thead', {}, el('tr', {},
+      el('th', { class: 'c-check' }, el('input', { type: 'checkbox', class: 'ic-checkbox', 'aria-label': 'Select all', checked: allSel || null,
+        onchange: (e) => { list.forEach(v => e.target.checked ? state.selected.add(v.name) : state.selected.delete(v.name)); drawVariables(); } })),
+      el('th', { class: 'c-type' }, 'Type'), el('th', { class: 'c-name' }, 'Name'), el('th', {}, 'Label'),
+      el('th', { class: 'c-vals' }, 'Values'), el('th', { class: 'c-miss' }, 'Missing'), el('th', { class: 'c-base' }, 'Base'), el('th', { class: 'c-act' }))),
+    body);
+
+  host.append(head, toolbar, bulk || '', el('div', { class: 'vt-scroll' }, list.length ? table : el('div', { class: 'ic-empty' }, 'No variables match.')),
+    el('div', { class: 'ic-card-footer step-footer' },
+      el('span', { class: 'ic-help', style: 'margin-right:auto' }, 'No data preview here — check answers on the Crosstabs step.'),
+      el('button', { class: 'ic-btn ic-btn--primary', type: 'button', onclick: () => go('crosstabs') }, 'Next: Crosstabs', el('ic-icon', { name: 'arrow-right', size: 16 }))));
+}
+
+// Value-label drawer (stands in for today's recode drawer)
+function openDrawer(v) {
+  closePop();
+  const bg = el('div', { class: 'drawer-bg' });
+  const rows = v.codes.map((c, i) => el('tr', {},
+    el('td', { class: 'num ic-muted' }, String(i + 1)),
+    el('td', {}, el('input', { class: 'ic-input ic-input--sm', value: c, onchange: (e) => { v.codes[i] = e.target.value; } })),
+    el('td', { style: 'text-align:center' }, el('input', { type: 'checkbox', class: 'ic-checkbox', checked: v.missing.includes(i) || null,
+      onchange: (e) => { e.target.checked ? v.missing.push(i) : v.missing.splice(v.missing.indexOf(i), 1); } })),
+    el('td', { class: 'num ic-muted' }, String(DATA.filter(r => r[v.name] === i).length))));
+  const close = () => { bg.remove(); dr.remove(); drawVariables(); };
+  const dr = el('aside', { class: 'drawer', role: 'dialog', 'aria-label': `Edit ${v.label}` },
+    el('div', { class: 'ic-modal-header' }, el('div', {}, el('p', { class: 'ic-help' }, v.name), el('h3', { class: 'ic-section-title' }, v.label)),
+      el('button', { class: 'ic-icon-btn', type: 'button', 'aria-label': 'Close', onclick: close }, el('ic-icon', { name: 'x', size: 16 }))),
+    el('div', { class: 'ic-modal-body', style: 'flex:1' },
+      el('div', { class: 'ic-tabs', role: 'tablist' }, el('button', { class: 'ic-tab', 'aria-selected': 'true' }, 'Values'), el('button', { class: 'ic-tab' }, 'Nets'), el('button', { class: 'ic-tab' }, 'Create variable')),
+      el('table', { class: 'ic-table' }, el('thead', {}, el('tr', {}, el('th', {}, 'Code'), el('th', {}, 'Label'), el('th', {}, 'Missing'), el('th', { class: 'num' }, 'n'))), el('tbody', {}, rows)),
+      el('p', { class: 'ic-help', style: 'margin-top:12px' }, 'Today’s recode drawer (merge, nets, missing) moves here unchanged.')),
+    el('div', { class: 'ic-modal-footer' }, el('button', { class: 'ic-btn ic-btn--ghost', type: 'button', onclick: close }, 'Cancel'),
+      el('button', { class: 'ic-btn ic-btn--primary', type: 'button', onclick: () => { toast('Saved'); close(); } }, 'Apply changes')));
+  bg.addEventListener('click', close);
+  document.body.append(bg, dr);
+}
+
+// ══════════════════════════ CROSSTABS ═══════════════════════════════
+let dragName = null, dragFrom = null;
+
+function fieldItem(v) {
+  const on = usable(v);
+  const used = state.rows.includes(v.name) ? 'Row' : state.columns.includes(v.name) ? 'Column' : state.filter.some(f => f.name === v.name) ? 'Filter' : '';
+  const add = el('button', { class: 'ic-icon-btn f-add', type: 'button', 'aria-label': `Add ${v.label}`, title: 'Add to…' }, el('ic-icon', { name: 'plus', size: 14 }));
+  add.addEventListener('click', (e) => { e.stopPropagation(); openPop(add, [el('div', { class: 'pop-title' }, v.label),
+    ...[['rows', 'Rows'], ['columns', 'Columns'], ['filter', 'Filter respondents']].map(([k, l]) =>
+      el('button', { class: 'ic-menu-item', type: 'button', onclick: () => { closePop(); addTo(k, v.name); } }, l))]); });
+  const item = el('div', { class: `field t-${v.role}` + (used ? ' is-used' : '') + (on ? '' : ' is-off'), draggable: on ? 'true' : 'false',
+      title: on ? `${v.name} · drag to Rows, Columns or Filter` : `${TYPES[v.role].name} can't be tabulated — change its type on Variables` },
+    glyph(v.role), el('span', { class: 'f-label' }, v.label), used ? el('span', { class: 'f-used' }, used) : '', on ? add : '');
+  if (on) {
+    item.addEventListener('dragstart', (e) => { dragName = v.name; dragFrom = null; e.dataTransfer.setData('text/plain', v.name); e.dataTransfer.effectAllowed = 'copyMove'; item.classList.add('dragging'); });
+    item.addEventListener('dragend', () => item.classList.remove('dragging'));
+    item.addEventListener('dblclick', () => addTo('rows', v.name));
+  }
+  return item;
+}
+
+function addTo(shelf, name, before) {
+  const v = byName(name);
+  if (shelf !== 'filter' && v.role === 'numeric' && shelf === 'columns') { toast('Numbers go in Rows (as means). Band them on Variables to use as columns.'); return; }
+  // A field lives in one place at a time
+  state.rows = state.rows.filter(n => n !== name); state.columns = state.columns.filter(n => n !== name);
+  if (shelf === 'filter') {
+    if (!state.filter.some(f => f.name === name)) state.filter.push({ name, keep: (v.codes || []).map((_, i) => i) });
+    drawCrosstabs();
+    const chip = document.querySelector(`[data-chip="filter:${name}"] .ic-icon-btn`); if (chip) chip.click();
+    return;
+  }
+  state.filter = state.filter.filter(f => f.name !== name);
+  const arr = state[shelf]; const i = before ? arr.indexOf(before) : -1;
+  i >= 0 ? arr.splice(i, 0, name) : arr.push(name);
+  drawCrosstabs();
+}
+
+function chip(shelf, name) {
+  const v = byName(name);
+  const hidden = state.cats[name]?.size || 0;
+  const f = shelf === 'filter' ? state.filter.find(x => x.name === name) : null;
+  const note = f ? `${f.keep.length}/${v.codes.length}` : hidden ? `${(v.codes?.length || v.children?.length) - hidden} shown` : '';
+  const menuBtn = el('button', { class: 'ic-icon-btn', type: 'button', 'aria-label': `Options for ${v.label}` }, el('ic-icon', { name: 'chevron-down', size: 14 }));
+  menuBtn.addEventListener('click', (e) => { e.stopPropagation(); chipMenu(menuBtn, shelf, v); });
+  const c = el('div', { class: `chip t-${v.role}`, draggable: 'true', 'data-chip': `${shelf}:${name}` },
+    el('span', { class: 'grip' }, el('ic-icon', { name: 'grip', size: 14 })), glyph(v.role), el('span', { class: 'c-l', title: v.label }, v.label),
+    note ? el('span', { class: 'c-f' }, note) : '', menuBtn,
+    el('button', { class: 'ic-icon-btn', type: 'button', 'aria-label': `Remove ${v.label}`, onclick: () => removeFrom(shelf, name) }, el('ic-icon', { name: 'x', size: 13 })));
+  c.addEventListener('dragstart', (e) => { dragName = name; dragFrom = shelf; e.dataTransfer.setData('text/plain', name); c.classList.add('dragging'); });
+  c.addEventListener('dragend', () => c.classList.remove('dragging'));
+  c.addEventListener('dragover', (e) => { if (shelf === 'filter') return; e.preventDefault(); c.classList.add('drop-before'); });
+  c.addEventListener('dragleave', () => c.classList.remove('drop-before'));
+  c.addEventListener('drop', (e) => { if (shelf === 'filter') return; e.preventDefault(); e.stopPropagation(); c.classList.remove('drop-before'); if (dragName && dragName !== name) addTo(shelf, dragName, name); });
+  return c;
+}
+function removeFrom(shelf, name) {
+  if (shelf === 'filter') state.filter = state.filter.filter(f => f.name !== name); else state[shelf] = state[shelf].filter(n => n !== name);
+  drawCrosstabs();
+}
+function catList(v) { return v.group ? v.children.map(c => c.label) : v.codes; }
+function chipMenu(btn, shelf, v) {
+  const cats = catList(v);
+  const f = shelf === 'filter' ? state.filter.find(x => x.name === v.name) : null;
+  const hidden = state.cats[v.name] || new Set();
+  const keep = f ? new Set(f.keep) : new Set(cats.map((_, i) => i).filter(i => !hidden.has(i)));
+  const boxes = cats.map((c, i) => el('label', {}, el('input', { type: 'checkbox', class: 'ic-checkbox', checked: keep.has(i) || null,
+    onchange: (e) => { e.target.checked ? keep.add(i) : keep.delete(i); apply(); } }), c,
+    el('span', { class: 'n' }, String(v.group ? DATA.filter(r => r[v.children[i].name]).length : DATA.filter(r => r[v.name] === i).length))));
+  function apply() {
+    if (f) f.keep = [...keep].sort(); else state.cats[v.name] = new Set(cats.map((_, i) => i).filter(i => !keep.has(i)));
+    drawCrosstabs(true);
+  }
+  const content = [el('div', { class: 'pop-title' }, f ? `Keep respondents who answered` : `Show categories of “${v.label}”`)];
+  if (cats?.length) content.push(el('div', { class: 'pop-checks' }, boxes),
+    el('div', { class: 'pop-foot' },
+      el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => { cats.forEach((_, i) => keep.add(i)); apply(); chipMenu(btn, shelf, v); } }, 'All'),
+      el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => { keep.clear(); apply(); chipMenu(btn, shelf, v); } }, 'None')));
+  if (!f) content.push(
+    el('button', { class: 'ic-menu-item', type: 'button', onclick: () => { closePop(); toast('Opens Nets on this variable (same as the Variables drawer)'); } }, 'Nets & groups…'),
+    el('button', { class: 'ic-menu-item', type: 'button', onclick: () => { closePop(); addTo(shelf === 'rows' ? 'columns' : 'rows', v.name); } }, shelf === 'rows' ? 'Move to Columns' : 'Move to Rows'));
+  openPop(btn, content);
+}
+
+function shelf(key, title, sub, emptyText, names) {
+  const drop = el('div', { class: 'drop' + (names.length ? ' has' : ''), 'data-shelf': key },
+    names.length ? names.map(n => chip(key, n)) : el('div', { class: 'drop-empty' }, emptyText));
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('is-over'); });
+  drop.addEventListener('dragleave', (e) => { if (!drop.contains(e.relatedTarget)) drop.classList.remove('is-over'); });
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('is-over'); if (dragName) addTo(key, dragName); dragName = null; });
+  const acts = el('div', { class: 'shelf-act' });
+  if (key === 'rows') acts.append(
+    el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', title: 'One table per usable variable', onclick: () => { state.rows = VARS.filter(v => usable(v) && !state.columns.includes(v.name)).map(v => v.name); drawCrosstabs(); } }, 'Add all'),
+    names.length ? el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => { state.rows = []; drawCrosstabs(); } }, 'Clear') : '');
+  if (key === 'columns') acts.append(el('button', { class: 'swap', type: 'button', title: 'Swap rows and columns', onclick: () => {
+    const nums = state.rows.filter(n => byName(n).role === 'numeric');
+    const r = state.rows.filter(n => byName(n).role !== 'numeric');
+    [state.rows, state.columns] = [[...state.columns, ...nums], r]; drawCrosstabs(); } }, '⇅ Swap with rows'));
+  return el('div', { class: 'shelf' },
+    el('div', { class: 'shelf-h' }, el('span', { class: 't' }, title), el('span', { class: 'sub' }, sub)), drop, acts);
+}
+
+function drawCrosstabs(keepPop) {
+  if (!keepPop) closePop();
+  const host = document.getElementById('view-crosstabs'); host.replaceChildren();
+
+  // Fields
+  const fsearch = el('input', { type: 'search', placeholder: 'Search variables', 'aria-label': 'Search variables' });
+  const list = el('div', { class: 'fields-list' });
+  const drawList = () => {
+    const q = fsearch.value.toLowerCase();
+    list.replaceChildren();
+    const groups = [['Coded & ratings', v => ['single', 'rating'].includes(v.role)], ['Multi-select', v => v.role === 'multi'], ['Numbers', v => v.role === 'numeric'], ['Not tabulated', v => !usable(v)]];
+    for (const [g, fn] of groups) {
+      const vs = VARS.filter(v => fn(v) && (!q || v.label.toLowerCase().includes(q) || v.name.toLowerCase().includes(q)));
+      if (vs.length) list.append(el('div', { class: 'fgroup' }, g), ...vs.map(fieldItem));
+    }
+  };
+  fsearch.addEventListener('input', drawList); drawList();
+  const fields = el('aside', { class: 'panel fields' },
+    el('div', { class: 'panel-h' }, el('span', { class: 'panel-t' }, 'Variables'), el('span', { class: 'ic-help' }, `${VARS.filter(usable).length} usable`)),
+    el('div', { style: 'padding:10px 10px 4px' }, el('div', { class: 'ic-search', style: 'max-width:none' }, el('ic-icon', { name: 'search', size: 16 }), fsearch)),
+    list,
+    el('p', { class: 'ic-help', style: 'padding:8px 12px 12px;border-top:1px solid var(--ic-border)' }, 'Drag into Rows or Columns, or use +. Double-click adds to Rows.'));
+
+  // Shelves
+  const stat = (k, label, disabled) => el('label', { class: 'ic-check', style: disabled ? 'opacity:.5' : '' },
+    el('input', { type: 'checkbox', checked: state.stats[k] || null, disabled: disabled || null, onchange: (e) => { state.stats[k] = e.target.checked; drawCrosstabs(); } }), label);
+  const lvl = el('select', { class: 'ic-select ic-select--sm', style: 'width:auto;height:28px', 'aria-label': 'Confidence level', disabled: !state.stats.sig || null,
+    onchange: (e) => { state.stats.level = e.target.value; drawCrosstabs(); } },
+    ['95/90', '95', '90', '99'].map(o => el('option', { value: o, selected: state.stats.level === o || null }, o === '95/90' ? '95% (B) and 90% (b)' : `${o}%`)));
+  const shelves = el('section', { class: 'panel shelves', 'aria-label': 'Table layout' },
+    shelf('columns', 'Columns', 'across the top', 'Drop variables here — e.g. Gender, Age group', state.columns),
+    shelf('rows', 'Rows', 'one table each', 'Drop questions here — each becomes a table', state.rows),
+    shelf('filter', 'Filter', 'who is counted', 'Everyone — drop a variable to count only some respondents', state.filter.map(f => f.name)),
+    el('div', { class: 'shelf' }, el('div', { class: 'shelf-h' }, el('span', { class: 't' }, 'Values'), el('span', { class: 'sub' }, 'in each cell')),
+      el('div', { class: 'values' }, stat('colpct', 'Column %'), stat('counts', 'Counts'), stat('rowpct', 'Row %'),
+        el('div', { class: 'ic-row', style: 'gap:8px' }, stat('sig', 'Significance'), lvl)),
+      el('span', { class: 'ic-help', title: 'Numbers always show mean; ratings add Top 2 Box and mean' }, 'Means & nets auto')));
+
+  // Result
+  const result = el('section', { class: 'panel result' });
+  host.append(el('div', { class: 'xb' }, fields, el('div', { class: 'right' }, shelves, result)));
+  drawResult(result);
+}
+
+// ── Live result ───────────────────────────────────────────────────────
+function respondents() { return DATA.filter(r => state.filter.every(f => f.keep.includes(r[f.name]))); }
+function bannerCols(rs) {
+  const cols = [{ key: 'total', label: 'Total', group: null, test: () => true }];
+  let letter = 0;
+  for (const n of state.columns) {
+    const v = byName(n); const hid = state.cats[n] || new Set();
+    const cats = v.group ? v.children.map((c, i) => ({ i, label: c.label, test: r => r[c.name] === 1 })) : v.codes.map((c, i) => ({ i, label: c, test: r => r[n] === i }));
+    cats.filter(c => !hid.has(c.i) && !(v.missing || []).includes(c.i)).forEach(c => cols.push({ key: `${n}:${c.i}`, label: c.label, group: v.label, gname: n, letter: String.fromCharCode(65 + letter++), test: c.test }));
+  }
+  for (const c of cols) c.rows = rs.filter(c.test), c.base = c.rows.length;
+  return cols;
+}
+const zp = (p1, n1, p2, n2) => { const p = (p1 * n1 + p2 * n2) / (n1 + n2); const se = Math.sqrt(p * (1 - p) * (1 / n1 + 1 / n2)); return se ? (p1 - p2) / se : 0; };
+function crit() { const L = state.stats.level; return L === '95/90' ? [1.96, 1.645] : L === '99' ? [2.576, null] : L === '90' ? [1.645, null] : [1.96, null]; }
+function sigLetters(cols, ci, valueOf, isMean) {
+  if (!state.stats.sig) return '';
+  const me = cols[ci]; if (!me.group || me.base < state.lowBase) return '';
+  const [hi, lo] = crit(); let s = '';
+  for (const o of cols) {
+    if (o === me || o.gname !== me.gname || o.base < state.lowBase) continue;
+    let z;
+    if (isMean) { const a = valueOf(me), b = valueOf(o); z = (a.m - b.m) / Math.sqrt(a.v / me.base + b.v / o.base || 1); }
+    else z = zp(valueOf(me), me.base, valueOf(o), o.base);
+    if (z > hi) s += o.letter; else if (lo && z > lo) s += o.letter.toLowerCase();
+  }
+  return s;
+}
+
+function tableFor(name, cols) {
+  const v = byName(name);
+  const lines = []; // {label, kind, fn(r)->bool}  or numeric stats
+  if (v.role === 'numeric') {
+    const stats = (rs) => { const xs = rs.map(r => r[name]); const m = xs.reduce((a, b) => a + b, 0) / (xs.length || 1); const vv = xs.reduce((a, b) => a + (b - m) ** 2, 0) / Math.max(1, xs.length - 1); const so = [...xs].sort((a, b) => a - b); return { m, v: vv, sd: Math.sqrt(vv), med: so[Math.floor(so.length / 2)] ?? 0 }; };
+    return { v, numeric: true, lines: [
+      { label: 'Mean', kind: 'stat', val: rs => stats(rs).m, sigOf: rs => stats(rs), fmt: x => x.toFixed(1) },
+      { label: 'Median', kind: 'stat', val: rs => stats(rs).med, fmt: x => x.toFixed(1) },
+      { label: 'Std. deviation', kind: 'stat', val: rs => stats(rs).sd, fmt: x => x.toFixed(2) }] };
+  }
+  const hid = state.cats[name] || new Set();
+  if (v.group) v.children.forEach((c, i) => { if (!hid.has(i)) lines.push({ label: c.label, code: i, test: r => r[c.name] === 1 }); });
+  else v.codes.forEach((c, i) => { if (!hid.has(i) && !(v.missing || []).includes(i)) lines.push({ label: c, code: i, test: r => r[name] === i }); });
+  // Sort (nets/stats stay at the bottom)
+  const totalPct = (l) => cols[0].rows.filter(l.test).length;
+  if (state.sort === 'desc') lines.sort((a, b) => totalPct(b) - totalPct(a));
+  if (state.sort === 'az') lines.sort((a, b) => a.label.localeCompare(b.label));
+  if (v.role === 'rating') {
+    lines.push({ label: 'Top 2 Box', kind: 'net', test: r => r[name] >= 3 }, { label: 'Bottom 2 Box', kind: 'net', test: r => r[name] <= 1 });
+    lines.push({ label: 'Mean (1–5)', kind: 'stat', val: rs => rs.reduce((a, r) => a + r[name] + 1, 0) / (rs.length || 1),
+      sigOf: rs => { const xs = rs.map(r => r[name] + 1); const m = xs.reduce((a, b) => a + b, 0) / (xs.length || 1); return { m, v: xs.reduce((a, b) => a + (b - m) ** 2, 0) / Math.max(1, xs.length - 1) }; }, fmt: x => x.toFixed(2) });
+  }
+  return { v, lines };
+}
+
+function renderTable(name, cols) {
+  const t = tableFor(name, cols);
+  const groups = []; for (const c of cols.slice(1)) { const g = groups[groups.length - 1]; if (g && g.name === c.gname) g.n++; else groups.push({ name: c.gname, label: c.group, n: 1 }); }
+  const isMulti = t.v.group;
+  // Multi-select base: people who answered the question within each column
+  const baseOf = (c) => isMulti ? c.rows.filter(r => t.v.children.some(ch => r[ch.name])).length : c.base;
+  const sortHdr = (label) => el('th', { class: 'lt sortable', rowspan: '3', title: 'Click to sort rows', onclick: () => { state.sort = state.sort === 'survey' ? 'desc' : state.sort === 'desc' ? 'az' : 'survey'; drawCrosstabs(); } },
+    label, ' ', el('span', { class: 'ic-help' }, { survey: '↕', desc: '↓ Total', az: 'A→Z' }[state.sort]));
+  const head = el('thead', {},
+    el('tr', {}, sortHdr(''), el('th', { rowspan: '2', style: 'vertical-align:bottom' }, 'Total'),
+      ...groups.map(g => el('th', { class: 'grp', colspan: String(g.n) }, g.label))),
+    el('tr', {}, ...cols.slice(1).map((c, i) => el('th', { class: (cols[i].gname !== c.gname ? 'gl' : '') }, c.label))),
+    el('tr', { class: 'letters' }, el('th', {}, ''), ...cols.slice(1).map((c, i) => el('th', { class: (cols[i].gname !== c.gname ? 'gl' : '') }, state.stats.sig ? `(${c.letter})` : ''))));
+  const baseRow = el('tr', { class: 'base' }, el('th', { class: 'lt' }, isMulti ? 'Base: answered' : 'Base'),
+    ...cols.map((c, i) => { const b = baseOf(c); const low = b < state.lowBase;
+      return el('th', { class: (i && cols[i - 1].gname !== c.gname ? 'gl ' : '') + (low ? 'lowb' : ''), title: low ? `Low base (under ${state.lowBase}) — not tested` : null }, b.toLocaleString() + (low ? ' **' : '')); }));
+  head.append(baseRow);
+
+  const body = el('tbody');
+  for (const l of t.lines) {
+    const tds = cols.map((c, ci) => {
+      const gl = ci && cols[ci - 1].gname !== c.gname ? 'gl ' : '';
+      const b = baseOf(c);
+      if (l.kind === 'stat') {
+        const val = l.val(c.rows);
+        const s = l.sigOf ? sigLetters(cols, ci, (cc) => l.sigOf(cc.rows), true) : '';
+        return el('td', { class: gl + (ci === 0 ? 'tot' : '') }, c.rows.length ? l.fmt(val) : '–', s ? el('span', { class: 'sig' }, s) : '');
+      }
+      const n = c.rows.filter(l.test).length;
+      const p = b ? n / b : 0;
+      const s = sigLetters(cols, ci, (cc) => { const bb = baseOf(cc); return bb ? cc.rows.filter(l.test).length / bb : 0; });
+      const rowTot = cols[0].rows.filter(l.test).length;
+      const parts = [];
+      if (state.stats.colpct) parts.push(b ? `${Math.round(p * 100)}%` : '–');
+      if (state.stats.rowpct && ci) parts.push(el('span', { class: 'cnt' }, rowTot ? `${Math.round(100 * n / rowTot)}% row` : '–'));
+      if (state.stats.counts || !state.stats.colpct) parts.push(state.stats.colpct ? el('span', { class: 'cnt' }, n.toLocaleString()) : n.toLocaleString());
+      return el('td', { class: gl + (ci === 0 ? 'tot ' : '') + (b < state.lowBase ? 'dim' : '') }, ...parts.slice(0, 1), s ? el('span', { class: 'sig' }, s) : '', ...parts.slice(1));
+    });
+    const empty = l.kind !== 'stat' && !cols[0].rows.some(l.test);
+    if (empty && state.hideEmpty) continue;
+    body.append(el('tr', { class: l.kind || '' }, el('td', { class: 'rl' }, l.label), ...tds));
+  }
+  return el('div', {},
+    el('div', { class: 'xt-title' }, el('h3', {}, t.v.label), el('span', { class: 'q' }, t.v.group ? `${t.v.name} · multi-select` : t.v.name),
+      el('button', { class: 'ic-icon-btn', style: 'margin-left:auto', type: 'button', 'aria-label': `Remove ${t.v.label} from rows`, title: 'Remove table', onclick: () => removeFrom('rows', name) }, el('ic-icon', { name: 'x', size: 14 }))),
+    el('div', { class: 'xt-wrap' }, el('table', { class: 'xt' }, head, body)));
+}
+
+let busyTimer = null;
+function drawResult(host) {
+  const rs = respondents();
+  const cols = bannerCols(rs);
+  const live = el('span', { class: 'live busy' }, 'Updating…');
+  clearTimeout(busyTimer); busyTimer = setTimeout(() => { live.classList.remove('busy'); live.textContent = 'Live'; }, 350);
+  const sortSel = el('select', { class: 'ic-select ic-select--sm', style: 'width:auto', 'aria-label': 'Sort rows', onchange: (e) => { state.sort = e.target.value; drawCrosstabs(); } },
+    [['survey', 'Survey order'], ['desc', 'Total: high → low'], ['az', 'Label A → Z']].map(([k, l]) => el('option', { value: k, selected: state.sort === k || null }, `Sort: ${l}`)));
+  const filt = state.filter.length ? state.filter.map(f => { const v = byName(f.name); return `${v.label}: ${f.keep.map(i => v.codes[i]).join(', ') || 'none'}`; }).join(' · ') : 'All respondents';
+  const bar = el('div', { class: 'result-bar' }, live,
+    el('span', { class: 'ic-help' }, `${rs.length.toLocaleString()} of ${N} respondents · ${filt}`),
+    el('span', { style: 'flex:1' }), sortSel,
+    el('label', { class: 'ic-check', style: 'font-size:12.5px' }, el('input', { type: 'checkbox', checked: state.hideEmpty || null, onchange: (e) => { state.hideEmpty = e.target.checked; drawCrosstabs(); } }), 'Hide empty rows'),
+    el('div', { class: 'seg', role: 'group' }, el('button', { class: 'ic-btn ic-btn--secondary ic-btn--sm', type: 'button', 'aria-pressed': 'true' }, 'Table'),
+      el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => toast('Chart view: today’s Chart.js preview, per table') }, 'Chart')));
+  const body = el('div', { class: 'result-body' });
+  if (!state.rows.length) {
+    const svg = el('span'); svg.innerHTML = '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>';
+    body.append(el('div', { class: 'empty-state' }, svg, el('strong', { style: 'color:var(--ic-text)' }, 'Drop a question into Rows'),
+      el('span', {}, 'Each row variable becomes a table. Columns are shared by every table, like a banner.')));
+  } else {
+    state.rows.forEach(n => body.append(renderTable(n, cols)));
+  }
+  const foot = el('div', { class: 'result-foot ic-row', style: 'flex-wrap:wrap' },
+    el('span', { class: 'ic-help', style: 'flex:1;min-width:240px' },
+      state.stats.sig ? `Letters: higher than that column at ${state.stats.level === '95/90' ? '95% (B) / 90% (b)' : state.stats.level + '%'}, tested within each column variable. ** base under ${state.lowBase}, not tested.` : 'Significance testing off.'),
+    el('span', { class: 'ic-help' }, `${state.rows.length} table${state.rows.length === 1 ? '' : 's'} in the Excel output`),
+    el('button', { class: 'ic-btn ic-btn--primary', type: 'button', onclick: () => go('options') }, 'Next: Options', el('ic-icon', { name: 'arrow-right', size: 16 })));
+  host.append(bar, body, foot);
+}
+
+// ── Later steps (unchanged, shown for flow context) ───────────────────
+function drawLater() {
+  const host = document.getElementById('view-later');
+  const isOpt = state.step === 'options';
+  host.replaceChildren(
+    el('div', { class: 'ic-card-header' }, el('div', {}, el('h2', { class: 'ic-section-title' }, isOpt ? 'Options' : 'Generate'),
+      el('p', { class: 'ic-help' }, 'Unchanged from today — shown so you can see the shorter flow.'))),
+    el('div', { class: 'ic-card-body later' },
+      isOpt ? el('div', { class: 'ic-alert ic-alert--info' }, 'Weighting, output layout (Total / By banner / Stat sheets), Bonferroni, custom groups. The Crosstabs choices (Values, significance level, filter) arrive here already filled in.')
+        : el('div', { class: 'ic-alert ic-alert--success' }, `The Excel will contain ${state.rows.length} tables × ${bannerCols(respondents()).length} columns (${state.columns.map(n => byName(n).label).join(', ') || 'Total only'}). Same numbers as the live preview — both come from /v1/tabulate.`)),
+    el('div', { class: 'ic-card-footer' },
+      el('button', { class: 'ic-btn ic-btn--ghost', type: 'button', onclick: () => go(isOpt ? 'crosstabs' : 'options') }, el('ic-icon', { name: 'arrow-left', size: 16 }), 'Back'),
+      isOpt ? el('button', { class: 'ic-btn ic-btn--primary', type: 'button', onclick: () => go('generate') }, 'Next', el('ic-icon', { name: 'arrow-right', size: 16 }))
+        : el('button', { class: 'ic-btn ic-btn--primary', type: 'button', onclick: () => toast('Preview only — nothing generated') }, el('ic-icon', { name: 'download', size: 16 }), 'Generate Excel')));
+}
+
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
+// Account menu (Settings lives here now that the sidebar is gone)
+document.getElementById('user-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const p = openPop(btn, [el('div', { class: 'pop-title' }, 'demo@indicolabs.io'),
+    el('button', { class: 'ic-menu-item', type: 'button', onclick: () => { closePop(); toast('Settings page, unchanged'); } }, el('ic-icon', { name: 'settings', size: 16 }), 'Settings'),
+    el('button', { class: 'ic-menu-item', type: 'button', onclick: () => { closePop(); toast('Signs out'); } }, el('ic-icon', { name: 'log-out', size: 16 }), 'Sign out')]);
+  p.style.left = Math.max(8, btn.getBoundingClientRect().right - p.offsetWidth) + 'px';
+});
+if (location.hash.length > 1) state.dataset = 0;
+go(['#variables', '#crosstabs'].includes(location.hash) ? location.hash.slice(1) : 'dataset');
+</script>
+</body>
+</html>

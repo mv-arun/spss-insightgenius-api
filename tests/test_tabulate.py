@@ -594,3 +594,66 @@ def test_banner_sheets_weighted_multi_net(client, auth_headers, tmp_path):
         "weight": "weight", "output_mode": "banner_sheets"})
     rows = {r[0]: r[1] for r in _block(wb["Total"], "Choices")[2:] if r[0]}
     assert rows["NET"] == pytest.approx(3.75 / 4.25)
+
+
+# ── /v1/tabulate/preview: the banner workbook's tables as JSON ──
+
+def _preview(client, auth_headers, sav_bytes, spec, status=200):
+    resp = client.post("/v1/tabulate/preview", headers=auth_headers,
+                       files={"file": ("t.sav", sav_bytes, "application/octet-stream")},
+                       data={"spec": json.dumps(spec)})
+    assert resp.status_code == status, resp.text
+    return resp.json()["data"] if status == 200 else resp.json()
+
+
+def test_tabulate_preview_matches_banner_sheets_cell_for_cell(client, auth_headers, tmp_path):
+    """Every value, letter and base the Stat sheet shows, the preview shows (same rows, same order)."""
+    sav = _sav(tmp_path, _three_groups_df(), _LABELS)
+    spec = {"stubs": ["barrier", "only_b"], "custom_groups": _THREE_GROUPS, "bonferroni": False,
+            "output_mode": "banner_sheets", "custom_groups_label": "Data Cut"}
+    _, wb = _tabulate(client, auth_headers, sav, spec)
+    preview = _preview(client, auth_headers, sav, {**spec, "tables": ["barrier", "only_b"]})
+
+    assert [b["label"] for b in preview["banners"]] == ["Data Cut"]
+    assert [c["label"] for c in preview["banners"][0]["columns"]] == ["Cut 1", "Cut 2", "Cut 3"]
+    assert [t["key"] for t in preview["tables"]] == ["barrier", "only_b"]
+    for table in preview["tables"]:
+        item = table["items"][0]
+        group, total = item["banners"][0], item["total"]
+        stat = _block(wb["By Data Cut (Stat)"], f"{table['title']} by Data Cut")
+        excel_rows = [(r, stat[i + 1]) for i, r in enumerate(stat) if r[0] and r[0] not in (
+            stat[0][0], "Column %\nColumn Comparisons", "Column Sample Size", "Column Names") and not str(r[0]).startswith("sample size")]
+        assert [r[0] for r, _ in excel_rows] == [row["label"] for row in table["rows"]]
+        for k, (values, letters) in enumerate(excel_rows):
+            cells = group["cells"][k] + [total["cells"][k]]
+            assert [c["pct"] for c in cells] == pytest.approx(list(values[1:5]), nan_ok=True), values[0]
+            assert [c["sig"] for c in cells] == [v if v is not None else "" for v in letters[1:5]], values[0]
+        sizes = next(r for r in stat if r[0] == "Column Sample Size")
+        assert group["bases"] + [total["base"]] == list(sizes[1:5])
+    barrier = preview["tables"][0]
+    yes = [r["label"] for r in barrier["rows"]].index("Yes")
+    assert barrier["items"][0]["banners"][0]["cells"][yes][1]["sig"] == "A"   # Cut 2 > Cut 1 at 95%
+    assert "no multiple-comparison correction" in preview["significance"]["note"]
+
+
+def test_tabulate_preview_only_the_tables_asked_for(client, auth_headers, tmp_path):
+    import pandas as pd
+    df = _three_groups_df().assign(r1=[1.0, 2.0, 3.0] * 30, r2=[3.0, 3.0, 1.0] * 30)
+    labels = {**_LABELS, "r1": {1.0: "Low", 2.0: "Mid", 3.0: "High"}, "r2": {1.0: "Low", 2.0: "Mid", 3.0: "High"}}
+    sav = _sav(tmp_path, df, labels)
+    spec = {"banners": ["cut"], "grid_groups": {"Ratings": {"variables": ["r1", "r2"], "show": []}}}
+    only_grid = _preview(client, auth_headers, sav, {**spec, "tables": ["Ratings"]})
+    assert [t["key"] for t in only_grid["tables"]] == ["Ratings"]
+    assert only_grid["tables"][0]["is_grid"] and len(only_grid["tables"][0]["items"]) == 2
+    only_stub = _preview(client, auth_headers, sav, {**spec, "tables": ["barrier"]})
+    assert [t["key"] for t in only_stub["tables"]] == ["barrier"]
+    assert only_stub["n_cases"] == 90
+
+
+def test_tabulate_preview_rejects_unbounded_or_unknown_tables(client, auth_headers, tmp_path):
+    sav = _sav(tmp_path, _three_groups_df(), _LABELS)
+    assert _preview(client, auth_headers, sav, {"banners": ["cut"]}, 400)["detail"]["code"] == "VALIDATION_ERROR"
+    too_many = {"banners": ["cut"], "tables": [f"q{i}" for i in range(51)]}
+    assert _preview(client, auth_headers, sav, too_many, 400)["detail"]["code"] == "VALIDATION_ERROR"
+    unknown = {"banners": ["cut"], "tables": ["nope"]}
+    assert _preview(client, auth_headers, sav, unknown, 400)["detail"]["code"] == "VARIABLE_NOT_FOUND"

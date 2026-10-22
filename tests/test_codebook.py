@@ -161,5 +161,5 @@ def test_review_page_served(client):
     response = client.get("/review")
     assert response.status_code == 200
     html = response.text
-    assert "/v1/codebook" in html and "/v1/crosstab" in html
+    assert "/v1/codebook" in html and 'id="var-grid"' in html  # the Variables grid (its preview moved to Crosstabs)
     assert "innerHTML" not in html  # file-derived labels are only ever set as text

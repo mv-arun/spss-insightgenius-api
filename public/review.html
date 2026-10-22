@@ -12,7 +12,6 @@
 <link rel="stylesheet" href="/static/ui/ic.css">
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script src="/static/ui/tw.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="/static/config.js"></script>
 <script src="/static/ui/ic.js"></script>
 <style>
@@ -40,33 +39,66 @@
   .bar { height: 6px; border-radius: 3px; background: var(--ic-blue-600); min-width: 2px; }
   .bar.missing { background: var(--ic-border-strong); }
 
-  /* Variable list: section headers like the design's table headers, rows like its option rows */
-  .section-head { position: sticky; top: 0; z-index: 1; background: var(--ic-surface-muted);
-                  border-bottom: 1px solid var(--ic-border); color: var(--ic-text-subtle); }
-  .section-head:hover { color: var(--ic-text); }
-  .item { cursor: pointer; transition: background .12s; border-bottom: 1px solid var(--ic-border); }
-  .item:hover { background: var(--ic-surface-muted); }
-  .item.selected { background: var(--ic-blue-50); box-shadow: inset 3px 0 0 var(--ic-navy-800); }
-  .item.selected:hover { background: var(--ic-blue-50); }
+  /* Variables grid (one row per variable) */
+  .vt-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px; border-bottom: 1px solid var(--ic-border); }
+  .vt-toolbar .ic-search { flex: 0 1 280px; max-width: none; }
+  .vt-filters { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-width: 0; }
+  .pill { height: 28px; padding: 0 10px; border-radius: 999px; font-size: 12.5px; font-weight: 500; color: var(--ic-text-muted);
+          border: 1px solid var(--ic-border); background: var(--ic-surface); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .pill b { font-weight: 600; color: var(--ic-text-subtle); }
+  .pill[aria-pressed="true"] { background: var(--ic-blue-100); border-color: transparent; color: var(--ic-navy-800); font-weight: 600; }
+  .pill[aria-pressed="true"] b { color: var(--ic-blue-600); }
+  .bulkbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; background: var(--ic-navy-800); color: #fff; font-size: 13px; }
+  .bulkbar .ic-btn--ghost { color: var(--ic-blue-100); }
+  .bulkbar .ic-btn--ghost:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+  .vt-scroll { max-height: calc(100vh - 290px); min-height: 320px; overflow: auto; }
+  .vt { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .vt th { position: sticky; top: 0; z-index: 1; text-align: left; font-size: 12px; font-weight: 500; color: var(--ic-text-subtle);
+           padding: 9px 10px; background: var(--ic-surface-muted); border-bottom: 1px solid var(--ic-border); white-space: nowrap; }
+  .vt td { padding: 6px 10px; border-bottom: 1px solid var(--ic-border); vertical-align: middle; }
+  .vt tbody tr:hover td { background: #fbfcfe; }
+  .vt tr.is-sel td { background: var(--ic-blue-50); }
+  .vt tr.child td { background: var(--ic-surface-muted); }
+  .vt tr.vt-detail td { background: var(--ic-surface); padding: 0 10px 8px; }
+  .vt tr.vt-detail:hover td { background: var(--ic-surface); }
+  .vt .c-check { width: 34px; }
+  .vt .c-type { width: 150px; }
+  .vt td.c-name { width: 170px; max-width: 170px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+                  color: var(--ic-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vt .c-label { min-width: 200px; }
+  .vt .c-vals { width: 190px; white-space: nowrap; }
+  .vt .c-miss { width: 100px; color: var(--ic-text-muted); font-size: 12.5px; white-space: nowrap; }
+  .vt .c-base { width: 70px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ic-text-muted); }
+  .vt .c-act { width: 40px; }
+  .grp-toggle { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 4px; vertical-align: middle;
+                color: var(--ic-text-subtle); border-radius: 4px; transition: transform .15s; }
+  .grp-toggle:hover { color: var(--ic-text); background: var(--ic-surface-muted); }
+  .grp-toggle.open { transform: rotate(90deg); }
+  .vt-vals { font-size: 12.5px; color: var(--ic-blue-600); font-weight: 500; margin-right: 6px; }
+  .vt-vals:hover { text-decoration: underline; }
+  .lbl { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 520px; border-radius: 6px; padding: 3px 6px; margin: -3px -6px; }
+  .editable .lbl { cursor: text; }
+  .editable .lbl:hover { background: var(--ic-surface); box-shadow: inset 0 0 0 1px var(--ic-border-strong); }
+  .lbl-input { width: 100%; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--ic-blue-500);
+               box-shadow: 0 0 0 3px var(--ic-blue-100); font-size: 13px; background: var(--ic-surface); color: var(--ic-text); }
+  .tchip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px 0 5px; border-radius: 6px; font-size: 12px;
+           font-weight: 500; border: 1px solid var(--ic-border); background: var(--ic-surface); color: var(--ic-text-muted); white-space: nowrap; }
+  button.tchip:hover { border-color: var(--ic-border-strong); color: var(--ic-text); }
+  .tchip.is-static { border-color: transparent; background: none; }
+  .tglyph { display: inline-grid; place-items: center; min-width: 22px; height: 18px; padding: 0 3px; border-radius: 4px; font-size: 9.5px;
+            font-weight: 700; letter-spacing: -.02em; border: 1px solid transparent; flex-shrink: 0; }
+  .vt-menu { position: fixed; right: auto; top: auto; min-width: 220px; z-index: 70; }
+  .vt-menu .ic-menu-item.is-on { background: var(--ic-blue-50); font-weight: 600; }
+  @media (max-width: 640px) {
+    .vt .c-name, .vt .c-miss, .vt .c-base { display: none; }
+    .vt-toolbar .ic-search { flex-basis: 100%; }
+    .vt-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  }
 
   .sig { color: var(--ic-danger); font-weight: 600; }
   .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--ic-border-strong);
              border-top-color: var(--ic-navy-800); border-radius: 50%; animation: ic-spin .7s linear infinite; }
   .ic-btn--primary .spinner { border-color: rgba(255, 255, 255, .35); border-top-color: #fff; }
-
-  /* Crosstab preview */
-  #xtab { border-collapse: collapse; }
-  #xtab thead th { color: var(--ic-text-subtle); border-bottom: 1px solid var(--ic-border); white-space: nowrap; }
-  #xtab thead tr:first-child th { color: var(--ic-text-muted); }
-  #xtab thead tr:last-child th { background: var(--ic-surface-muted); color: var(--ic-text); }
-  #xtab tbody td { border-bottom: 1px solid var(--ic-border); }
-  #xtab tbody tr:nth-child(even) { background: var(--ic-surface-muted); }
-  #xtab tbody tr.net-row { background: var(--ic-success-bg); color: var(--ic-success); }
-  .seg { display: inline-flex; border: 1px solid var(--ic-border-strong); border-radius: 8px; overflow: hidden; background: var(--ic-surface); }
-  .seg button { height: 30px; padding: 0 12px; font-size: 12.5px; font-weight: 500; color: var(--ic-text-muted); }
-  .seg button + button { border-left: 1px solid var(--ic-border-strong); }
-  .seg button[aria-pressed="true"] { background: var(--ic-navy-800); color: #fff; }
-  @media (min-width: 1024px) { .preview-top { top: calc(var(--ic-topbar-h) + 16px); } }
 
   .edit-only { display: none !important; }
   .editable .edit-only { display: inline-flex !important; }
@@ -112,13 +144,9 @@
   /* min-height must not follow the frame's height, or auto-sizing grows it forever */
   body.embed { background: transparent; min-height: 0 !important; }
   .is-embed .ic-app { min-height: 0; }
-  @media (min-width: 700px) {
-    .embed #workspace { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
-  }
   .embed .page-chrome { display: none !important; }
   .embed main { padding: 0; max-width: none; }
-  .embed #var-list { max-height: 560px !important; }
-  .embed .lg\:sticky { position: static; }
+  .embed .vt-scroll { max-height: 560px; }
 
   @media (max-width: 640px) {
     #summary-actions { width: 100%; }
@@ -127,10 +155,9 @@
 </style>
 </head>
 <body class="ic-body">
-<div class="ic-app">
-  <ic-sidebar></ic-sidebar>
+<div class="ic-app ic-app--bar">
+  <ic-appbar></ic-appbar>
   <div class="ic-main">
-    <ic-topbar></ic-topbar>
     <main class="ic-page space-y-4">
 
       <div class="ic-page-header page-chrome" style="margin-bottom:8px">
@@ -191,43 +218,18 @@
         <p id="approve-status" class="text-sm ic-muted mt-2 hidden"></p>
       </section>
 
-      <!-- Workspace -->
-      <section id="workspace" class="hidden grid grid-cols-1 lg:grid-cols-5 gap-4">
-
-        <!-- Questions -->
-        <div class="lg:col-span-2 ic-card flex flex-col min-h-0 overflow-hidden">
-          <div class="flex items-center gap-2" style="padding:12px;border-bottom:1px solid var(--ic-border)">
-            <div class="ic-search flex-1 min-w-0" style="max-width:none">
-              <ic-icon name="search" size="16"></ic-icon>
-              <input id="search" type="search" placeholder="Search questions or answers" aria-label="Search questions or answers">
-            </div>
-            <button id="add-derived" class="edit-only ic-btn ic-btn--secondary ic-btn--sm" title="Create a variable from others (groups, bands, counts…)"><ic-icon name="plus" size="14"></ic-icon>New variable</button>
+      <!-- Workspace: the Variables grid -->
+      <section id="workspace" class="hidden ic-card" style="overflow:hidden">
+        <div class="vt-toolbar">
+          <div class="ic-search">
+            <ic-icon name="search" size="16"></ic-icon>
+            <input id="search" type="search" placeholder="Search names, labels or answers" aria-label="Search variables">
           </div>
-          <div id="var-list" class="overflow-y-auto" style="max-height: 70vh"></div>
+          <div id="type-filters" class="vt-filters" role="group" aria-label="Show"></div>
+          <button id="add-derived" class="edit-only ic-btn ic-btn--secondary ic-btn--sm" title="Create a variable from others (groups, bands, counts…)"><ic-icon name="plus" size="14"></ic-icon>New variable</button>
         </div>
-
-        <!-- Preview -->
-        <div class="lg:col-span-3">
-          <div class="ic-card ic-card-body space-y-4 lg:sticky preview-top">
-            <div class="flex flex-wrap items-center gap-2 text-sm">
-              <span class="ic-muted">Showing</span>
-              <select id="row-select" class="ic-select ic-select--sm font-medium" style="width:auto;max-width:16rem" aria-label="Question"></select>
-              <span class="ic-muted">by</span>
-              <select id="col-select" class="ic-select ic-select--sm font-medium" style="width:auto;max-width:14rem" aria-label="Banner"></select>
-              <div class="seg ml-auto" role="group" aria-label="View">
-                <button data-view="table" class="view-btn" aria-pressed="true">Table</button>
-                <button data-view="chart" class="view-btn" aria-pressed="false">Chart</button>
-              </div>
-            </div>
-            <div id="xtab-status" class="ic-help"></div>
-            <div id="xtab-wrap" class="ic-table-wrap"><table id="xtab" class="w-full text-sm"></table></div>
-            <div id="chart-wrap" class="hidden" style="height: 340px"><canvas id="chart"></canvas></div>
-            <p class="ic-help">
-              Column %. <span class="sig">B</span> = higher than column B (95% confidence), <span class="sig">b</span> = at 90%.
-              Small bases: ** under 30, * under 100.
-            </p>
-          </div>
-        </div>
+        <div id="bulk-bar" class="bulkbar hidden"></div>
+        <div id="var-grid" class="vt-scroll"></div>
       </section>
     </main>
   </div>
@@ -319,9 +321,9 @@ const SIG_LEVELS = [0.95, 0.90];
 const TYPE_NAMES = { single: 'Coded', multi: 'Multi-select', numeric: 'Number', rating: 'Rating', text: 'Text', date: 'Date', ignore: 'Not used' };
 const ROLE_CHOICES = { single: 'Coded answers', numeric: 'Number', text: 'Open text', ignore: 'Not used' };
 
-const state = { file: null, fileId: null, codebook: null, summary: null, view: 'table', chart: null,
-                editable: false, edited: false, history: [], selected: null, ops: [], setup: null, suggest: null,
-                open: { questions: true, added: true, numbers: false, text: false, ignore: false } };
+const state = { file: null, fileId: null, codebook: null, summary: null,
+                editable: false, edited: false, history: [], ops: [], setup: null, suggest: null,
+                vfilter: 'all', checked: new Set(), expanded: new Set() };
 
 // Embedded in /app as the "Review data" step: the app hands us the file (start(file)) and
 // we report the codebook back so the following steps use the reviewed coding.
@@ -399,10 +401,9 @@ async function start(file) {
     state.codebook = data.codebook; state.summary = data.summary;
     state.spss = ['sav', 'zsav', 'por'].includes(data.codebook.source.format);
     state.editable = true;  // SPSS edits overlay the file's own labels
-    state.edited = false; state.history = []; state.selected = null; state.ops = []; state.setup = null; state.suggest = null;
-    state.open = { questions: true, added: true, numbers: false, text: false, ignore: false };
+    state.edited = false; state.history = []; state.ops = []; state.setup = null; state.suggest = null;
+    state.vfilter = 'all'; state.checked = new Set(); state.expanded = new Set();
     $('search').value = '';
-    $('row-select').replaceChildren();
     status.classList.add('hidden');
     $('upload').classList.add('hidden');
     render();
@@ -422,46 +423,10 @@ function typeOf(v) { return v.role === 'numeric' && v.codes.length ? 'rating' : 
 function anchor(v) { return v.role === 'ignore' ? null : (v.role === 'multi' ? v.options.at(-1)?.name : v.name); }
 function derivedFor(v) { const a = anchor(v); return a ? state.codebook.derived.filter(d => d.after === a) : []; }
 function trailingDerived() { return state.codebook.derived.filter(d => d.after == null); }
-function rowCandidates() {
-  const out = [];
-  for (const v of state.codebook.variables) {
-    if (isTabulable(v)) out.push({ name: v.name, label: v.label });
-    if (v.role === 'multi') out.push({ name: `multi:${v.column}`, label: `${v.label} (select all that apply)` });
-    derivedFor(v).forEach(d => out.push(derivedRow(d)));
-  }
-  trailingDerived().forEach(d => out.push(derivedRow(d)));
-  return out;
-}
-function derivedRow(d) {
-  return d.outputs.length ? { name: `dmulti:${d.name}`, label: `${d.label} (all columns)` } : { name: d.name, label: d.label };
-}
-// Option variables behind a "multi:…" / "dmulti:…" preview entry
-function multiRows(value) {
-  if (value.startsWith('multi:')) return state.codebook.variables.find(v => v.column === value.slice(6))?.options.map(o => o.name);
-  if (value.startsWith('dmulti:')) return state.codebook.derived.find(d => d.name === value.slice(7))?.outputs.map(o => o.name);
-  return null;
-}
-function bannerCandidates() {
-  const out = [];
-  const add = d => { if (!d.outputs.length && d.codes.length >= 2 && d.codes.length <= 12) out.push({ name: d.name, label: d.label }); };
-  for (const v of state.codebook.variables) {
-    if (isTabulable(v) && v.codes.length >= 2 && v.codes.length <= 12) out.push({ name: v.name, label: v.label });
-    derivedFor(v).forEach(add);
-  }
-  trailingDerived().forEach(add);
-  return out;
-}
 function codedVars() { return state.codebook.variables.filter(isTabulable); }
 function multiVars() { return state.codebook.variables.filter(v => v.role === 'multi'); }
 const ref = (v) => v.name || v.column;
 const keyOf = (item) => item.kind === 'derived' ? `d:${item.d.name}` : `v:${item.v.column}`;
-// SPSS variable the preview shows for a list item
-function previewName(item) {
-  if (item.kind === 'derived') return derivedRow(item.d).name;
-  const v = item.v;
-  return v.role === 'multi' ? `multi:${v.column}` : (isTabulable(v) ? v.name : null);
-}
-
 // ── Edits (validated by the server; the page keeps the codebook) ──
 async function edit(ops) {
   try {
@@ -474,7 +439,7 @@ async function edit(ops) {
     return true;
   } catch (e) {
     toast(e.message, true);
-    renderList();  // put controls (e.g. a type dropdown) back to the real state
+    renderGrid();  // put controls (e.g. a label being edited) back to the real state
     return false;
   }
 }
@@ -544,46 +509,7 @@ function render() {
   if (unmatched.length) $('unmatched-note').textContent =
     `${plural(unmatched.length, 'question')} ${unmatched.length === 1 ? 'has' : 'have'} answers the codebook doesn't cover — they're treated as missing.`;
 
-  const firstRender = !$('row-select').options.length;
-  fillSelect($('row-select'), rowCandidates());
-  fillSelect($('col-select'), bannerCandidates());
-  if (firstRender) pickDefaults();
-  syncSelectionFromRow();
-  renderList();
-  preview();
-}
-
-function fillSelect(select, items) {
-  const keep = select.value;
-  select.replaceChildren(...items.map(i => el('option', { value: i.name }, i.label)));
-  if (items.some(i => i.name === keep)) select.value = keep;
-}
-
-function pickDefaults() {
-  // Banner: a derived group (NPS group, …) or a short coded question — not a 0-10 scale
-  // …whose groups are big enough to compare (at least two with 30+ people)
-  const vars = state.codebook.variables;
-  const codesOf = name => (vars.find(v => v.name === name) || state.codebook.derived.find(d => d.name === name))?.codes || [];
-  const comparable = name => codesOf(name).filter(c => (c.count || 0) >= 30).length >= 2;
-  const candidates = bannerCandidates().map(b => b.name);
-  const derivedFirst = [...candidates.filter(n => state.codebook.derived.some(d => d.name === n)),
-                        ...candidates.filter(n => codesOf(n).length <= 6)];
-  const banner = derivedFirst.find(comparable) || derivedFirst[0] || candidates[0];
-  // Row: the coded question most people answered (that isn't the banner)
-  const byBase = (a, b) => (b.base || 0) - (a.base || 0);
-  const row = vars.filter(v => v.role === 'single' && v.codes.length && v.name !== banner).sort(byBase)[0]?.name
-    || vars.filter(v => isTabulable(v) && v.name !== banner).sort(byBase)[0]?.name;
-  if (banner) $('col-select').value = banner;
-  if (row) $('row-select').value = row;
-}
-
-// The list item that owns the variable shown in the preview
-function syncSelectionFromRow() {
-  const name = $('row-select').value;
-  for (const sec of sections()) for (const item of sec.items) {
-    const owns = previewName(item) === name;
-    if (owns) { state.selected = keyOf(item); state.open[sec.id] = true; return; }
-  }
+  renderGrid();
 }
 
 function matches(item, q) {
@@ -594,73 +520,223 @@ function matches(item, q) {
   return parts.join(' ').toLowerCase().includes(q);
 }
 
-function renderList() {
-  const q = $('search').value.trim().toLowerCase();
-  const list = $('var-list');
-  list.replaceChildren();
-  for (const sec of sections()) {
-    const items = sec.items.filter(i => matches(i, q));
-    if (!items.length && (q || sec.id === 'added')) continue;
-    const open = q ? true : state.open[sec.id];
-    const nVars = items.filter(i => !i.child).length;
-    list.append(el('button', {
-      class: 'section-head w-full flex items-center gap-2 px-4 py-2.5 text-left',
-      'aria-expanded': String(open),
-      onclick: () => { state.open[sec.id] = !state.open[sec.id]; renderList(); } },
-      el('ic-icon', { name: open ? 'chevron-down' : 'chevron-right', size: '14' }),
-      el('span', { class: 'text-xs font-semibold uppercase tracking-wide text-gray-700' }, sec.title),
-      el('span', { class: 'text-xs text-gray-400' }, `${nVars} · ${sec.hint}`)));
-    if (open) items.forEach(item => list.append(row(item)));
+// ── Variables grid: one row per variable, like SPSS's Variable View (no crosstab preview) ──
+const TYPE_GLYPHS = { single: '1·2', rating: '1–5', numeric: '123', text: 'Aa' };
+const TYPE_ICONS = { multi: 'check', date: 'clock', ignore: 'eye-off', derived: 'plus' };
+const FILTERS = [['all', 'All'], ['single', 'Coded'], ['multi', 'Multi-select'], ['rating', 'Rating'], ['numeric', 'Number'],
+                 ['date', 'Date'], ['text', 'Open text'], ['ignore', 'Not used'], ['derived', 'Added']];
+
+function glyph(t) {
+  return el('span', { class: `tglyph role-${t}`, 'aria-hidden': 'true' },
+    TYPE_ICONS[t] ? el('ic-icon', { name: TYPE_ICONS[t], size: '12' }) : TYPE_GLYPHS[t]);
+}
+const itemType = (item) => item.kind === 'derived' ? 'derived' : typeOf(item.v);
+const typeName = (t) => t === 'derived' ? 'Added' : TYPE_NAMES[t];
+
+// File order, each question followed by the variables built from it
+function gridItems() {
+  const out = [];
+  for (const v of state.codebook.variables) {
+    out.push({ kind: 'var', v });
+    derivedFor(v).forEach(d => out.push({ kind: 'derived', d, child: true }));
   }
-  // Bring the selected question into view only if it's out of sight (no jumping on clicks)
-  const selected = list.querySelector('.item.selected');
-  if (selected) {
-    const top = selected.offsetTop - list.firstElementChild.offsetHeight;
-    if (top < list.scrollTop || top > list.scrollTop + list.clientHeight - 60) list.scrollTop = top;
-  }
-  if (!list.children.length) list.append(el('p', { class: 'p-4 text-sm text-gray-500' }, 'Nothing matches your search.'));
+  trailingDerived().forEach(d => out.push({ kind: 'derived', d }));
+  return out;
 }
 
-function meta(item) {
+function checkbox(on, label, onChange) {
+  return el('input', { type: 'checkbox', class: 'ic-checkbox', 'aria-label': label, checked: on || null,
+    onchange: (e) => onChange(e.target.checked) });
+}
+
+function renderGrid() {
+  closeMenu();
+  const q = $('search').value.trim().toLowerCase();
+  const all = gridItems();
+  const counts = {};
+  all.forEach(i => { const t = itemType(i); counts[t] = (counts[t] || 0) + 1; });
+  if (state.vfilter !== 'all' && !counts[state.vfilter]) state.vfilter = 'all';
+  $('type-filters').replaceChildren(...FILTERS.filter(([k]) => k === 'all' || counts[k]).map(([k, label]) =>
+    el('button', { class: 'pill', type: 'button', 'aria-pressed': String(state.vfilter === k),
+                   onclick: () => { state.vfilter = k; renderGrid(); } },
+      label, el('b', {}, String(k === 'all' ? all.length : counts[k])))));
+
+  const items = all.filter(i => (state.vfilter === 'all' || itemType(i) === state.vfilter) && matches(i, q));
+  renderBulk();
+  const grid = $('var-grid');
+  if (!items.length) { grid.replaceChildren(el('p', { class: 'ic-empty' }, 'No variables match.')); return; }
+  const vars = items.filter(i => i.kind === 'var');
+  const allOn = vars.length > 0 && vars.every(i => state.checked.has(keyOf(i)));
+  const th = (text, cls = '') => el('th', { class: cls }, text);
+  const head = el('thead', {}, el('tr', {},
+    el('th', { class: 'c-check' }, state.editable ? checkbox(allOn, 'Select all shown', (on) => {
+      vars.forEach(i => on ? state.checked.add(keyOf(i)) : state.checked.delete(keyOf(i))); renderGrid(); }) : null),
+    th('Type', 'c-type'), th('Name', 'c-name'), th('Label'), th('Values', 'c-vals'), th('Left out', 'c-miss'),
+    th('Base', 'c-base'), el('th', { class: 'c-act', 'aria-label': 'Actions' })));
+  const body = el('tbody');
+  for (const item of items) {
+    body.append(gridRow(item));
+    if (state.expanded.has(keyOf(item))) body.append(el('tr', { class: 'vt-detail' }, el('td', { colspan: '8' }, details(item))));
+  }
+  const top = grid.scrollTop;
+  grid.replaceChildren(el('table', { class: 'vt' }, head, body));
+  grid.scrollTop = top;
+}
+
+function toggleRow(key) {
+  state.expanded.has(key) ? state.expanded.delete(key) : state.expanded.add(key);
+  renderGrid();
+}
+
+function valuesText(item) {
   if (item.kind === 'derived') {
     const d = item.d;
-    return d.outputs.length ? `${plural(d.outputs.length, 'column')}` : `${plural(d.codes.length, 'group')}`;
+    return d.outputs.length ? plural(d.outputs.length, 'column') : plural(d.codes.length, 'group');
   }
   const v = item.v, t = typeOf(v);
-  const base = v.base != null ? ` · ${v.base.toLocaleString()} answered` : '';
-  if (t === 'single' || t === 'rating') return `${plural(v.codes.length, 'answer')}${base}`;
-  if (t === 'multi') return `${plural(v.options.length, 'option')} · select all that apply${base}`;
-  return v.inferred?.reason || TYPE_NAMES[t];
+  if (t === 'single' || t === 'rating') return plural(v.codes.length, 'answer');
+  if (t === 'multi') return plural(v.options.length, 'option');
+  // Numbers, text and dates have no answer list; say why only when it was inferred (not read from the file)
+  return v.inferred && v.inferred.rule !== 'spss:metadata' ? v.inferred.reason : '—';
 }
 
-function row(item) {
-  const key = keyOf(item), selected = state.selected === key;
-  const label = item.kind === 'derived' ? item.d.label : item.v.label;
-  const t = item.kind === 'derived' ? 'derived' : typeOf(item.v);
-  const excluded = item.kind === 'var' ? item.v.missing.length : 0;
-  const head = el('div', { class: `flex items-center gap-3 px-4 py-2.5 ${item.child ? 'pl-8' : ''}` },
-    el('div', { class: 'min-w-0 flex-1' },
-      el('p', { class: 'text-sm font-medium truncate', title: label }, item.child ? '↳ ' : '', label),
-      el('p', { class: 'text-xs text-gray-500 truncate' }, meta(item))),
-    excluded ? el('span', { class: 'ic-badge', title: '"Don\'t know"-type answers left out of bases' }, `${excluded} excluded`) : null,
-    item.kind === 'var' && recodesOf(item.v).length
-      ? el('span', { class: 'ic-badge ic-badge--warning', title: 'Variables built from this question' }, plural(recodesOf(item.v).length, 'recode')) : null,
-    el('span', { class: `ic-type role-${t}` }, t === 'derived' ? 'Added' : TYPE_NAMES[t]));
-  const node = el('div', { class: `item ${selected ? 'selected' : ''}`, onclick: () => select(item) }, head);
-  if (selected) node.append(details(item));
-  return node;
+function gridRow(item) {
+  const key = keyOf(item), t = itemType(item), open = state.expanded.has(key);
+  const isVar = item.kind === 'var', v = item.v, d = item.d;
+  const label = isVar ? v.label : d.label, name = isVar ? (v.name || v.column) : d.name;
+  const recodes = isVar ? recodesOf(v).length : 0, values = valuesText(item);
+  return el('tr', { class: `${state.checked.has(key) ? 'is-sel' : ''} ${item.child ? 'child' : ''}` },
+    el('td', { class: 'c-check' }, isVar && state.editable
+      ? checkbox(state.checked.has(key), `Select ${label}`, (on) => { on ? state.checked.add(key) : state.checked.delete(key); renderGrid(); }) : null),
+    el('td', { class: 'c-type' }, typeChip(item, t)),
+    el('td', { class: 'c-name', title: name },
+      el('button', { class: `grp-toggle${open ? ' open' : ''}`, type: 'button', 'aria-expanded': String(open),
+                     'aria-label': `${open ? 'Hide' : 'Show'} the answers of ${label}`, onclick: () => toggleRow(key) },
+        el('ic-icon', { name: 'chevron-right', size: '14' })),
+      el('span', {}, item.child ? '↳ ' : '', name)),
+    el('td', { class: 'c-label' }, labelCell(item, label)),
+    el('td', { class: 'c-vals' },
+      values === '—' ? el('span', { class: 'ic-help' }, values)
+        : el('button', { class: 'vt-vals', type: 'button', title: 'Show the answers', onclick: () => toggleRow(key) }, values),
+      recodes ? el('span', { class: 'ic-badge ic-badge--warning', title: 'Variables built from this question' }, plural(recodes, 'recode')) : null),
+    el('td', { class: 'c-miss', title: isVar ? v.missing.map(m => m.label).join(', ') : null },
+      isVar && v.missing.length ? `${v.missing.length} left out` : '—'),
+    el('td', { class: 'c-base' }, isVar && v.base != null ? v.base.toLocaleString() : ''),
+    el('td', { class: 'c-act' }, rowActions(item)));
 }
 
-function select(item) {
-  const key = keyOf(item);
-  state.selected = state.selected === key ? null : key;
-  const name = previewName(item);
-  if (state.selected && name && [...$('row-select').options].some(o => o.value === name) && $('row-select').value !== name) {
-    $('row-select').value = name;
-    preview();
+// Type: a chip that opens the roles this variable can take ("Treat as")
+function typeChip(item, t) {
+  const content = [glyph(t), typeName(t)];
+  const v = item.v;
+  if (item.kind !== 'var' || !state.editable || v.role === 'date') return el('span', { class: 'tchip is-static' }, ...content);
+  const roles = v.role === 'multi' ? { multi: 'Multi-select', ignore: 'Not used' } : ROLE_CHOICES;
+  const current = v.role === 'numeric' && !v.codes.length ? 'numeric' : v.role;
+  const btn = el('button', { class: 'tchip', type: 'button', title: 'Change how this column is read', 'aria-haspopup': 'menu' },
+    ...content, el('ic-icon', { name: 'chevron-down', size: '12' }));
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openMenu(btn, `Read “${v.label}” as`, Object.entries(roles).map(([role, label]) => ({
+      label, icon: glyph(role), on: role === current,
+      run: () => { if (role !== current) edit([{ op: 'set_role', var: ref(v), role }]); } })));
+  });
+  return btn;
+}
+
+// Label: double-click (or Enter / F2) to rename in place
+function labelCell(item, label) {
+  const target = item.kind === 'var' ? ref(item.v) : item.d.name;
+  const text = el('span', { class: 'lbl', title: state.editable ? 'Double-click to rename' : label, tabindex: state.editable ? '0' : null }, label);
+  if (!state.editable) return text;
+  const startEdit = () => {
+    const input = el('input', { class: 'lbl-input', value: label, 'aria-label': 'Label' });
+    let done = false;
+    const finish = (save) => {
+      if (done) return;
+      done = true;
+      const next = input.value.trim();
+      if (save && next && next !== label) edit([{ op: 'set_label', var: target, label: next }]);
+      else renderGrid();
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
+    text.replaceWith(input);
+    input.focus(); input.select();
+  };
+  text.addEventListener('dblclick', startEdit);
+  text.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); startEdit(); } });
+  return text;
+}
+
+function rowActions(item) {
+  if (!state.editable) return null;
+  const key = keyOf(item), open = state.expanded.has(key);
+  const entries = [{ label: open ? 'Hide answers' : 'Show answers', run: () => toggleRow(key) }];
+  if (item.kind === 'var') {
+    const v = item.v;
+    if (isTabulable(v) || v.role === 'multi') entries.push(
+      { label: 'Recode…', run: () => openRecoder(v) },
+      { label: 'Create a variable from this…', run: () => openRecoder(v, 'new') });
+    if (v.role !== 'ignore' && v.role !== 'date') entries.push({ label: 'Hide from tables', run: () => edit([{ op: 'set_role', var: ref(v), role: 'ignore' }]) });
+  } else {
+    const d = item.d, src = derivedSourceVar(d);
+    if (src) entries.push({ label: 'Edit…', run: () => openRecoder(src, 'new', d) });
+    entries.push({ label: 'Remove variable', danger: true, run: () => edit([{ op: 'remove_derived', name: d.name }]) });
   }
-  renderList();
+  const btn = el('button', { class: 'ic-icon-btn', type: 'button', 'aria-label': 'Actions', 'aria-haspopup': 'menu' },
+    el('ic-icon', { name: 'more', size: '16' }));
+  btn.addEventListener('click', (e) => { e.stopPropagation(); openMenu(btn, null, entries); });
+  return btn;
 }
+
+// Selected rows: change their type or hide them, in one edit (one Undo step)
+function renderBulk() {
+  const bar = $('bulk-bar');
+  const vs = state.codebook.variables.filter(v => state.checked.has(`v:${v.column}`));
+  bar.classList.toggle('hidden', !vs.length);
+  if (!vs.length) { bar.replaceChildren(); return; }
+  const setRole = (role) => {
+    // Multi-select questions can only be hidden; the others can't become multi-select
+    const ok = vs.filter(v => role === 'ignore' || v.role !== 'multi');
+    if (ok.length < vs.length) toast(`${plural(vs.length - ok.length, 'multi-select question')} kept ${vs.length - ok.length === 1 ? 'its' : 'their'} type.`);
+    state.checked.clear();
+    if (ok.length) edit(ok.map(v => ({ op: 'set_role', var: ref(v), role })));
+    else renderGrid();
+  };
+  const typeBtn = el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', 'aria-haspopup': 'menu' },
+    'Change type', el('ic-icon', { name: 'chevron-down', size: '14' }));
+  typeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openMenu(typeBtn, `Read ${plural(vs.length, 'variable')} as`, Object.entries(ROLE_CHOICES).map(([role, label]) =>
+      ({ label, icon: glyph(role), run: () => setRole(role) })));
+  });
+  bar.replaceChildren(el('strong', {}, `${vs.length} selected`), typeBtn,
+    el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => setRole('ignore') }, 'Hide from tables'),
+    el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', style: 'margin-left:auto',
+                   onclick: () => { state.checked.clear(); renderGrid(); } }, 'Clear selection'));
+}
+
+// A small menu next to its button (fixed, so the table's scroll box doesn't clip it)
+let menuEl = null;
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+function openMenu(anchor, title, entries) {
+  closeMenu();
+  menuEl = el('div', { class: 'ic-menu vt-menu', role: 'menu' },
+    title ? el('div', { class: 'ic-menu-label' }, title) : null,
+    ...entries.map(x => el('button', { class: `ic-menu-item${x.on ? ' is-on' : ''}`, type: 'button', role: 'menuitem',
+                                       style: x.danger ? 'color:var(--ic-danger)' : null,
+                                       onclick: (e) => { e.stopPropagation(); closeMenu(); x.run(); } }, x.icon || null, x.label)));
+  document.body.append(menuEl);
+  const r = anchor.getBoundingClientRect(), w = menuEl.offsetWidth, h = menuEl.offsetHeight;
+  menuEl.style.left = `${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`;
+  menuEl.style.top = `${r.bottom + h + 8 > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6}px`;
+}
+document.addEventListener('click', (e) => { if (menuEl && !menuEl.contains(e.target)) closeMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+window.addEventListener('scroll', closeMenu, true);
 
 // ── Expanded row: why, answers, and the edit tools ──
 const stop = (fn) => (e) => { e.stopPropagation(); fn(e); };
@@ -685,7 +761,6 @@ function details(item) {
   }
   const v = item.v;
   if (v.inferred?.reason) box.append(el('p', { class: 'text-xs text-gray-500' }, el('span', { class: 'font-medium text-gray-600' }, 'Read as: '), v.inferred.reason));
-  if (state.editable && v.role !== 'date') box.append(toolbar(v));
   if (v.codes.length) box.append(el('div', { class: 'space-y-1.5' }, bars(v.codes, v.base, { v })));
   if (v.nets?.length) box.append(el('div', { class: 'space-y-1.5' },
     el('p', { class: 'text-[11px] uppercase tracking-wide text-gray-400 pt-1' }, 'Nets (table rows)'),
@@ -709,11 +784,11 @@ function derivedNets(d, base) {
   const draft = netDrafts[d.name];
   if (!draft) {
     box.append(el('div', { class: 'edit-only gap-1' }, el('button', { class: 'ic-btn ic-btn--secondary ic-btn--sm',
-      onclick: () => { netDrafts[d.name] = (d.nets || []).map(n => ({ label: n.label, codes: new Set(n.codes) })); renderList(); } },
+      onclick: () => { netDrafts[d.name] = (d.nets || []).map(n => ({ label: n.label, codes: new Set(n.codes) })); renderGrid(); } },
       d.nets?.length ? 'Edit nets…' : 'Add nets…')));
     return box;
   }
-  const redraw = () => renderList();
+  const redraw = () => renderGrid();
   draft.forEach((n, i) => box.append(el('div', { class: 'rounded-lg ring-1 ring-gray-200 p-2 space-y-1.5' },
     el('div', { class: 'flex items-center gap-1.5' },
       el('input', { class: 'rc-input', value: n.label, placeholder: 'Net name, e.g. 3 + 4 + 5', 'aria-label': 'Net name',
@@ -731,21 +806,6 @@ function derivedNets(d, base) {
     } }, 'Save nets'),
     el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', onclick: () => { delete netDrafts[d.name]; redraw(); } }, 'Cancel')));
   return box;
-}
-
-function toolbar(v) {
-  const roles = v.role === 'multi' ? { multi: 'Multi-select', ignore: 'Not used' } : ROLE_CHOICES;
-  const current = v.role === 'numeric' && !v.codes.length ? 'numeric' : v.role;
-  const select = el('select', { class: 'ic-select ic-select--sm', style: 'width:auto',
-    onchange: (e) => edit([{ op: 'set_role', var: ref(v), role: e.target.value }]) },
-    ...Object.entries(roles).map(([value, label]) => { const o = el('option', { value }, label); if (value === current) o.selected = true; return o; }));
-  return el('div', { class: 'flex flex-wrap items-center gap-2' },
-    isTabulable(v) || v.role === 'multi' ? el('button', { class: 'ic-btn ic-btn--primary ic-btn--sm', onclick: () => openRecoder(v) }, 'Recode…') : null,
-    el('button', { class: 'ic-btn ic-btn--secondary ic-btn--sm', onclick: () => {
-      const label = prompt('Question label', v.label);
-      if (label && label.trim() && label !== v.label) edit([{ op: 'set_label', var: ref(v), label: label.trim() }]);
-    } }, '✎ Rename'),
-    el('label', { class: 'text-sm text-gray-500 flex items-center gap-1.5 whitespace-nowrap' }, 'Treat as', select));
 }
 
 // Derived variables built from a question (shown as a badge, like Forsta's "(2R)")
@@ -770,102 +830,7 @@ function bars(items, base, { isMissing = false, v = null } = {}) {
 
 function fmtCode(c) { return Number.isInteger(c) ? String(c) : String(+c.toFixed(2)); }
 
-$('search').addEventListener('input', renderList);
-
-// ── Crosstab preview ──
-let previewSeq = 0;
-$('row-select').addEventListener('change', () => { syncSelectionFromRow(); preview(); renderList(); });
-$('col-select').addEventListener('change', preview);
-document.querySelectorAll('.view-btn').forEach(b => b.addEventListener('click', () => {
-  state.view = b.dataset.view;
-  document.querySelectorAll('.view-btn').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-  $('xtab-wrap').classList.toggle('hidden', state.view !== 'table');
-  $('chart-wrap').classList.toggle('hidden', state.view !== 'chart');
-}));
-
-async function preview() {
-  const row = $('row-select').value, col = $('col-select').value;
-  if (!row || !col) { $('xtab-status').textContent = 'Nothing to tabulate yet.'; return; }
-  if (row === col) { $('xtab-status').textContent = 'Pick a different banner from the row.'; $('xtab').replaceChildren(); return; }
-  const seq = ++previewSeq;
-  $('xtab-status').replaceChildren(el('span', { class: 'spinner mr-2 align-middle' }), 'Calculating…');
-  try {
-    const rows = multiRows(row);
-    const spec = JSON.stringify({ ...(rows ? { rows } : { row }), col, significance_levels: SIG_LEVELS });
-    const ct = await api('/v1/crosstab', fileForm({ spec }));
-    if (seq !== previewSeq) return;
-    $('xtab-status').textContent = `${ct.total_responses.toLocaleString()} respondents answered both questions` +
-      (ct.is_mrs ? ' · select all that apply: % of respondents who ticked each option (can add up to more than 100%)' : '');
-    drawTable(ct); drawChart(ct);
-  } catch (e) {
-    if (seq === previewSeq) $('xtab-status').replaceChildren(el('span', { class: 'text-danger' }, e.message));
-  }
-}
-
-function columns(ct) {
-  return Object.keys(ct.col_labels).map(value => ({
-    value, letter: ct.col_labels[value], label: ct.col_value_labels?.[value] ?? value,
-    base: ct.column_bases?.[value] ?? 0, marker: ct.low_base?.[value] || '',
-  }));
-}
-
-function drawTable(ct) {
-  const cols = columns(ct);
-  // Single-choice: everyone is in exactly one row. Multi-select: base = everyone who answered.
-  const total = ct.is_mrs ? cols.reduce((t, c) => t + (c.base || 0), 0)
-    : ct.table.reduce((s, r) => s + cols.reduce((t, c) => t + (r[c.value]?.count || 0), 0), 0);
-  const th = (text, cls = '') => el('th', { class: `px-2 py-2 font-medium text-right ${cls}` }, text);
-  const head = el('thead', {},
-    el('tr', { class: 'text-xs text-gray-500' }, th('', 'text-left'), th('Total'), ...cols.map(c => th(c.label))),
-    el('tr', { class: 'text-xs text-gray-400' }, th(''), th(''), ...cols.map(c => th(c.letter))),
-    el('tr', { class: 'text-xs' }, th('Base', 'text-left text-gray-500'), th(total.toLocaleString()),
-       ...cols.map(c => th(`${c.base.toLocaleString()}${c.marker ? ' ' + c.marker : ''}`, c.marker ? 'text-warn' : ''))));
-  const body = el('tbody', {}, ...ct.table.map(r => {
-    const rowTotal = cols.reduce((t, c) => t + (r[c.value]?.count || 0), 0);
-    return el('tr', {},
-      el('td', { class: 'px-2 py-1.5 text-left' }, r.row_label),
-      el('td', { class: 'px-2 py-1.5 text-right tabular-nums text-gray-500' }, total ? `${(100 * rowTotal / total).toFixed(1)}%` : '-'),
-      ...cols.map(c => {
-        const cell = r[c.value] || {};
-        const letters = (cell.significance_letters || []).join('') + (cell.significance_letters_secondary || []).join('').toLowerCase();
-        return el('td', { class: 'px-2 py-1.5 text-right tabular-nums whitespace-nowrap' },
-          cell.percentage == null ? '-' : `${cell.percentage.toFixed(1)}%`, letters ? el('span', { class: 'sig ml-1' }, letters) : null);
-      }));
-  }));
-  const v = !ct.is_mrs && findVar($('row-select').value);
-  for (const n of v?.nets || []) {
-    const inNet = ct.table.filter(r => n.codes.includes(Number(r.row_value)));
-    const netTotal = inNet.reduce((s, r) => s + cols.reduce((t, c) => t + (r[c.value]?.count || 0), 0), 0);
-    body.append(el('tr', { class: 'net-row font-medium' },
-      el('td', { class: 'px-2 py-1.5 text-left' }, n.label),
-      el('td', { class: 'px-2 py-1.5 text-right tabular-nums' }, total ? `${(100 * netTotal / total).toFixed(1)}%` : '-'),
-      ...cols.map(c => {
-        const count = inNet.reduce((t, r) => t + (r[c.value]?.count || 0), 0);
-        return el('td', { class: 'px-2 py-1.5 text-right tabular-nums' }, c.base ? `${(100 * count / c.base).toFixed(1)}%` : '-');
-      })));
-  }
-  $('xtab').replaceChildren(head, body);
-}
-
-const PALETTE = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#ea580c', '#475569', '#0d9488', '#9333ea'];
-function drawChart(ct) {
-  const cols = columns(ct);
-  const datasets = ct.table.map((r, i) => ({
-    label: r.row_label, backgroundColor: PALETTE[i % PALETTE.length],
-    data: cols.map(c => r[c.value]?.percentage ?? 0),
-  }));
-  if (state.chart) state.chart.destroy();
-  state.chart = new Chart($('chart'), {
-    type: 'bar',
-    data: { labels: cols.map(c => `${c.label}${c.marker ? ' ' + c.marker : ''}`), datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-      scales: { x: { stacked: !ct.is_mrs, max: 100, ticks: { callback: v => v + '%' } }, y: { stacked: !ct.is_mrs } },
-      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } },
-                 tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.x.toFixed(1)}%` } } },
-    },
-  });
-}
+$('search').addEventListener('input', renderGrid);
 
 // ── Setups: recodes saved for a kind of export, applied again on the next wave (RECODING_PLAN.md §6) ──
 // A setup whose columns are all in the file is applied straight away (as the built-in client rules

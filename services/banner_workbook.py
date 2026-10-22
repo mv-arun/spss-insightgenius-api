@@ -365,6 +365,56 @@ def _widths(ws, n_cols: int):
         ws.column_dimensions[get_column_letter(c)].width = 13
 
 
+def _banner_groups(result) -> list[list]:
+    """Banner columns by banner group (the Total column on its own)."""
+    groups: dict[int, list] = {}
+    for bc in result.banner_columns:
+        if bc.banner_var != "_total_":
+            groups.setdefault(bc.banner_index, []).append(bc)
+    return list(groups.values())
+
+
+def preview_tables(result, spec, data) -> dict:
+    """The tables this workbook writes, as JSON for a live preview: the same rows (answers or
+    merging nets, nets, NET; empty rows out; sorted if asked), bases, percentages and the Stat
+    sheets' letters (each banner group tested on its own, columns lettered A, B, … within it).
+    Call inside multiple_comparison_correction(spec.bonferroni), like the workbook."""
+    calc = Calc(result, spec, data)
+    tables = _tables(result, spec)
+    for table in tables:
+        _layout_rows(table, spec, calc)
+    groups = _banner_groups(result)
+
+    def cell(item, bc, tested, row) -> dict:
+        v = calc.value(item, bc, row)
+        letters = calc.letters(item, tested, bc, row) if v is not None and tested else "-"
+        return {"count": round(calc.count(item, bc, row), 4), "pct": v, "sig": letters}
+
+    def item_json(table, item) -> dict:
+        total = calc.total
+        return {
+            "label": item.label,
+            "variable": item.sheet.variable,
+            "is_mrs": item.sheet.is_mrs,
+            "total": {"base": calc.base(item, total), "cells": [cell(item, total, [], r) for r in table.rows]} if total else None,
+            "banners": [{"bases": [calc.base(item, bc) for bc in group],
+                         "cells": [[cell(item, bc, group, r) for bc in group] for r in table.rows]} for group in groups],
+        }
+
+    return {
+        "n_cases": len(data.df),
+        "banners": [{"variable": g[0].banner_var, "label": g[0].banner_label,
+                     "columns": [{"value": bc.value, "label": bc.value_label, "letter": get_column_letter(i + 1)}
+                                 for i, bc in enumerate(g)]} for g in groups],
+        "tables": [{"key": t.key, "title": t.title, "is_grid": len(t.items) > 1,
+                    "rows": [{"label": r.label, "kind": r.kind} for r in t.rows],
+                    "items": [item_json(t, item) for item in t.items]} for t in tables],
+        "failed": [{"variable": s.variable, "error": s.error} for s in result.sheets if s.status != "success"],
+        "significance": {"level": spec.significance_level, "secondary_level": spec.secondary_level,
+                         "bonferroni": spec.bonferroni, "note": _stat_note(spec)},
+    }
+
+
 def build_banner_workbook(result, spec, data) -> bytes:
     calc = Calc(result, spec, data)
     tables = _tables(result, spec)
@@ -382,11 +432,7 @@ def build_banner_workbook(result, spec, data) -> bytes:
             r = _write_table(ws, r, table, calc, total_cols, stat=False, banner=None, n_cases=n_cases)
         _widths(ws, max((len(t.items) for t in tables), default=1))
 
-    groups: dict[int, list] = {}
-    for bc in result.banner_columns:
-        if bc.banner_var != "_total_":
-            groups.setdefault(bc.banner_index, []).append(bc)
-    for group in groups.values():
+    for group in _banner_groups(result):
         banner = group[0].banner_label
         cols = [(bc.value_label, bc) for bc in group] + total_cols
         for stat in (False, True):

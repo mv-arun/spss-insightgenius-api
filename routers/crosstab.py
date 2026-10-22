@@ -16,7 +16,7 @@ from shared.file_resolver import resolve_file
 from shared.response import success_response
 from shared.significance import low_base_marker
 from services.quantipy_engine import QuantiProEngine, QUANTIPYMRX_AVAILABLE, _sanitize_value
-from services.data_loader import load_data
+from services.data_cache import load_data_cached
 from services.tabulation_builder import _mrs_crosstab
 
 router = APIRouter(tags=["Analysis"])
@@ -68,7 +68,7 @@ async def crosstab(
     low_base_flag = int(spec_data.get("low_base_flag", 30))
 
     try:
-        data = await run_in_executor(load_data, file_bytes, filename, cb)
+        data = await run_in_executor(load_data_cached, file_bytes, filename, cb)
     except (asyncio.TimeoutError, RuntimeError):
         raise
     except Exception as e:

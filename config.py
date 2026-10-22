@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     # MCP file sessions
     spss_session_ttl_seconds: int = 1800  # 30 minutes sliding window
     redis_max_file_size_mb: int = 100
+    # Parsed files kept in each worker's memory (services/data_cache.py); 0 turns the cache off
+    parsed_cache_mb: int = 512
 
     # Clerk (OAuth 2.0 auth provider)
     clerk_publishable_key: str = ""

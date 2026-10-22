@@ -19,9 +19,11 @@ from middleware.rate_limiter import check_rate_limit
 from shared.codebook_resolver import resolve_codebook
 from shared.file_resolver import resolve_file
 from services.quantipy_engine import QuantiProEngine
-from services.data_loader import load_data
-from services.tabulation_builder import TabulateSpec, build_tabulation, _build_excel
+from services.data_cache import load_data_cached
+from services.banner_workbook import preview_tables
+from services.tabulation_builder import TabulateSpec, build_tabulation, _build_excel, multiple_comparison_correction
 from shared.filenames import output_filename
+from shared.response import success_response
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,77 @@ _MAX_FILE_SIZE = {
     "pro": 50 * 1024 * 1024,
     "business": 200 * 1024 * 1024,
 }
+
+
+def _tab_spec(spec_dict: dict, cb) -> TabulateSpec:
+    """The request's spec as a TabulateSpec (nets saved in the codebook added). 400 if invalid."""
+    try:
+        return TabulateSpec(
+            banner=spec_dict.get("banner", ""),
+            banners=spec_dict.get("banners"),  # none: a Total-only export
+            custom_groups=spec_dict.get("custom_groups"),
+            stubs=spec_dict.get("stubs", ["_all_"]),
+            weight=spec_dict.get("weight"),
+            significance_level=spec_dict.get("significance_level", 0.95),
+            significance_levels=spec_dict.get("significance_levels"),
+            bonferroni=bool(spec_dict.get("bonferroni", True)),
+            low_base_warn=int(spec_dict.get("low_base_warn", 100)),
+            low_base_flag=int(spec_dict.get("low_base_flag", 30)),
+            nets=cb.table_nets(spec_dict.get("nets")) if cb is not None else spec_dict.get("nets"),
+            mrs_groups=spec_dict.get("mrs_groups"),
+            grid_groups=spec_dict.get("grid_groups"),
+            grid_mode=spec_dict.get("grid_mode", "individual"),
+            include_means=spec_dict.get("include_means", False),
+            include_total_column=spec_dict.get("include_total_column", True),
+            output_mode=spec_dict.get("output_mode", "multi_sheet"),
+            custom_groups_label=spec_dict.get("custom_groups_label") or "Custom Groups",
+            sort_rows=bool(spec_dict.get("sort_rows", False)),
+            table_order=spec_dict.get("table_order"),
+            table_titles=spec_dict.get("table_titles"),
+            show_counts=spec_dict.get("show_counts", True),
+            show_percentages=spec_dict.get("show_percentages", True),
+            show_chi2=spec_dict.get("show_chi2", True),
+            include_summary=spec_dict.get("include_summary", False),
+            study_context=spec_dict.get("study_context"),
+            filters=spec_dict.get("filters"),
+            title=spec_dict.get("title", ""),
+        )
+    except (ValueError, TypeError) as e:
+        raise HTTPException(400, detail={"code": "VALIDATION_ERROR", "message": str(e)})
+
+
+async def _load(file_bytes: bytes, filename: str, cb):
+    """Parse the file (once per worker: services.data_cache). 400 if it can't be read."""
+    try:
+        return await run_in_executor(load_data_cached, file_bytes, filename, cb)
+    except (asyncio.TimeoutError, RuntimeError):
+        raise
+    except Exception as e:
+        raise HTTPException(400, detail={"code": "INVALID_FILE_FORMAT", "message": f"Failed to load SPSS file: {e}"})
+
+
+def _check_variables(tab_spec: TabulateSpec, data) -> None:
+    """Every banner, stub and multi-select member the spec names must be in the file."""
+    for b in tab_spec.resolved_banners:
+        if b not in data.df.columns:
+            raise HTTPException(400, detail={
+                "code": "VARIABLE_NOT_FOUND",
+                "message": f"Banner variable '{b}' not found. Available: {list(data.df.columns[:20])}...",
+            })
+    if tab_spec.stubs != ["_all_"]:
+        missing = [s for s in tab_spec.stubs if s not in data.df.columns]
+        if missing:
+            raise HTTPException(400, detail={
+                "code": "VARIABLE_NOT_FOUND",
+                "message": f"Stub variables not found: {missing}",
+            })
+    for group_name, members in (tab_spec.mrs_groups or {}).items():
+        missing = [m for m in members if m not in data.df.columns]
+        if missing:
+            raise HTTPException(400, detail={
+                "code": "VARIABLE_NOT_FOUND",
+                "message": f"MRS group '{group_name}' members not found: {missing}",
+            })
 
 
 @router.post(
@@ -103,7 +176,7 @@ async def tabulate(
             _ticket_bytes = await ticket.read()
 
         async def _do_tabulate():
-            data = await run_in_executor(load_data, _file_bytes, _filename, cb)
+            data = await run_in_executor(load_data_cached, _file_bytes, _filename, cb)
             spec_dict = json.loads(_spec)
             if cb is not None:
                 spec_dict["nets"] = cb.table_nets(spec_dict.get("nets"))
@@ -139,9 +212,7 @@ async def tabulate(
             parser = TicketParser()
 
             # Load SPSS first for variable list context
-            data_for_vars = await run_in_executor(
-                load_data, file_bytes, filename, cb
-            )
+            data_for_vars = await run_in_executor(load_data_cached, file_bytes, filename, cb)
             var_info = [
                 {"name": c, "label": "", "type": str(data_for_vars.df[c].dtype)}
                 for c in data_for_vars.df.columns
@@ -172,80 +243,11 @@ async def tabulate(
         except Exception as e:
             logger.warning("Ticket parsing failed, continuing with manual spec: %s", e)
 
-    banner = spec_dict.get("banner", "")
-    banners = spec_dict.get("banners")
-    custom_groups = spec_dict.get("custom_groups")
-    # Allow Total-only export (no banners) — include_total_column will provide the Total column
-
-    try:
-        tab_spec = TabulateSpec(
-            banner=banner,
-            banners=banners,
-            custom_groups=spec_dict.get("custom_groups"),
-            stubs=spec_dict.get("stubs", ["_all_"]),
-            weight=spec_dict.get("weight"),
-            significance_level=spec_dict.get("significance_level", 0.95),
-            significance_levels=spec_dict.get("significance_levels"),
-            bonferroni=bool(spec_dict.get("bonferroni", True)),
-            low_base_warn=int(spec_dict.get("low_base_warn", 100)),
-            low_base_flag=int(spec_dict.get("low_base_flag", 30)),
-            nets=cb.table_nets(spec_dict.get("nets")) if cb is not None else spec_dict.get("nets"),
-            mrs_groups=spec_dict.get("mrs_groups"),
-            grid_groups=spec_dict.get("grid_groups"),
-            grid_mode=spec_dict.get("grid_mode", "individual"),
-            include_means=spec_dict.get("include_means", False),
-            include_total_column=spec_dict.get("include_total_column", True),
-            output_mode=spec_dict.get("output_mode", "multi_sheet"),
-            custom_groups_label=spec_dict.get("custom_groups_label") or "Custom Groups",
-            sort_rows=bool(spec_dict.get("sort_rows", False)),
-            table_order=spec_dict.get("table_order"),
-            table_titles=spec_dict.get("table_titles"),
-            show_counts=spec_dict.get("show_counts", True),
-            show_percentages=spec_dict.get("show_percentages", True),
-            show_chi2=spec_dict.get("show_chi2", True),
-            include_summary=spec_dict.get("include_summary", False),
-            study_context=spec_dict.get("study_context"),
-            filters=spec_dict.get("filters"),
-            title=spec_dict.get("title", ""),
-        )
-    except ValueError as e:
-        raise HTTPException(400, detail={"code": "VALIDATION_ERROR", "message": str(e)})
+    tab_spec = _tab_spec(spec_dict, cb)
 
     # ── Load SPSS ──
-    try:
-        data = await run_in_executor(
-            load_data, file_bytes, filename, cb
-        )
-    except (asyncio.TimeoutError, RuntimeError):
-        raise
-    except Exception as e:
-        raise HTTPException(400, detail={"code": "INVALID_FILE_FORMAT", "message": f"Failed to load SPSS file: {e}"})
-
-    # Validate banners exist
-    for b in tab_spec.resolved_banners:
-        if b not in data.df.columns:
-            raise HTTPException(400, detail={
-                "code": "VARIABLE_NOT_FOUND",
-                "message": f"Banner variable '{b}' not found. Available: {list(data.df.columns[:20])}...",
-            })
-
-    # Validate stubs exist (if explicitly specified)
-    if tab_spec.stubs != ["_all_"]:
-        missing = [s for s in tab_spec.stubs if s not in data.df.columns]
-        if missing:
-            raise HTTPException(400, detail={
-                "code": "VARIABLE_NOT_FOUND",
-                "message": f"Stub variables not found: {missing}",
-            })
-
-    # Validate MRS members exist
-    for group_name, members in (tab_spec.mrs_groups or {}).items():
-        missing = [m for m in members if m not in data.df.columns]
-        if missing:
-            raise HTTPException(400, detail={
-                "code": "VARIABLE_NOT_FOUND",
-                "message": f"MRS group '{group_name}' members not found: {missing}",
-            })
+    data = await _load(file_bytes, filename, cb)
+    _check_variables(tab_spec, data)
 
     # ── Run tabulation ──
     try:
@@ -317,3 +319,84 @@ async def tabulate(
             "X-Stubs-Failed": str(result.failed),
         },
     )
+
+
+MAX_PREVIEW_TABLES = 50  # a preview draws what's on screen; the export does the rest
+
+
+@router.post(
+    "/v1/tabulate/preview",
+    summary="Tabulation preview (JSON)",
+    description=(
+        "The tables `/v1/tabulate` would write, as JSON, for a live preview while the tables are built. "
+        "Same inputs as `/v1/tabulate` (file or `file_id`, optional `codebook`, `spec`), and the same "
+        "calculation: rows (answers or the nets that merge them, nets, NET), bases, column percentages "
+        "and significance letters as on the banner workbook's Stat sheets "
+        "(each banner tested on its own; columns lettered A, B, … within it).\n\n"
+        "Add `\"tables\": [\"Q1\", \"Brand awareness\"]` to the spec to compute only those tables "
+        f"(stub variables or multi-select / grid group names; at most {MAX_PREVIEW_TABLES}).\n\n"
+        "Percentages are fractions (0.42 = 42%); `sig` is `-` where nothing is tested "
+        "(the Total column, NET rows, a column with no base)."
+    ),
+)
+async def tabulate_preview(
+    file: UploadFile = File(None, description="Data file (or use file_id)"),
+    file_id: str | None = Form(None, description="File session ID from /v1/files/upload"),
+    codebook: str | None = Form(None, description="Codebook JSON from /v1/codebook (edited coding)"),
+    spec: str = Form(..., description="JSON tabulation specification, as for /v1/tabulate, plus optional `tables`"),
+    key: KeyConfig = Depends(require_scope("process")),
+    _rl: None = Depends(check_rate_limit),
+):
+    start = time.perf_counter()
+    file_bytes, filename = await resolve_file(file=file, file_id=file_id)
+    cb = await resolve_codebook(codebook, file_id)
+    max_size = _MAX_FILE_SIZE.get(key.plan, _MAX_FILE_SIZE["free"])
+    if len(file_bytes) > max_size:
+        raise HTTPException(413, detail={
+            "code": "FILE_TOO_LARGE",
+            "message": f"File exceeds {max_size // (1024*1024)}MB limit for {key.plan} plan",
+        })
+
+    try:
+        spec_dict = json.loads(spec)
+    except json.JSONDecodeError as e:
+        raise HTTPException(400, detail={"code": "INVALID_SPEC", "message": f"Invalid JSON in spec: {e}"})
+    if not isinstance(spec_dict, dict):
+        raise HTTPException(400, detail={"code": "INVALID_SPEC", "message": "spec must be a JSON object"})
+
+    # Only the tables asked for: stubs, and the multi-select / grid groups named in `tables`
+    tables = spec_dict.pop("tables", None)
+    if tables is not None:
+        if not isinstance(tables, list) or not all(isinstance(t, str) for t in tables):
+            raise HTTPException(400, detail={"code": "VALIDATION_ERROR", "message": "'tables' must be a list of table names"})
+        if len(tables) > MAX_PREVIEW_TABLES:
+            raise HTTPException(400, detail={"code": "VALIDATION_ERROR",
+                                             "message": f"A preview shows at most {MAX_PREVIEW_TABLES} tables; ask for fewer"})
+        groups = set(spec_dict.get("mrs_groups") or {}) | set(spec_dict.get("grid_groups") or {})
+        spec_dict["stubs"] = [t for t in tables if t not in groups]
+        for k in ("mrs_groups", "grid_groups"):
+            if spec_dict.get(k):
+                spec_dict[k] = {name: members for name, members in spec_dict[k].items() if name in tables}
+    elif spec_dict.get("stubs", ["_all_"]) == ["_all_"]:
+        raise HTTPException(400, detail={"code": "VALIDATION_ERROR",
+                                         "message": "Name the tables to preview: 'tables' (or 'stubs') in the spec"})
+
+    tab_spec = _tab_spec(spec_dict, cb)
+    data = await _load(file_bytes, filename, cb)
+    _check_variables(tab_spec, data)
+
+    def compute():
+        result = build_tabulation(QuantiProEngine, data, tab_spec, build_excel=False)
+        with multiple_comparison_correction(tab_spec.bonferroni):
+            return preview_tables(result, tab_spec, data)
+
+    try:
+        body = await run_in_executor(compute)
+    except (asyncio.TimeoutError, RuntimeError):
+        raise
+    except Exception as e:
+        logger.error("Tabulation preview failed: %s", e, exc_info=True)
+        raise HTTPException(500, detail={"code": "PROCESSING_FAILED", "message": str(e)})
+
+    elapsed = int((time.perf_counter() - start) * 1000)
+    return success_response(body, processing_time_ms=elapsed)

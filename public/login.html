@@ -112,7 +112,7 @@
 
   function nextUrl() {
     const n = new URLSearchParams(location.search).get('next') || '';
-    return n.startsWith('/') && !n.startsWith('//') ? n : '/home';
+    return n.startsWith('/') && !n.startsWith('//') ? n : '/app';
   }
   function showError(msg) { errorBox.textContent = msg; errorBox.hidden = !msg; }
 

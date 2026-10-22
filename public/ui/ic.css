@@ -71,7 +71,7 @@ body.ic-body {
 .ic-page--wide { max-width: none; }
 .ic-page--flush { padding: 0; max-width: none; display: flex; flex-direction: column; min-height: 0; }
 .is-embed .ic-app, .ic-app.is-embed { display: block; }
-.is-embed ic-sidebar, .is-embed ic-topbar { display: none; }
+.is-embed ic-sidebar, .is-embed ic-topbar, .is-embed ic-appbar { display: none; }
 .is-embed .ic-page { padding: 0; max-width: none; }
 
 ic-sidebar {
@@ -122,6 +122,41 @@ ic-topbar {
 .ic-menu-label { padding: 8px 10px 6px; font-size: 12px; color: var(--ic-text-subtle); border-bottom: 1px solid var(--ic-border); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; }
 .ic-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; background: none; border-radius: 6px; font: inherit; font-size: 13px; color: var(--ic-text); text-decoration: none; cursor: pointer; text-align: left; }
 .ic-menu-item:hover { background: var(--ic-surface-muted); }
+
+/* ── App bar (replaces sidebar + topbar) ─────────────────── */
+.ic-app--bar { display: block; }
+.ic-app--bar .ic-page { margin: 0 auto; }
+ic-appbar {
+  display: flex; align-items: center; gap: 20px; height: var(--ic-topbar-h); padding: 0 24px;
+  background: var(--ic-surface); border-bottom: 1px solid var(--ic-border);
+  position: sticky; top: 0; z-index: 30;
+}
+ic-appbar .ic-brand { padding: 0; flex-shrink: 0; }
+.ic-appbar-steps { flex: 1; display: flex; justify-content: safe center; align-items: center; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.ic-appbar-steps::-webkit-scrollbar { display: none; }
+.ic-appbar-step { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px 0 8px; border: 0; border-radius: 999px; background: none; font: inherit; font-size: 13px; font-weight: 500; color: var(--ic-text-subtle); white-space: nowrap; cursor: pointer; }
+.ic-appbar-step:hover:not(:disabled) { background: var(--ic-surface-muted); color: var(--ic-text); }
+.ic-appbar-step:disabled { cursor: not-allowed; opacity: .55; }
+.ic-appbar-step.is-current { background: var(--ic-blue-100); color: var(--ic-navy-800); font-weight: 600; cursor: default; opacity: 1; }
+.ic-appbar-step.is-current .ic-step-num { background: var(--ic-navy-800); border-color: var(--ic-navy-800); color: #fff; }
+.ic-appbar-step.is-done { color: var(--ic-text-muted); }
+.ic-appbar-step.is-done .ic-step-num { background: var(--ic-blue-100); border-color: var(--ic-blue-100); color: var(--ic-navy-800); }
+.ic-appbar-sep { width: 14px; height: 1px; background: var(--ic-border-strong); flex-shrink: 0; }
+.ic-appbar-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: auto; }
+/* Which file the flow is working on, under the bar */
+.ic-context { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 16px; min-height: 34px; }
+.ic-file-chip { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-height: 34px; padding: 4px 6px 4px 10px; border-radius: 8px; border: 1px solid var(--ic-border); background: #fff; font-size: 13px; font-weight: 600; }
+.ic-file-chip .meta { font-weight: 400; color: var(--ic-text-subtle); }
+@media (max-width: 1100px) {
+  ic-appbar .ic-brand { font-size: 0; gap: 0; }
+  .ic-appbar-step:not(.is-current) .ic-appbar-step-label { display: none; }
+  .ic-appbar-step:not(.is-current) { padding: 0 6px; }
+}
+@media (max-width: 640px) {
+  ic-appbar { padding: 0 12px; gap: 8px; }
+  .ic-appbar-sep { width: 6px; }
+  ic-appbar .ic-user-name { display: none; }
+}
 
 /* ── Public (no sidebar) header ───────────────────────────── */
 .ic-public-header { display: flex; align-items: center; gap: 24px; height: var(--ic-topbar-h); padding: 0 32px; background: #fff; border-bottom: 1px solid var(--ic-border); }

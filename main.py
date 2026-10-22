@@ -254,23 +254,19 @@ def create_application() -> FastAPI:
                 return page(name)
             return handler
 
-        # Sign-in (split screen) — signed-in visitors go straight to Home
+        # Sign-in (split screen) — signed-in visitors go straight to the app
         async def sign_in(request: Request):
             if session_email(request):
-                return RedirectResponse("/home", status_code=303)
+                return RedirectResponse("/app", status_code=303)
             return page("login.html")
 
         app.add_api_route("/", sign_in, methods=["GET"], include_in_schema=False)
         app.add_api_route("/login", sign_in, methods=["GET"], include_in_schema=False)
 
-        # App pages (sidebar sections: Home, Datasets, Transformations, Workflows, Settings)
+        # App pages. The app is one stepped flow (/app: Dataset → Variables → …) under one app bar;
+        # /review is its Variables step (embedded), the rest are off the bar but still served.
         app_pages = {
-            "/home": "home.html",
-            "/datasets": "datasets.html",
-            "/datasets/upload": "dataset-upload.html",
-            "/datasets/{library_id}": "dataset.html",
             "/review": "review.html",
-            "/workflows": "workflows.html",
             "/app": "app.html",
             "/export": "app.html",
             "/express": "express.html",
@@ -278,13 +274,21 @@ def create_application() -> FastAPI:
             "/export-mcp": "chat.html",
             "/settings": "settings.html",
         }
-        if not settings.enable_datasets:
-            for path in ("/datasets", "/datasets/upload", "/datasets/{library_id}"):
-                del app_pages[path]
         if not settings.enable_ai_chat:
             del app_pages["/export-mcp"]
         for path, name in app_pages.items():
             app.add_api_route(path, signed_in_page(name), methods=["GET"], include_in_schema=False)
+
+        # Old sections now live in the flow: Home and Workflows open it, Datasets is its first step
+        def to_app():
+            async def handler(request: Request):
+                return RedirectResponse("/app", status_code=303)
+            return handler
+        old_pages = ["/home", "/workflows"]
+        if settings.enable_datasets:
+            old_pages += ["/datasets", "/datasets/upload", "/datasets/{library_id}"]
+        for path in old_pages:
+            app.add_api_route(path, to_app(), methods=["GET"], include_in_schema=False)
 
         # Public pages: the MCP file uploader (linked from Claude) and docs
         public_pages = {"/upload": "upload.html", "/privacy": "privacy.html", "/docs/mcp": "mcp-docs.html"}

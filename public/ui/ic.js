@@ -2,6 +2,7 @@
    <ic-icon name="database" size="18">   outline icon
    <ic-sidebar active="datasets">        app navigation (auto-detects the section from the URL)
    <ic-topbar>                           search + signed-in user menu
+   <ic-appbar>                           one top bar: brand, steps (IC.appbarSteps), docs, user menu
    window.IC                             DOM, API, format and toast helpers
    Everything that shows data builds DOM nodes and sets textContent, never markup. */
 (function () {
@@ -169,31 +170,68 @@
         location.href = '/datasets' + (v ? '?q=' + encodeURIComponent(v) : '');
       });
       const search = el('div', { class: 'ic-search', role: 'search', hidden: !FEATURES.datasets }, icon('search', 16), input);
-
-      const avatar = el('span', { class: 'ic-avatar', 'aria-hidden': 'true' });
-      const name = el('span', { class: 'ic-user-name' });
-      const btn = el('button', { class: 'ic-user-btn', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false' },
-        avatar, name, icon('chevron-down', 16));
-      const label = el('div', { class: 'ic-menu-label' });
-      const menu = el('div', { class: 'ic-menu', role: 'menu', hidden: true }, label,
-        el('a', { class: 'ic-menu-item', href: '/settings', role: 'menuitem' }, icon('settings', 16), 'Settings'),
-        el('button', { class: 'ic-menu-item', type: 'button', role: 'menuitem', onclick: signOut }, icon('log-out', 16), 'Sign out'));
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        menu.hidden = !menu.hidden;
-        btn.setAttribute('aria-expanded', String(!menu.hidden));
-      });
-      document.addEventListener('click', () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); });
-      const user = el('div', { class: 'ic-user' }, btn, menu);
-      this.append(this.hasAttribute('no-search') ? el('div') : search, user);
-
-      me().then(u => {
-        if (!u) return;
-        avatar.textContent = initials(u.name || u.email);
-        name.textContent = u.name || u.email;
-        label.textContent = u.email;
-      });
+      this.append(this.hasAttribute('no-search') ? el('div') : search, userMenu());
     }
+  }
+
+  // Signed-in user: avatar, name and a menu with Settings and Sign out
+  function userMenu() {
+    const avatar = el('span', { class: 'ic-avatar', 'aria-hidden': 'true' });
+    const name = el('span', { class: 'ic-user-name' });
+    const btn = el('button', { class: 'ic-user-btn', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false' },
+      avatar, name, icon('chevron-down', 16));
+    const label = el('div', { class: 'ic-menu-label' });
+    const menu = el('div', { class: 'ic-menu', role: 'menu', hidden: true }, label,
+      el('a', { class: 'ic-menu-item', href: '/settings', role: 'menuitem' }, icon('settings', 16), 'Settings'),
+      el('button', { class: 'ic-menu-item', type: 'button', role: 'menuitem', onclick: signOut }, icon('log-out', 16), 'Sign out'));
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      menu.hidden = !menu.hidden;
+      btn.setAttribute('aria-expanded', String(!menu.hidden));
+    });
+    document.addEventListener('click', () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); });
+    me().then(u => {
+      if (!u) return;
+      avatar.textContent = initials(u.name || u.email);
+      name.textContent = u.name || u.email;
+      label.textContent = u.email;
+    });
+    return el('div', { class: 'ic-user' }, btn, menu);
+  }
+
+  // ── App bar ────────────────────────────────────────────────
+  // <ic-appbar>: brand, the flow's steps (filled by IC.appbarSteps), API docs and the user menu.
+  // It replaces the sidebar + topbar: the app is one stepped flow, so the steps are the navigation.
+  class IcAppbar extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.ready) return;
+      this.dataset.ready = '1';
+      const docs = el('a', { class: 'ic-icon-btn', href: '/docs', target: '_blank', rel: 'noopener', title: 'API docs', 'aria-label': 'API docs' }, icon('book', 18));
+      this.append(brand('/app'), el('nav', { class: 'ic-appbar-steps', 'aria-label': 'Steps' }),
+        el('div', { class: 'ic-appbar-right' }, docs, userMenu()));
+    }
+  }
+
+  // IC.appbarSteps(['Dataset', 'Variables', …], currentIndex, { onSelect(i), canVisit(i) })
+  function appbarSteps(steps, current, opts) {
+    const o = opts || {};
+    const nav = document.querySelector('ic-appbar .ic-appbar-steps');
+    if (!nav) return;
+    nav.replaceChildren();
+    steps.forEach((label, i) => {
+      if (i) nav.append(el('span', { class: 'ic-appbar-sep', 'aria-hidden': 'true' }));
+      const state = i < current ? ' is-done' : i === current ? ' is-current' : '';
+      const locked = i !== current && o.canVisit && !o.canVisit(i);
+      const node = el('button', { class: 'ic-appbar-step' + state, type: 'button', disabled: i === current || locked,
+        'aria-current': i === current ? 'step' : null },
+        el('span', { class: 'ic-step-num' }, i < current ? icon('check', 12) : String(i + 1)),
+        el('span', { class: 'ic-appbar-step-label' }, label));
+      if (o.onSelect) node.addEventListener('click', () => o.onSelect(i));
+      nav.append(node);
+    });
+    // On a narrow screen the bar scrolls: keep the current step in view
+    const now = nav.querySelector('.is-current');
+    if (now) nav.scrollLeft = now.offsetLeft - (nav.clientWidth - now.offsetWidth) / 2;
   }
 
   // Decorative illustration: stacked data sheets with a trend chart (hero + sign-in).
@@ -217,6 +255,7 @@
   customElements.define('ic-icon', IcIcon);
   customElements.define('ic-sidebar', IcSidebar);
   customElements.define('ic-topbar', IcTopbar);
+  customElements.define('ic-appbar', IcAppbar);
 
   // ── API ────────────────────────────────────────────────────
   function apiKey() { return window.__INDICO_CROSSTAB_DEMO_KEY__ || 'demo'; }
@@ -298,5 +337,5 @@
     });
   }
 
-  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, greeting, fileIcon, toast, stepper, NAV, FEATURES };
+  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, greeting, fileIcon, toast, stepper, appbarSteps, NAV, FEATURES };
 })();

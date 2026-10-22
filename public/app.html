@@ -9,19 +9,20 @@
 <link rel="stylesheet" href="/static/ui/ic.css">
 <script src="/static/config.js"></script>
 <script src="/static/ui/ic.js"></script>
+<script src="/static/ui/datasets.js"></script>
 <style>
   .hidden { display: none !important; }
   .fade-in { animation: fadeIn .25s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-  /* Stepper: locked steps are plain, reachable ones are clickable */
-  #steps-nav .ic-step:disabled { cursor: default; }
-  #steps-nav button.ic-step:not(:disabled):hover { color: var(--ic-text); }
-  @media (max-width: 720px) {
-    #steps-nav { gap: 6px; }
-    #steps-nav .ic-step:not(.is-current) { font-size: 0; gap: 0; }
-    #steps-nav .ic-step-line { min-width: 8px; }
-  }
+  /* Dataset step: the library table */
+  .lib-table tbody tr { cursor: pointer; }
+  .lib-table tbody tr.is-open td { background: var(--ic-blue-50); }
+  .lib-name { display: flex; align-items: center; gap: 10px; font-weight: 600; min-width: 0; }
+  .lib-name small { display: block; font-weight: 400; color: var(--ic-text-subtle); font-size: 12px; }
+  .lib-fmt { font-size: 10.5px; font-weight: 700; letter-spacing: .03em; padding: 2px 6px; border-radius: 4px; background: var(--ic-blue-100); color: var(--ic-navy-800); flex-shrink: 0; }
+  .lib-fmt.is-sheet { background: var(--ic-success-bg); color: var(--ic-success); }
+  @media (max-width: 640px) { .lib-table .hide-sm { display: none; } }
 
   .step-head { display: block; }
   .step-head .ic-help { margin-top: 2px; }
@@ -129,26 +130,25 @@
 </style>
 </head>
 <body class="ic-body">
-<div class="ic-app">
-  <ic-sidebar></ic-sidebar>
+<div class="ic-app ic-app--bar">
+  <ic-appbar></ic-appbar>
   <div class="ic-main">
-    <ic-topbar></ic-topbar>
-    <main class="ic-page" style="max-width:1080px">
-      <a class="ic-back" href="/workflows"><ic-icon name="arrow-left" size="16"></ic-icon>Back</a>
-      <div class="ic-page-header">
-        <div>
-          <h1 class="ic-title">Crosstab Tabulation</h1>
-          <p class="ic-subtitle">Upload SPSS, Excel or CSV data and get professional crosstabs with significance testing.</p>
+    <main class="ic-page" style="max-width:1280px">
+      <!-- Which file the steps work on (filled by renderContext) -->
+      <div id="context" class="ic-context"></div>
+
+      <!-- Step 1: Dataset -->
+      <section id="library-section" class="ic-card fade-in" hidden style="margin-bottom:16px">
+        <div class="ic-card-header">
+          <h2 class="ic-section-title">Your datasets</h2>
+          <div class="ic-search" style="max-width:260px"><ic-icon name="search" size="16"></ic-icon>
+            <input id="library-search" type="search" placeholder="Search datasets" aria-label="Search datasets"></div>
         </div>
-        <a class="ic-btn ic-btn--secondary ic-btn--sm" href="/docs" target="_blank" rel="noopener"><ic-icon name="book" size="14"></ic-icon>API Docs</a>
-      </div>
-
-      <nav id="steps-nav" class="ic-stepper" aria-label="Steps"></nav>
-
-      <!-- Step 1: Upload -->
+        <div id="library-list"></div>
+      </section>
       <section id="upload-section" class="ic-card fade-in">
         <div class="ic-card-header step-head">
-          <h2 class="ic-section-title">Upload files</h2>
+          <h2 id="upload-title" class="ic-section-title">Upload a file</h2>
           <p class="ic-help">Your data file is required. A Reporting Ticket and Questionnaire are optional and let AI configure the tables.</p>
         </div>
         <div class="ic-card-body ic-stack">
@@ -283,17 +283,17 @@
         </div>
       </section>
 
-      <!-- Step 2: Review data (the /review page, embedded) -->
+      <!-- Step 2: Variables (the /review page, embedded) -->
       <section id="review-section" class="ic-card fade-in" hidden>
         <div class="ic-card-header">
           <div class="step-head">
-            <h2 class="ic-section-title">Review data</h2>
-            <p class="ic-help">How each column was read: fix anything, add derived variables.</p>
+            <h2 class="ic-section-title">Variables</h2>
+            <p class="ic-help">How each column is read. Double-click a label to rename it, click a type to change it, open a row to check its answers.</p>
           </div>
           <span id="review-state" class="ic-help" style="white-space:nowrap"></span>
         </div>
         <div style="padding:12px">
-          <iframe id="review-frame" src="/review?embed=1" title="Review data" style="height: 680px"></iframe>
+          <iframe id="review-frame" src="/review?embed=1" title="Variables" style="height: 680px"></iframe>
         </div>
         <div class="ic-card-footer step-footer">
           <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
@@ -689,17 +689,16 @@ function appendData(form) {
 }
 
 // ── Stepper: one step's card at a time ──
-const STEP_LABELS = ['Upload', 'Review data', 'Banners', 'Tables', 'Options', 'Custom groups', 'Generate'];
+const STEP_LABELS = ['Dataset', 'Variables', 'Banners', 'Tables', 'Options', 'Custom groups', 'Generate'];
 const STEP_PANELS = ['upload-section', 'review-section', 'banners-section', 'stubs-section', 'options-section', 'custom-groups-section', 'generate-section'];
 let currentStep = 0, furthestStep = 0;
-let metaReady = false;  // steps after Upload unlock once the file's metadata has loaded
+let metaReady = false;  // steps after Dataset unlock once the file's metadata has loaded
 
-function canVisit(i) { return i === 0 || (metaReady && i <= furthestStep); }
+function canVisit(i) { return i === 0 || (metaReady && i <= Math.max(furthestStep, 1)); }
 
+// The steps live in the app bar
 function renderStepper() {
-  const nav = document.getElementById('steps-nav');
-  IC.stepper(nav, STEP_LABELS, currentStep, { onSelect: goStep });
-  nav.querySelectorAll('.ic-step').forEach((b, i) => { b.disabled = i === currentStep || !canVisit(i); });
+  IC.appbarSteps(STEP_LABELS, currentStep, { onSelect: goStep, canVisit });
   document.querySelectorAll('.js-next').forEach(b => { b.disabled = !metaReady; });
 }
 
@@ -709,11 +708,92 @@ function goStep(i) {
   currentStep = i;
   furthestStep = Math.max(furthestStep, i);
   STEP_PANELS.forEach((id, k) => { document.getElementById(id).hidden = k !== i; });
+  document.getElementById('library-section').hidden = i !== 0 || !IC.FEATURES.datasets;
   renderStepper();
+  renderContext();
   // The review frame measured itself while hidden: ask it for its height again now it has a width
   if (STEP_PANELS[i] === 'review-section') requestAnimationFrame(syncReviewHeight);
-  const nav = document.getElementById('steps-nav');
-  if (nav.getBoundingClientRect().top < 0) nav.scrollIntoView({ block: 'start' });
+  window.scrollTo({ top: 0 });
+}
+
+// The brand goes back to the first step instead of reloading (and losing) the flow
+document.querySelector('ic-appbar .ic-brand').addEventListener('click', (e) => { e.preventDefault(); goStep(0); });
+
+// ── Under the app bar: the file the steps work on ──
+function renderContext() {
+  const host = document.getElementById('context');
+  if (currentStep === 0 || !savFile) {
+    host.replaceChildren(IC.el('div', {},
+      IC.el('h1', { class: 'ic-title' }, 'Choose a dataset'),
+      IC.el('p', { class: 'ic-subtitle' }, IC.FEATURES.datasets
+        ? 'Pick one you’ve used before or upload a new file. Every step after this works on that file.'
+        : 'Upload SPSS, Excel or CSV data. Every step after this works on that file.')));
+    return;
+  }
+  const meta = metadata ? `${IC.number(metadata.n_cases)} respondents · ${IC.number(metadata.n_variables)} variables` : 'Reading…';
+  host.replaceChildren(IC.el('div', { class: 'ic-file-chip' },
+    IC.el('span', { class: 'ic-file-icon' }, IC.icon(IC.fileIcon(savFile.name), 16)), savFile.name,
+    IC.el('span', { class: 'meta' }, meta),
+    IC.el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => goStep(0) }, 'Change')));
+}
+
+// ── Step 1: datasets in the library (when Datasets is on) ──
+let libraryFiles = [], openLibraryId = null;
+async function loadLibrary() {
+  if (!IC.FEATURES.datasets) return;
+  const list = document.getElementById('library-list');
+  if (!libraryFiles.length) list.replaceChildren(Datasets.skeleton(3));
+  try {
+    libraryFiles = await Datasets.list();
+    renderLibrary();
+  } catch (e) {
+    list.replaceChildren(Datasets.error(e, loadLibrary));
+  }
+}
+function renderLibrary() {
+  const list = document.getElementById('library-list');
+  const q = document.getElementById('library-search').value.trim().toLowerCase();
+  const files = libraryFiles.filter(f => !q || Datasets.name(f).toLowerCase().includes(q));
+  document.getElementById('upload-title').textContent = libraryFiles.length ? 'Or upload a new file' : 'Upload a file';
+  if (!libraryFiles.length) { list.replaceChildren(Datasets.empty('No datasets yet', 'Files you upload below are kept here for next time.')); return; }
+  if (!files.length) { list.replaceChildren(IC.el('p', { class: 'ic-empty' }, 'No datasets match.')); return; }
+  const { el } = IC;
+  const rows = files.map(f => {
+    const ext = String(f.filename || '').split('.').pop().toLowerCase();
+    const open = f.id === openLibraryId;
+    const use = () => openLibraryFile(f);
+    return el('tr', { class: open ? 'is-open' : '', tabindex: '0', onclick: use, onkeydown: (e) => { if (e.key === 'Enter') use(); } },
+      el('td', {}, el('div', { class: 'lib-name' },
+        el('span', { class: 'lib-fmt' + (['xlsx', 'xls', 'csv', 'tsv'].includes(ext) ? ' is-sheet' : '') }, ext.toUpperCase() || 'FILE'),
+        el('div', { style: { minWidth: 0 } }, Datasets.name(f),
+          f.filename && f.filename !== Datasets.name(f) ? el('small', {}, f.filename) : null))),
+      el('td', { class: 'num hide-sm' }, IC.number(f.n_cases)),
+      el('td', { class: 'num hide-sm' }, IC.number(f.n_variables)),
+      el('td', { class: 'ic-muted hide-sm' }, IC.timeAgo(f.updated_at || f.created_at)),
+      el('td', { class: 'num' }, el('button', { class: `ic-btn ic-btn--${open ? 'primary' : 'secondary'} ic-btn--sm`, type: 'button',
+        onclick: (e) => { e.stopPropagation(); use(); } }, open ? 'Continue' : 'Use')));
+  });
+  list.replaceChildren(el('div', { class: 'ic-table-wrap' }, el('table', { class: 'ic-table lib-table' },
+    el('thead', {}, el('tr', {}, el('th', {}, 'Name'), el('th', { class: 'num hide-sm' }, 'Respondents'),
+      el('th', { class: 'num hide-sm' }, 'Variables'), el('th', { class: 'hide-sm' }, 'Updated'), el('th', { 'aria-label': 'Actions' }))),
+    el('tbody', {}, rows))));
+}
+document.getElementById('library-search').addEventListener('input', renderLibrary);
+
+async function openLibraryFile(f) {
+  if (f.id === openLibraryId && metaReady) return goStep(1);
+  try {
+    IC.toast(`Opening ${Datasets.name(f)}…`);
+    const res = await fetch(`/v1/library/${encodeURIComponent(f.id)}/file`, { headers: { Authorization: `Bearer ${API_KEY}` } });
+    if (!res.ok) throw new Error(`Couldn’t download the file (${res.status})`);
+    const file = new File([await res.blob()], f.filename || Datasets.name(f));
+    openLibraryId = f.id;
+    renderLibrary();
+    await useDataFile(file);
+    if (metaReady) goStep(1);
+  } catch (e) {
+    IC.toast(e.message, 'danger');
+  }
 }
 function nextStep() { goStep(currentStep + 1); }
 function prevStep() { goStep(currentStep - 1); }
@@ -775,12 +855,22 @@ function _markFile(dropId, f, label, icon, size) {
   label.className = 'ic-dropzone-title';
 }
 setupDropZone('sav-drop', 'sav-input', 'sav-label', 'sav-icon', async (f, label, icon) => {
-  savFile = f; reviewedCodebook = null;
   _markFile('sav-drop', f, label, icon, 30);
+  openLibraryId = null;
+  // Keep a new upload in the library for next time (Datasets on); the flow doesn't wait for it
+  if (IC.FEATURES.datasets) Datasets.upload(f).then(r => { openLibraryId = r.library_id; loadLibrary(); })
+    .catch(e => IC.toast(`Not saved to your datasets: ${e.message}`, 'danger'));
+  await useDataFile(f);
+});
+
+// The data file every step works on (uploaded, or opened from the library)
+async function useDataFile(f) {
+  savFile = f; reviewedCodebook = null; metadata = null;
   metaReady = false; furthestStep = 0; renderStepper();  // lock the later steps until this file's metadata loads
+  renderContext();
   startReview();
   await loadMetadata();
-});
+}
 setupDropZone('docx-drop', 'docx-input', 'docx-label', 'docx-icon', async (f, label, icon) => {
   docxFile = f;
   _markFile('docx-drop', f, label, icon, 22);
@@ -820,7 +910,7 @@ async function loadMetadata() {
     document.getElementById('result-section')?.classList.add('hidden');
     populateUI();
     document.getElementById('auto-analyze-bar').classList.remove('hidden');
-    metaReady = true; renderStepper();  // unlock Review data → Generate
+    metaReady = true; renderStepper(); renderContext();  // unlock Variables → Generate
   } catch (e) {
     infoText.textContent = `Error: ${e.message}`; info.className = 'ic-alert ic-alert--danger';
   }
@@ -1878,7 +1968,8 @@ function applyComputedWeight() {
   closeWeightWizard();
 }
 
-renderStepper();
+goStep(0);
+loadLibrary();
 </script>
 
 <!-- Weight Wizard Modal -->

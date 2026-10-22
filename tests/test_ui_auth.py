@@ -8,7 +8,8 @@ from main import app
 
 UI_EMAIL, UI_PASSWORD = os.environ["UI_LOGIN_EMAIL"], os.environ["UI_LOGIN_PASSWORD"]  # set in conftest
 
-APP_PAGES = ["/home", "/review", "/workflows", "/export", "/express", "/wizard", "/settings"]
+APP_PAGES = ["/app", "/review", "/export", "/express", "/wizard", "/settings"]
+OLD_PAGES = ["/home", "/workflows"]  # now open the stepped flow
 OFF_PAGES = ["/datasets", "/datasets/upload", "/export-mcp"]  # Datasets and AI chat are off by default
 
 
@@ -42,10 +43,12 @@ def test_sign_in_opens_pages_and_sign_out_closes_them():
     assert c.get("/auth/me").json()["data"]["email"] == UI_EMAIL
     for path in APP_PAGES:
         assert c.get(path, follow_redirects=False).status_code == 200, path
-    assert c.get("/", follow_redirects=False).headers["location"] == "/home"
+    for path in OLD_PAGES:
+        assert c.get(path, follow_redirects=False).headers["location"] == "/app", path
+    assert c.get("/", follow_redirects=False).headers["location"] == "/app"
     c.post("/auth/logout")
     assert c.get("/auth/me").status_code == 401
-    assert c.get("/home", follow_redirects=False).status_code == 303
+    assert c.get("/app", follow_redirects=False).status_code == 303
 
 
 def test_tampered_cookie_is_rejected():

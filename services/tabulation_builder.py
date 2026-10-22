@@ -258,13 +258,14 @@ class TabulationResult:
     nested_banner_info: list[dict[str, Any]] = field(default_factory=list)  # For Excel header rendering
 
 
-def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> TabulationResult:
-    """Run all crosstabs and build the Excel workbook. CPU-bound — call via asyncio.to_thread()."""
+def build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec, build_excel: bool = True) -> TabulationResult:
+    """Run all crosstabs and build the Excel workbook (build_excel=False: the tables only, for
+    a preview). CPU-bound — call via asyncio.to_thread()."""
     with multiple_comparison_correction(spec.bonferroni):
-        return _build_tabulation(engine_cls, data, spec)
+        return _build_tabulation(engine_cls, data, spec, build_excel)
 
 
-def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> TabulationResult:
+def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec, build_excel: bool = True) -> TabulationResult:
     from services.quantipy_engine import QuantiProEngine
 
     df = data.df
@@ -608,7 +609,8 @@ def _build_tabulation(engine_cls: Any, data: Any, spec: TabulateSpec) -> Tabulat
                     result.failed += 1
                 result.sheets.append(sheet)
 
-    result.excel_bytes = _build_excel(result, spec, data)
+    if build_excel:
+        result.excel_bytes = _build_excel(result, spec, data)
     return result
 
 

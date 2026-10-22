@@ -5,9 +5,10 @@ user_id is derived from the authenticated API key — NEVER from request input.
 """
 
 import logging
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from auth import require_auth, KeyConfig
 from middleware.rate_limiter import check_rate_limit
@@ -134,6 +135,37 @@ async def library_variables(library_id: str, key: KeyConfig = Depends(require_au
         return JSONResponse(status_code=500, content={
             "success": False,
             "error": {"code": "LIBRARY_ERROR", "message": str(e)},
+        })
+
+
+@router.get("/v1/library/{library_id}/file", summary="Download the original file")
+async def library_file(library_id: str, key: KeyConfig = Depends(require_auth)):
+    """The file's bytes, so the web app can open a library dataset as if it had just been uploaded."""
+    from services.library_service import LibraryService
+
+    try:
+        svc = LibraryService()
+        meta = await svc.get_file_metadata(library_id)
+        if not meta:
+            return JSONResponse(status_code=404, content={
+                "success": False, "error": {"code": "NOT_FOUND", "message": f"File {library_id} not found"},
+            })
+        if meta.get("user_id") and meta["user_id"] != _user_id(key):
+            return JSONResponse(status_code=403, content={
+                "success": False, "error": {"code": "FORBIDDEN", "message": "You do not own this file"},
+            })
+        downloaded = await svc.download_file(library_id)
+        if not downloaded:
+            return JSONResponse(status_code=404, content={
+                "success": False, "error": {"code": "NOT_FOUND", "message": "File not found in storage"},
+            })
+        file_bytes, filename = downloaded
+        safe_name = quote(filename or "dataset")
+        return Response(content=file_bytes, media_type="application/octet-stream",
+                        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{safe_name}"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={
+            "success": False, "error": {"code": "LIBRARY_ERROR", "message": str(e)},
         })
 
 
