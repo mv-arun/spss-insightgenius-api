@@ -54,25 +54,6 @@
   .result-next { padding: 16px 24px 20px; border-top: 1px solid var(--ic-border); }
   .next-label { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--ic-text); }
 
-  /* Banner chips + pills */
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--ic-border-strong); background: var(--ic-surface); font: inherit; font-size: 13px; color: var(--ic-text); cursor: pointer; transition: border-color .15s, background .15s; user-select: none; text-align: left; }
-  .chip:hover:not(:disabled) { border-color: var(--ic-blue-500); background: var(--ic-blue-50); }
-  .chip.selected { border-color: var(--ic-navy-800); background: var(--ic-blue-100); color: var(--ic-navy-800); }
-  .chip.active { background: var(--ic-surface-muted); }
-  .chip-name { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; color: var(--ic-text-subtle); }
-  .chip-label { font-weight: 500; }
-  .chip .ic-badge { height: 18px; padding: 0 6px; font-size: 10.5px; }
-  .chip-group-label { flex-basis: 100%; font-size: 12px; font-weight: 600; color: var(--ic-text-muted); margin-top: 6px; }
-  .chip-sep { flex-basis: 100%; height: 1px; background: var(--ic-border); margin: 6px 0; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; cursor: default; border: 1px solid transparent; }
-  .pill-blue { background: var(--ic-blue-100); color: var(--ic-navy-800); }
-  .pill-green { background: var(--ic-success-bg); color: var(--ic-success); }
-  .pill-purple { background: var(--ic-surface-muted); color: var(--ic-text); border-color: var(--ic-border-strong); }
-  .pill .remove { cursor: pointer; opacity: .6; font-size: 15px; line-height: 1; }
-  .pill .remove:hover { opacity: 1; }
-  .selected-row { display: flex; flex-wrap: wrap; gap: 8px; min-height: 32px; align-items: center; }
-
   /* Groups (MRS / grid / custom) */
   .subsection { border-top: 1px solid var(--ic-border); margin-top: 20px; padding-top: 20px; }
   .subsection-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
@@ -82,17 +63,6 @@
   .group-row-title { font-weight: 600; font-size: 13.5px; }
   .auto-badge { margin-bottom: 8px; }
   select[multiple].ic-select { min-height: 140px; }
-  .tables-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
-  .tables-toolbar #tables-filter { max-width: 260px; }
-  .tables-toolbar-gap { flex: 1; }
-  .tables-list { border: 1px solid var(--ic-border); border-radius: 10px; max-height: 520px; overflow-y: auto; }
-  .table-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px;
-               padding: 8px 12px; border-bottom: 1px solid var(--ic-border); }
-  .table-row:last-child { border-bottom: 0; }
-  .table-row.is-off .table-row-main { opacity: .5; }
-  .table-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .table-row-actions { display: flex; }
-  @media (max-width: 640px) { .table-row { grid-template-columns: auto minmax(0, 1fr); } .table-row > select, .table-row > .ic-badge { grid-column: 2; justify-self: start; } .table-row-actions { grid-column: 2; } }
   .check-row { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
   .cg-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .cg-row .cg-var, .cg-row .cg-val { flex: 1 1 180px; width: auto; min-width: 0; }
@@ -125,6 +95,102 @@
   .api-ref[open] summary { border-bottom: 1px solid var(--ic-border); }
   .api-ref h3 { font-size: 13px; font-weight: 600; margin: 18px 0 8px; }
   .code-block { background: var(--ic-navy-900); color: var(--ic-blue-100); padding: 16px; border-radius: var(--ic-radius); overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.55; }
+
+  /* Crosstabs: variables | shelves + live tables */
+  .xb { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .xb-right { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .xb-fields { position: sticky; top: calc(var(--ic-topbar-h) + 16px); display: flex; flex-direction: column; max-height: calc(100vh - var(--ic-topbar-h) - 32px); }
+  .xb-fields-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--ic-border); }
+  .xb-kicker { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ic-text-subtle); }
+  .xb-field-list { overflow: auto; padding: 4px 6px 8px; flex: 1; min-height: 120px; }
+  .xb-fields-foot { padding: 8px 12px 12px; border-top: 1px solid var(--ic-border); }
+  .xb-fgroup { font-size: 11.5px; font-weight: 600; color: var(--ic-text-subtle); padding: 10px 8px 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .xb-field { display: flex; align-items: center; gap: 8px; padding: 5px 4px 5px 8px; border-radius: 8px; cursor: grab; user-select: none; font-size: 13px; }
+  .xb-field:hover { background: var(--ic-surface-muted); }
+  .xb-field.is-used .xb-field-label { color: var(--ic-text-subtle); }
+  .xb-field-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .xb-used { font-size: 10.5px; color: var(--ic-blue-600); font-weight: 600; }
+  .xb-add { width: 24px; height: 24px; opacity: 0; }
+  .xb-field:hover .xb-add, .xb-add:focus-visible { opacity: 1; }
+  .is-dragging { opacity: .4; }
+  .xb-glyph { display: inline-grid; place-items: center; min-width: 22px; height: 18px; padding: 0 3px; border-radius: 4px; font-size: 9.5px; font-weight: 700; flex-shrink: 0; }
+  .xb-glyph--single { background: var(--ic-info-bg); color: var(--ic-info); }
+  .xb-glyph--multi { background: var(--ic-blue-50); color: var(--ic-navy-700); box-shadow: inset 0 0 0 1px var(--ic-blue-100); }
+  .xb-glyph--grid { background: var(--ic-success-bg); color: var(--ic-success); }
+
+  .xb-shelves { padding: 4px 0; }
+  .xb-shelf { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 14px; }
+  .xb-shelf + .xb-shelf { border-top: 1px solid var(--ic-border); }
+  .xb-shelf-head { display: flex; flex-direction: column; line-height: 1.25; }
+  .xb-shelf-head .t { font-weight: 600; font-size: 13.5px; }
+  .xb-shelf-head .sub { font-size: 11px; color: var(--ic-text-subtle); }
+  .xb-shelf-act { display: flex; align-items: center; gap: 4px; }
+  .xb-drop { min-height: 40px; border: 1.5px dashed var(--ic-border-strong); border-radius: 10px; padding: 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; transition: border-color .15s, background .15s; }
+  .xb-drop.has { border-style: solid; border-color: transparent; padding-left: 0; }
+  .xb-drop--rows { max-height: 150px; overflow-y: auto; }
+  .xb-drop--filter { display: block; }
+  .xb-drop.is-over { border-color: var(--ic-blue-500); border-style: dashed; background: var(--ic-blue-50); }
+  .xb-drop-empty { font-size: 12px; color: var(--ic-text-subtle); padding: 4px 8px; margin: 0; }
+  .xb-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; max-width: 320px; padding: 0 2px 0 4px; border-radius: 8px; background: var(--ic-surface); border: 1px solid var(--ic-border-strong); font: inherit; font-size: 12.5px; font-weight: 500; color: var(--ic-text); cursor: grab; box-shadow: var(--ic-shadow-sm); }
+  .xb-chip:hover { border-color: var(--ic-blue-500); }
+  .xb-chip.drop-before { box-shadow: -3px 0 0 var(--ic-blue-500); }
+  .xb-chip--custom { cursor: pointer; padding-right: 10px; }
+  .xb-chip .ic-icon-btn, .xb-chip .xb-glyph, .xb-grip { width: 22px; height: 22px; flex-shrink: 0; }
+  .xb-chip .xb-glyph { width: auto; height: 18px; }
+  .xb-chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .xb-grip { display: inline-flex; color: var(--ic-text-subtle); }
+  .xb-values { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+  .xb-values .ic-check { font-size: 13px; }
+  .xb-swap { height: 24px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--ic-border); font-size: 11.5px; color: var(--ic-text-muted); background: var(--ic-surface); }
+  .xb-swap:hover { color: var(--ic-text); border-color: var(--ic-border-strong); }
+  #filter-conditions:empty { display: none; }
+
+  .xb-more summary { display: flex; align-items: center; gap: 8px; padding: 12px 16px; cursor: pointer; font-weight: 600; font-size: 13.5px; list-style: none; }
+  .xb-more summary::-webkit-details-marker { display: none; }
+  .xb-more[open] summary { border-bottom: 1px solid var(--ic-border); }
+  .xb-more-body { padding: 14px 16px 16px; }
+
+  .xb-result-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; border-bottom: 1px solid var(--ic-border); }
+  .xb-live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ic-success); }
+  .xb-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px var(--ic-success-bg); }
+  .xb-live.is-busy { color: var(--ic-warning); }
+  .xb-live.is-busy::before { box-shadow: 0 0 0 3px var(--ic-warning-bg); }
+  .xb-live.is-error { color: var(--ic-danger); }
+  .xb-live.is-error::before { box-shadow: 0 0 0 3px var(--ic-danger-bg); }
+  .xb-tables { padding: 14px; display: flex; flex-direction: column; gap: 22px; min-height: 360px; }
+  .xb-result-foot { flex-wrap: wrap; }
+  .xb-table-title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .xb-table-title h3 { font-size: 14px; font-weight: 600; }
+  .xb-q { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; color: var(--ic-text-subtle); }
+  .xb-item { font-size: 12.5px; font-weight: 600; color: var(--ic-text-muted); margin: 8px 0 6px; }
+  .xb-wrap { overflow-x: auto; border: 1px solid var(--ic-border); border-radius: var(--ic-radius); }
+  .xb-xt { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+  .xb-xt th, .xb-xt td { padding: 6px 10px; border-bottom: 1px solid var(--ic-border); white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+  .xb-xt thead th { background: var(--ic-surface-muted); font-weight: 600; }
+  .xb-xt thead th.grp { text-align: center; color: var(--ic-navy-800); border-left: 1px solid var(--ic-border); }
+  .xb-xt thead th.lt { text-align: left; }
+  .xb-xt thead tr.letters th { font-weight: 500; color: var(--ic-text-subtle); font-size: 11px; }
+  .xb-xt .gl { border-left: 1px solid var(--ic-border); }
+  .xb-xt .xb-tot { color: var(--ic-text-muted); }
+  .xb-xt td.rl { text-align: left; white-space: normal; min-width: 160px; max-width: 320px; }
+  .xb-xt tr.base td { color: var(--ic-text-muted); }
+  .xb-xt tr.base td.low { color: var(--ic-warning); }
+  .xb-xt tr.net td { background: var(--ic-blue-50); font-weight: 600; }
+  .xb-xt tr.NET td { font-weight: 600; }
+  .xb-xt tr:last-child td { border-bottom: 0; }
+  .xb-xt td.dim { color: var(--ic-text-subtle); }
+  .xb-sig { color: var(--ic-blue-600); font-weight: 700; font-size: 10.5px; margin-left: 3px; vertical-align: super; }
+  .xb-count { display: block; font-size: 11px; color: var(--ic-text-subtle); }
+  @media (max-width: 1100px) { .xb { grid-template-columns: 220px minmax(0, 1fr); } }
+  @media (max-width: 760px) {
+    .xb { grid-template-columns: minmax(0, 1fr); }
+    .xb-chip { max-width: 100%; }
+    .xb-more summary { flex-wrap: wrap; }
+    .xb-fields { position: static; max-height: none; }
+    .xb-field-list { max-height: 280px; }
+    .xb-shelf { grid-template-columns: 1fr; gap: 6px; }
+    .xb-add { opacity: 1; }
+  }
 
   #review-frame { display: block; width: 100%; border: 0; border-radius: var(--ic-radius); }
 </style>
@@ -301,106 +367,152 @@
         </div>
       </section>
 
-      <!-- Step 3: Banners -->
-      <section id="banners-section" class="ic-card fade-in" hidden>
-        <div class="ic-card-header step-head">
-          <h2 class="ic-section-title">Select banners</h2>
-          <p class="ic-help">The columns in your crosstab.</p>
-        </div>
-        <div class="ic-card-body">
-          <p class="ic-muted" style="font-size:12.5px;margin-bottom:14px">Banners are the demographic variables that appear as columns across the top of your table (e.g., Gender, Age, Region). Each banner category gets a letter for significance testing &mdash; e.g., Gender: Male (A), Female (B); Region: London (C), North (D), South (E).</p>
-          <div id="banner-chips" class="chips" style="margin-bottom:16px"></div>
-          <p class="ic-label">Selected</p>
-          <div id="selected-banners" class="selected-row"></div>
-
-          <div class="subsection">
-            <div class="subsection-head">
-              <label class="ic-section-title" style="font-size:14px">Respondents</label>
-              <button type="button" onclick="addConditionRow('filter-conditions')" class="ic-btn ic-btn--secondary ic-btn--sm"><ic-icon name="filter" size="14"></ic-icon>Add condition</button>
+      <!-- Step 3: Crosstabs — variables on the left; Columns, Rows, Filter and Values; the tables, live -->
+      <section id="crosstabs-section" class="fade-in" hidden>
+        <div class="xb">
+          <aside class="ic-card xb-fields" aria-label="Variables">
+            <div class="xb-fields-head">
+              <span class="xb-kicker">Variables</span>
+              <span id="xb-field-count" class="ic-help"></span>
             </div>
-            <p class="ic-help" style="margin-bottom:10px">Everyone is tabulated unless you add conditions. With conditions (all must be true), only those respondents are, and Total is their total &mdash; e.g. Survey Finish State = completed.</p>
-            <div id="filter-conditions" class="list-stack"></div>
-          </div>
-        </div>
-        <div class="ic-card-footer step-footer">
-          <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
-          <button type="button" class="ic-btn ic-btn--primary js-next" onclick="nextStep()">Next <ic-icon name="arrow-right" size="16"></ic-icon></button>
-        </div>
-      </section>
-
-      <!-- Step 4: Stubs + MRS -->
-      <section id="stubs-section" class="ic-card fade-in" hidden>
-        <div class="ic-card-header step-head">
-          <h2 class="ic-section-title">Tables</h2>
-          <p class="ic-help">Every table in the output, in order. Untick a table to leave it out; its title is what the table is called.</p>
-        </div>
-        <div class="ic-card-body">
-          <div class="tables-toolbar">
-            <input type="search" id="tables-filter" placeholder="Filter tables" class="ic-input ic-input--sm" aria-label="Filter tables">
-            <label class="ic-check"><input type="checkbox" id="tables-only-on"> Included only</label>
-            <span id="tables-count" class="ic-help"></span>
-            <span class="tables-toolbar-gap"></span>
-            <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="setAllTables(true)">Include all</button>
-            <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="setAllTables(false)">None</button>
-          </div>
-          <p id="tables-detected" class="ic-alert ic-alert--success is-block" style="font-size:12.5px;margin-bottom:10px" hidden></p>
-          <div id="tables-list" class="tables-list"></div>
-
-          <!-- Open-end warning -->
-          <div id="open-end-warning" class="hidden ic-alert ic-alert--warning is-block" style="margin-top:12px;font-size:12.5px">
-          </div>
-
-          <!-- MRS Groups -->
-          <div class="subsection">
-            <div class="subsection-head">
-              <label class="ic-section-title" style="font-size:14px">Group questions into one table</label>
-              <div class="ic-row" style="gap:6px">
-                <button type="button" onclick="toggleMrsPanel()" class="ic-btn ic-btn--secondary ic-btn--sm"><ic-icon name="plus" size="14"></ic-icon>Multi-select set</button>
-                <button type="button" onclick="toggleGridPanel()" class="ic-btn ic-btn--secondary ic-btn--sm" id="grid-add-btn"><ic-icon name="plus" size="14"></ic-icon>Grid</button>
-              </div>
+            <div style="padding:10px 10px 4px">
+              <div class="ic-search" style="max-width:none"><ic-icon name="search" size="16"></ic-icon>
+                <input id="xb-field-search" type="search" placeholder="Search variables" aria-label="Search variables"></div>
             </div>
-            <p class="ic-help" style="margin-bottom:10px"><strong>Multi-select set:</strong> "select all that apply", one yes/no variable per option; percentages can add to more than 100%. <strong>Grid:</strong> questions with the same answers (ratings, rankings) side by side in one table.</p>
-            <div id="mrs-groups" hidden></div>
-            <div id="mrs-panel" class="hidden ic-panel fade-in" style="margin-top:12px">
-              <div class="ic-field">
-                <label class="ic-label" for="mrs-name">Group name</label>
-                <input type="text" id="mrs-name" placeholder="e.g. Brand Awareness" class="ic-input">
+            <div id="xb-field-list" class="xb-field-list"></div>
+            <p class="ic-help xb-fields-foot">Drag into Columns, Rows or Filter, or use <strong>+</strong>. Double-click adds to Rows.</p>
+          </aside>
+
+          <div class="xb-right">
+            <section class="ic-card xb-shelves" aria-label="Table layout">
+              <div class="xb-shelf">
+                <div class="xb-shelf-head"><span class="t">Columns</span><span class="sub">across the top</span></div>
+                <div id="shelf-columns" class="xb-drop" data-shelf="columns"></div>
+                <div class="xb-shelf-act">
+                  <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="openCustomGroups()" title="Columns built from conditions, e.g. London + aware of Uber"><ic-icon name="plus" size="14"></ic-icon>Custom group</button>
+                  <button type="button" class="xb-swap" onclick="swapShelves()" title="Swap rows and columns">⇅ Swap</button>
+                </div>
               </div>
-              <label class="ic-label" for="mrs-filter">Select member variables <span id="mrs-count" class="ic-help">(0 selected)</span></label>
-              <input type="text" id="mrs-filter" placeholder="Type to filter variables..." class="ic-input ic-input--sm" style="margin-bottom:6px" oninput="filterMrsMembers()">
-              <select id="mrs-members" multiple class="ic-select" onchange="updateMrsCount()"></select>
-              <p class="ic-help" style="margin-top:6px">Hold Ctrl/Cmd to select multiple. Tip: filter by prefix (e.g. "AWARE" or "Q5")</p>
-              <div class="ic-row" style="margin-top:14px">
-                <button type="button" onclick="addMrsGroup()" class="ic-btn ic-btn--primary ic-btn--sm">Add group</button>
-                <button type="button" onclick="toggleMrsPanel()" class="ic-btn ic-btn--secondary ic-btn--sm">Cancel</button>
+              <div class="xb-shelf">
+                <div class="xb-shelf-head"><span class="t">Rows</span><span class="sub" id="xb-rows-count">one table each</span></div>
+                <div id="shelf-rows" class="xb-drop xb-drop--rows" data-shelf="rows"></div>
+                <div class="xb-shelf-act">
+                  <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="setAllTables(true)" title="One table per question">Add all</button>
+                  <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="setAllTables(false)">Clear</button>
+                </div>
               </div>
-            </div>
-            <div id="grid-groups" hidden></div>
-            <div id="grid-panel" class="hidden ic-panel fade-in" style="margin-top:12px">
-              <div class="ic-field">
-                <label class="ic-label" for="grid-name">Group name</label>
-                <input type="text" id="grid-name" placeholder="e.g. Satisfaction Battery" class="ic-input">
+              <div class="xb-shelf">
+                <div class="xb-shelf-head"><span class="t">Filter</span><span class="sub">who is counted</span></div>
+                <div class="xb-drop xb-drop--filter" data-shelf="filter">
+                  <div id="filter-conditions" class="list-stack"></div>
+                  <p id="xb-filter-empty" class="xb-drop-empty">Everyone. Drop a variable here to count only some respondents (all conditions must be true).</p>
+                </div>
+                <div class="xb-shelf-act">
+                  <button type="button" onclick="addConditionRow('filter-conditions'); renderFilterShelf()" class="ic-btn ic-btn--ghost ic-btn--sm"><ic-icon name="filter" size="14"></ic-icon>Condition</button>
+                </div>
               </div>
-              <label class="ic-label" for="grid-filter">Select scale variables <span id="grid-count" class="ic-help">(0 selected)</span></label>
-              <input type="text" id="grid-filter" placeholder="Type to filter (e.g. sat_, Q20)..." class="ic-input ic-input--sm" style="margin-bottom:6px" oninput="filterGridMembers()">
-              <select id="grid-members" multiple class="ic-select" onchange="updateGridCount()"></select>
-              <p class="ic-help" style="margin-top:6px">Select variables that share the same scale (e.g., all 1-5 satisfaction questions)</p>
-              <div class="check-row" style="margin:14px 0">
-                <span class="ic-label" style="margin:0">Show:</span>
-                <label class="ic-check"><input type="checkbox" id="grid-show-t2b" checked> Top 2 Box</label>
-                <label class="ic-check"><input type="checkbox" id="grid-show-b2b" checked> Bottom 2 Box</label>
-                <label class="ic-check"><input type="checkbox" id="grid-show-mean" checked> Mean</label>
+              <div class="xb-shelf">
+                <div class="xb-shelf-head"><span class="t">Values</span><span class="sub">in each cell</span></div>
+                <div class="xb-values">
+                  <label class="ic-check"><input type="checkbox" id="xb-show-pct" checked> Column %</label>
+                  <label class="ic-check"><input type="checkbox" id="xb-show-counts"> Counts</label>
+                  <label class="ic-check"><input type="checkbox" id="xb-t2b" checked> Top 2 / Bottom 2 Box</label>
+                  <label class="ic-check"><input type="checkbox" id="xb-sort"> Sort by Total</label>
+                  <label class="ic-check">Significance
+                    <select id="xb-sig" class="ic-select ic-select--sm" style="width:auto" aria-label="Significance level"></select></label>
+                </div>
+                <div></div>
               </div>
-              <div class="ic-row" style="padding-top:12px;border-top:1px solid var(--ic-border)">
-                <button type="button" onclick="addGridGroup()" class="ic-btn ic-btn--primary ic-btn--sm">Add grid</button>
-                <button type="button" onclick="toggleGridPanel()" class="ic-btn ic-btn--secondary ic-btn--sm">Cancel</button>
+            </section>
+
+            <details id="xb-groups" class="ic-card xb-more">
+              <summary><ic-icon name="layers" size="16"></ic-icon>Group questions into one table <span id="tables-detected" class="ic-help" hidden></span></summary>
+              <div class="xb-more-body">
+                <p class="ic-help" style="margin-bottom:10px"><strong>Multi-select set:</strong> "select all that apply", one yes/no variable per option; percentages can add to more than 100%. <strong>Grid:</strong> questions with the same answers (ratings, rankings) side by side in one table. Groups show in the variable list and go into Rows like any question.</p>
+                <div class="ic-row" style="gap:6px">
+                  <button type="button" onclick="toggleMrsPanel()" class="ic-btn ic-btn--secondary ic-btn--sm"><ic-icon name="plus" size="14"></ic-icon>Multi-select set</button>
+                  <button type="button" onclick="toggleGridPanel()" class="ic-btn ic-btn--secondary ic-btn--sm" id="grid-add-btn"><ic-icon name="plus" size="14"></ic-icon>Grid</button>
+                </div>
+                <div id="mrs-groups" hidden></div>
+                <div id="mrs-panel" class="hidden ic-panel fade-in" style="margin-top:12px">
+                  <div class="ic-field">
+                    <label class="ic-label" for="mrs-name">Group name</label>
+                    <input type="text" id="mrs-name" placeholder="e.g. Brand Awareness" class="ic-input">
+                  </div>
+                  <label class="ic-label" for="mrs-filter">Select member variables <span id="mrs-count" class="ic-help">(0 selected)</span></label>
+                  <input type="text" id="mrs-filter" placeholder="Type to filter variables..." class="ic-input ic-input--sm" style="margin-bottom:6px" oninput="filterMrsMembers()">
+                  <select id="mrs-members" multiple class="ic-select" onchange="updateMrsCount()"></select>
+                  <p class="ic-help" style="margin-top:6px">Hold Ctrl/Cmd to select multiple. Tip: filter by prefix (e.g. "AWARE" or "Q5")</p>
+                  <div class="ic-row" style="margin-top:14px">
+                    <button type="button" onclick="addMrsGroup()" class="ic-btn ic-btn--primary ic-btn--sm">Add group</button>
+                    <button type="button" onclick="toggleMrsPanel()" class="ic-btn ic-btn--secondary ic-btn--sm">Cancel</button>
+                  </div>
+                </div>
+                <div id="grid-groups" hidden></div>
+                <div id="grid-panel" class="hidden ic-panel fade-in" style="margin-top:12px">
+                  <div class="ic-field">
+                    <label class="ic-label" for="grid-name">Group name</label>
+                    <input type="text" id="grid-name" placeholder="e.g. Satisfaction Battery" class="ic-input">
+                  </div>
+                  <label class="ic-label" for="grid-filter">Select scale variables <span id="grid-count" class="ic-help">(0 selected)</span></label>
+                  <input type="text" id="grid-filter" placeholder="Type to filter (e.g. sat_, Q20)..." class="ic-input ic-input--sm" style="margin-bottom:6px" oninput="filterGridMembers()">
+                  <select id="grid-members" multiple class="ic-select" onchange="updateGridCount()"></select>
+                  <p class="ic-help" style="margin-top:6px">Select variables that share the same scale (e.g., all 1-5 satisfaction questions)</p>
+                  <div class="check-row" style="margin:14px 0">
+                    <span class="ic-label" style="margin:0">Show:</span>
+                    <label class="ic-check"><input type="checkbox" id="grid-show-t2b" checked> Top 2 Box</label>
+                    <label class="ic-check"><input type="checkbox" id="grid-show-b2b" checked> Bottom 2 Box</label>
+                    <label class="ic-check"><input type="checkbox" id="grid-show-mean" checked> Mean</label>
+                  </div>
+                  <div class="ic-row" style="padding-top:12px;border-top:1px solid var(--ic-border)">
+                    <button type="button" onclick="addGridGroup()" class="ic-btn ic-btn--primary ic-btn--sm">Add grid</button>
+                    <button type="button" onclick="toggleGridPanel()" class="ic-btn ic-btn--secondary ic-btn--sm">Cancel</button>
+                  </div>
+                </div>
               </div>
-            </div>
+            </details>
+
+            <details id="xb-custom" class="ic-card xb-more">
+              <summary><ic-icon name="columns" size="16"></ic-icon>Custom groups <span id="xb-custom-count" class="ic-help"></span></summary>
+              <div class="xb-more-body">
+                <p class="ic-muted" style="font-size:12.5px;margin-bottom:14px">Columns built from conditions, e.g. "London + Uber users" = region is London AND aware of Uber. Each group is a column, tested against the others.</p>
+                <div class="ic-field" style="max-width:320px">
+                  <label class="ic-label" for="cg-banner-name">Banner name</label>
+                  <input type="text" id="cg-banner-name" placeholder="Custom Groups" class="ic-input">
+                  <p class="ic-help">Shown above the group columns, and in sheet names ("By Data Cut").</p>
+                </div>
+                <div id="custom-groups-list" class="list-stack" style="margin-bottom:12px"></div>
+                <div id="cg-builder" class="hidden ic-panel fade-in">
+                  <div class="ic-field">
+                    <label class="ic-label" for="cg-name">Group name</label>
+                    <input type="text" id="cg-name" placeholder="e.g. London Uber Users" class="ic-input">
+                  </div>
+                  <p class="ic-label">Conditions <span class="ic-help">(all must be true &mdash; AND logic)</span></p>
+                  <div id="cg-conditions" class="list-stack" style="margin-bottom:10px"></div>
+                  <button type="button" onclick="addConditionRow()" class="ic-btn ic-btn--ghost ic-btn--sm" style="margin-bottom:12px"><ic-icon name="plus" size="14"></ic-icon>Add condition</button>
+                  <div class="ic-row" style="padding-top:12px;border-top:1px solid var(--ic-border)">
+                    <button type="button" onclick="saveCustomGroup()" class="ic-btn ic-btn--primary ic-btn--sm">Save group</button>
+                    <button type="button" onclick="cancelCustomGroup()" class="ic-btn ic-btn--secondary ic-btn--sm">Cancel</button>
+                  </div>
+                </div>
+                <button type="button" id="cg-add-btn" onclick="openCustomGroupBuilder()" class="ic-btn ic-btn--secondary"><ic-icon name="plus" size="16"></ic-icon>Add custom group</button>
+              </div>
+            </details>
+
+            <section class="ic-card xb-result" aria-label="Tables">
+              <div class="xb-result-bar">
+                <span id="xb-live" class="xb-live">Live</span>
+                <span id="xb-result-meta" class="ic-help"></span>
+              </div>
+              <div id="open-end-warning" class="hidden ic-alert ic-alert--warning is-block" style="margin:12px 14px 0;font-size:12.5px"></div>
+              <div id="xb-tables" class="xb-tables"></div>
+              <div class="ic-card-footer step-footer xb-result-foot">
+                <span id="xb-legend" class="ic-help" style="margin-right:auto"></span>
+                <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
+                <button type="button" class="ic-btn ic-btn--primary js-next" onclick="nextStep()">Next <ic-icon name="arrow-right" size="16"></ic-icon></button>
+              </div>
+            </section>
           </div>
-        </div>
-        <div class="ic-card-footer step-footer">
-          <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
-          <button type="button" class="ic-btn ic-btn--primary js-next" onclick="nextStep()">Next <ic-icon name="arrow-right" size="16"></ic-icon></button>
         </div>
       </section>
 
@@ -506,47 +618,6 @@
               </label>
             </div>
           </div>
-        </div>
-        <div class="ic-card-footer step-footer">
-          <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
-          <button type="button" class="ic-btn ic-btn--primary js-next" onclick="nextStep()">Next <ic-icon name="arrow-right" size="16"></ic-icon></button>
-        </div>
-      </section>
-
-      <!-- Step 6: Custom Groups -->
-      <section id="custom-groups-section" class="ic-card fade-in" hidden>
-        <div class="ic-card-header step-head">
-          <h2 class="ic-section-title">Custom groups <span class="ic-badge" style="margin-left:6px">Optional</span></h2>
-          <p class="ic-help">Define custom banner columns by combining conditions.</p>
-        </div>
-        <div class="ic-card-body">
-          <p class="ic-muted" style="font-size:12.5px;margin-bottom:14px">Example: "London + Uber users" = region is London AND aware of Uber. Each group becomes a column with significance testing.</p>
-
-          <div class="ic-field" style="max-width:320px">
-            <label class="ic-label" for="cg-banner-name">Banner name</label>
-            <input type="text" id="cg-banner-name" placeholder="Custom Groups" class="ic-input">
-            <p class="ic-help">Shown above the group columns, and in sheet names ("By Data Cut").</p>
-          </div>
-
-          <div id="custom-groups-list" class="list-stack" style="margin-bottom:12px"></div>
-
-          <div id="cg-builder" class="hidden ic-panel fade-in">
-            <div class="ic-field">
-              <label class="ic-label" for="cg-name">Group name</label>
-              <input type="text" id="cg-name" placeholder="e.g. London Uber Users" class="ic-input">
-            </div>
-
-            <p class="ic-label">Conditions <span class="ic-help">(all must be true &mdash; AND logic)</span></p>
-            <div id="cg-conditions" class="list-stack" style="margin-bottom:10px"></div>
-            <button type="button" onclick="addConditionRow()" class="ic-btn ic-btn--ghost ic-btn--sm" style="margin-bottom:12px"><ic-icon name="plus" size="14"></ic-icon>Add condition</button>
-
-            <div class="ic-row" style="padding-top:12px;border-top:1px solid var(--ic-border)">
-              <button type="button" onclick="saveCustomGroup()" class="ic-btn ic-btn--primary ic-btn--sm">Save group</button>
-              <button type="button" onclick="cancelCustomGroup()" class="ic-btn ic-btn--secondary ic-btn--sm">Cancel</button>
-            </div>
-          </div>
-
-          <button type="button" id="cg-add-btn" onclick="openCustomGroupBuilder()" class="ic-btn ic-btn--secondary"><ic-icon name="plus" size="16"></ic-icon>Add custom group</button>
         </div>
         <div class="ic-card-footer step-footer">
           <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
@@ -689,8 +760,8 @@ function appendData(form) {
 }
 
 // ── Stepper: one step's card at a time ──
-const STEP_LABELS = ['Dataset', 'Variables', 'Banners', 'Tables', 'Options', 'Custom groups', 'Generate'];
-const STEP_PANELS = ['upload-section', 'review-section', 'banners-section', 'stubs-section', 'options-section', 'custom-groups-section', 'generate-section'];
+const STEP_LABELS = ['Dataset', 'Variables', 'Crosstabs', 'Options', 'Generate'];
+const STEP_PANELS = ['upload-section', 'review-section', 'crosstabs-section', 'options-section', 'generate-section'];
 let currentStep = 0, furthestStep = 0;
 let metaReady = false;  // steps after Dataset unlock once the file's metadata has loaded
 
@@ -713,6 +784,7 @@ function goStep(i) {
   renderContext();
   // The review frame measured itself while hidden: ask it for its height again now it has a width
   if (STEP_PANELS[i] === 'review-section') requestAnimationFrame(syncReviewHeight);
+  if (STEP_PANELS[i] === 'crosstabs-section') { syncValues(); renderCrosstabs(); }
   window.scrollTo({ top: 0 });
 }
 
@@ -829,7 +901,7 @@ window.addEventListener('message', async (e) => {
     reviewedCodebook = msg.codebook;  // null when nothing was edited
     status.textContent = reviewedCodebook ? 'Edited coding applied' : 'Inferred coding';
     if (reviewedCodebook) await loadMetadata();  // banners/stubs now include edits + derived variables
-    goStep(STEP_PANELS.indexOf('banners-section'));
+    goStep(STEP_PANELS.indexOf('crosstabs-section'));
   }
 });
 
@@ -918,49 +990,14 @@ async function loadMetadata() {
 
 // ── Populate UI from metadata ──
 function populateUI() {
-  const chipsEl = document.getElementById('banner-chips');
   const weightSel = document.getElementById('weight-select');
   const mrsSel = document.getElementById('mrs-members');
   const gridSel = document.getElementById('grid-members');
-  chipsEl.innerHTML = ''; mrsSel.innerHTML = ''; gridSel.innerHTML = '';
+  mrsSel.innerHTML = ''; gridSel.innerHTML = '';
   weightSel.innerHTML = '<option value="">None (unweighted)</option>';
 
-  // ── Smart banners: show suggested first, then separator, then rest ──
-  const suggestedVars = new Set((metadata.suggested_banners || []).map(b => b.variable));
-  const bannerVars = metadata.variables.filter(v => {
-    const vl = v.value_labels ? Object.keys(v.value_labels).length : 0;
-    return vl >= 2 && vl <= 15;
-  });
-  const suggested = bannerVars.filter(v => suggestedVars.has(v.name));
-  const rest = bannerVars.filter(v => !suggestedVars.has(v.name));
-
-  // "Total" option — always first, always available
-  const totalChip = document.createElement('button');
-  totalChip.className = 'chip active';
-  totalChip.innerHTML = '<span class="chip-label">Total</span> <span class="ic-help">(all respondents)</span>';
-  totalChip.title = 'Total column — frequency of all respondents. Always included.';
-  totalChip.style.cursor = 'default';
-  totalChip.style.opacity = '0.8';
-  totalChip.disabled = true;
-  chipsEl.appendChild(totalChip);
-
-  if (suggested.length > 0) {
-    const label = document.createElement('div');
-    label.className = 'chip-group-label t-success';
-    label.textContent = 'Recommended banners';
-    chipsEl.appendChild(label);
-    for (const v of suggested) { chipsEl.appendChild(_makeBannerChip(v, true)); }
-    if (rest.length > 0) {
-      const sep = document.createElement('div');
-      sep.className = 'chip-sep';
-      chipsEl.appendChild(sep);
-      const lbl2 = document.createElement('div');
-      lbl2.className = 'chip-group-label';
-      lbl2.textContent = 'Other variables';
-      chipsEl.appendChild(lbl2);
-    }
-  }
-  for (const v of rest) { chipsEl.appendChild(_makeBannerChip(v, false)); }
+  // Suggested banners are marked in the Crosstabs variable list; none is picked for the analyst
+  suggestedBannerNames = new Set((metadata.suggested_banners || []).map(b => b.variable));
 
   let openEndCount = 0;
   let openEndNames = [];
@@ -1060,58 +1097,14 @@ function populateUI() {
   updateSummary();
 }
 
-function _makeBannerChip(v, isSuggested) {
-  const vl = v.value_labels ? Object.keys(v.value_labels).length : 0;
-  const chip = document.createElement('button');
-  chip.className = 'chip';
-  const shortLabel = v.label ? `${v.label.substring(0, 40)}${v.label.length > 40 ? '...' : ''}` : v.name;
-  const badge = isSuggested ? '<span class="ic-badge ic-badge--success">AI</span>' : '';
-  chip.innerHTML = `<span class="chip-name">${v.name}</span> <span class="chip-label">${shortLabel}</span> <span class="ic-help">(${vl})</span>${badge}`;
-  chip.title = `${v.name}: ${v.label || ''} — ${vl} categories${isSuggested ? ' (recommended by AI)' : ''}`;
-  chip.dataset.varname = v.name;
-  chip.addEventListener('click', () => toggleBanner(v.name, chip));
-  return chip;
-}
-
-// One note above the Tables list, rewritten on every metadata load (not added to)
+// One note on "Group questions into one table", rewritten on every metadata load (not added to)
 const detectedNotes = {};
 function _showAutoDetectBadge(kind, text) {
   detectedNotes[kind] = text;
   const note = document.getElementById('tables-detected');
   const parts = Object.values(detectedNotes).filter(Boolean);
   note.hidden = !parts.length;
-  note.textContent = parts.length ? `Detected: ${parts.join(', ')}. They're in the list below; ungroup or change any of them.` : '';
-}
-
-// ── Banner selection ──
-function toggleBanner(varName, chipEl) {
-  const idx = selectedBanners.indexOf(varName);
-  if (idx >= 0) {
-    selectedBanners.splice(idx, 1);
-    chipEl.classList.remove('selected');
-  } else {
-    selectedBanners.push(varName);
-    chipEl.classList.add('selected');
-  }
-  renderSelectedBanners();
-  updateSummary();
-}
-
-function renderSelectedBanners() {
-  const el = document.getElementById('selected-banners');
-  if (selectedBanners.length === 0) { el.innerHTML = '<span class="ic-help">No banners selected</span>'; return; }
-  el.innerHTML = selectedBanners.map((b, i) => {
-    const v = metadata.variables.find(v => v.name === b);
-    const label = v?.label || b;
-    const nCats = v?.value_labels ? Object.keys(v.value_labels).length : '?';
-    return `<span class="pill pill-blue">${label} <span class="ic-help">(${nCats})</span> <span class="remove" onclick="removeBanner('${b}')">&times;</span></span>`;
-  }).join('');
-}
-
-function removeBanner(varName) {
-  selectedBanners = selectedBanners.filter(b => b !== varName);
-  document.querySelectorAll('.chip').forEach(c => { if (c.dataset.varname === varName) c.classList.remove('selected'); });
-  renderSelectedBanners(); updateSummary();
+  note.textContent = parts.length ? `· detected ${parts.join(', ')}` : '';
 }
 
 // ── Stub mode ──
@@ -1232,39 +1225,7 @@ function currentTables() {
   return tableOrder.map(k => byKey[k]);
 }
 
-const TABLE_KINDS = { single: 'Single question', multi: 'Multi-select set', grid: 'Grid (items side by side)' };
-
-function renderTables() {
-  const box = document.getElementById('tables-list');
-  if (!box) return;
-  const all = currentTables();
-  const q = document.getElementById('tables-filter').value.trim().toLowerCase();
-  const onlyOn = document.getElementById('tables-only-on').checked;
-  const shown = all.filter(t => (!onlyOn || !tablesOff.has(t.key)) && (!q || `${t.title} ${t.detail} ${t.name}`.toLowerCase().includes(q)));
-  document.getElementById('tables-count').textContent = `${all.filter(t => !tablesOff.has(t.key)).length} of ${all.length} included`;
-  box.replaceChildren(...shown.map(t => {
-    const off = tablesOff.has(t.key);
-    const type = t.kind === 'single'
-      ? IC.el('span', { class: 'ic-badge' }, TABLE_KINDS.single)
-      : IC.el('select', { class: 'ic-select ic-select--sm', 'aria-label': 'Table type', onchange: (e) => setGroupKind(t, e.target.value) },
-          ...['multi', 'grid'].map(k => IC.el('option', { value: k, selected: k === t.kind }, TABLE_KINDS[k])));
-    return IC.el('div', { class: `table-row${off ? ' is-off' : ''}` },
-      IC.el('input', { type: 'checkbox', class: 'ic-checkbox', checked: !off, 'aria-label': 'Include this table',
-        onchange: (e) => { e.target.checked ? tablesOff.delete(t.key) : tablesOff.add(t.key); renderTables(); updateSummary(); } }),
-      IC.el('div', { class: 'table-row-main' },
-        IC.el('input', { class: 'ic-input ic-input--sm', value: t.title, 'aria-label': 'Table title',
-          onchange: (e) => renameTable(t, e.target.value) }),
-        IC.el('span', { class: 'ic-help' }, t.detail)),
-      type,
-      IC.el('div', { class: 'table-row-actions' },
-        IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': 'Move up', onclick: () => moveTable(t.key, -1) }, '↑'),
-        IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': 'Move down', onclick: () => moveTable(t.key, 1) }, '↓'),
-        t.kind === 'single' ? null : IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': 'Ungroup',
-          title: 'Ungroup: one table per question',
-          onclick: () => { delete (t.kind === 'multi' ? mrsGroups : gridGroups)[t.name]; renderTables(); updateSummary(); } },
-          IC.icon('x', 16))));
-  }));
-}
+function renderTables() { renderCrosstabs(); }
 
 function moveTable(key, step) {
   currentTables();  // order is in sync with the tables there are
@@ -1304,8 +1265,332 @@ function setAllTables(on) {
   renderTables(); updateSummary();
 }
 
-document.getElementById('tables-filter').addEventListener('input', renderTables);
-document.getElementById('tables-only-on').addEventListener('change', renderTables);
+
+// ── Step 3: Crosstabs ──
+// The shelves edit the same state the export uses: Columns = selectedBanners, Rows = the
+// included tables in order (tableOrder / tablesOff / tableTitles, plus multi-select and grid
+// groups), Filter = the respondent conditions. The tables below come from /v1/tabulate/preview,
+// i.e. the same calculation as the Excel.
+let suggestedBannerNames = new Set();
+const varByName = (name) => metadata?.variables.find(v => v.name === name);
+const nLabels = (v) => Object.keys(v?.value_labels || {}).length;
+const bannerable = (name) => { const n = nLabels(varByName(name)); return n >= 2 && n <= 15; };
+const isCrosstabsStep = () => STEP_PANELS[currentStep] === 'crosstabs-section';
+
+// Single questions, multi-select sets and grids that can be tables or columns
+function crosstabFields() {
+  if (!metadata) return [];
+  const grouped = new Set([...Object.values(mrsGroups).flat(), ...Object.values(gridGroups).flatMap(g => g.variables)]);
+  return [
+    ...Object.entries(mrsGroups).map(([name, vars]) => ({ key: `m:${name}`, kind: 'multi', name, label: name, detail: `${vars.length} options` })),
+    ...Object.entries(gridGroups).map(([name, g]) => ({ key: `g:${name}`, kind: 'grid', name, label: name, detail: `${g.variables.length} items` })),
+    ...metadata.variables.filter(v => nLabels(v) >= 2 && !grouped.has(v.name))
+      .map(v => ({ key: `v:${v.name}`, kind: 'single', name: v.name, label: v.label || v.name, detail: v.name })),
+  ];
+}
+const KIND_GLYPH = { single: '1·2', multi: 'check', grid: 'grid' };
+function kindGlyph(kind) {
+  return IC.el('span', { class: `xb-glyph xb-glyph--${kind}`, 'aria-hidden': 'true' },
+    kind === 'single' ? KIND_GLYPH.single : IC.icon(KIND_GLYPH[kind], 12));
+}
+function placeOf(key) {
+  if (key.startsWith('v:') && selectedBanners.includes(key.slice(2))) return 'Column';
+  if (currentTables().some(t => t.key === key) && !tablesOff.has(key)) return 'Row';
+  if (key.startsWith('v:') && readConditions('filter-conditions').some(c => c.variable === key.slice(2))) return 'Filter';
+  return '';
+}
+
+// ── Moves (every shelf change goes through these) ──
+function toColumns(name, before) {
+  if (!bannerable(name)) { IC.toast('Columns need a question with 2 to 15 answers. Put it in Rows instead.', 'danger'); return; }
+  selectedBanners = selectedBanners.filter(b => b !== name);
+  const at = before ? selectedBanners.indexOf(before) : -1;
+  at < 0 ? selectedBanners.push(name) : selectedBanners.splice(at, 0, name);
+  updateSummary();
+}
+function toRows(key, beforeKey) {
+  if (key.startsWith('v:')) selectedBanners = selectedBanners.filter(b => b !== key.slice(2));
+  tablesOff.delete(key);
+  currentTables();  // the table order now includes it
+  if (beforeKey && beforeKey !== key) {
+    tableOrder = tableOrder.filter(k => k !== key);
+    const at = tableOrder.indexOf(beforeKey);
+    at < 0 ? tableOrder.push(key) : tableOrder.splice(at, 0, key);
+  }
+  updateSummary();
+}
+function toFilter(name) {
+  const row = addConditionRow('filter-conditions');
+  const sel = row.querySelector('.cg-var');
+  sel.value = name;
+  onCgVarChange(sel);
+  renderFilterShelf();
+}
+function dropOn(shelf, key, beforeKey) {
+  if (shelf === 'columns') {
+    if (!key.startsWith('v:')) { IC.toast('A multi-select set or grid goes in Rows.', 'danger'); return; }
+    toColumns(key.slice(2), beforeKey?.startsWith('v:') ? beforeKey.slice(2) : null);
+  } else if (shelf === 'rows') toRows(key, beforeKey);
+  else if (shelf === 'filter') {
+    if (!key.startsWith('v:')) { IC.toast('Filter on a single question.', 'danger'); return; }
+    toFilter(key.slice(2));
+  }
+}
+function swapShelves() {
+  const rows = currentTables().filter(t => !tablesOff.has(t.key));
+  const toCols = rows.filter(t => t.kind === 'single' && bannerable(t.name)).map(t => t.name);
+  const oldCols = [...selectedBanners];
+  setAllTables(false);
+  selectedBanners = toCols;
+  for (const name of oldCols) tablesOff.delete(`v:${name}`);
+  updateSummary();
+}
+function openCustomGroups() {
+  const d = document.getElementById('xb-custom');
+  d.open = true;
+  if (!customGroups.length) openCustomGroupBuilder();
+  d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// ── Variable list ──
+let dragKey = null;
+function renderFieldList() {
+  const list = document.getElementById('xb-field-list');
+  if (!list || !metadata) return;
+  const q = document.getElementById('xb-field-search').value.trim().toLowerCase();
+  const fields = crosstabFields().filter(f => !q || `${f.label} ${f.name}`.toLowerCase().includes(q));
+  const sections = [
+    ['Suggested columns', fields.filter(f => f.kind === 'single' && suggestedBannerNames.has(f.name))],
+    ['Groups', fields.filter(f => f.kind !== 'single')],
+    ['Questions', fields.filter(f => f.kind === 'single' && !suggestedBannerNames.has(f.name))],
+  ];
+  const nAll = crosstabFields().length;
+  document.getElementById('xb-field-count').textContent = `${nAll} to tabulate`;
+  list.replaceChildren(...sections.filter(([, fs]) => fs.length).flatMap(([title, fs]) =>
+    [IC.el('div', { class: 'xb-fgroup' }, title), ...fs.map(fieldItem)]));
+  if (!list.children.length) list.append(IC.el('p', { class: 'ic-empty' }, 'No variables match.'));
+}
+function fieldItem(f) {
+  const place = placeOf(f.key);
+  const add = IC.el('button', { type: 'button', class: 'ic-icon-btn xb-add', 'aria-label': `Add ${f.label}`, title: 'Add to…' }, IC.icon('plus', 14));
+  add.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const entries = [{ label: 'Rows (a table)', run: () => dropOn('rows', f.key) }];
+    if (f.kind === 'single' && bannerable(f.name)) entries.push({ label: 'Columns', run: () => dropOn('columns', f.key) });
+    if (f.kind === 'single') entries.push({ label: 'Filter respondents', run: () => dropOn('filter', f.key) });
+    IC.popMenu(add, f.label, entries);
+  });
+  const item = IC.el('div', { class: `xb-field${place ? ' is-used' : ''}`, draggable: 'true', title: `${f.detail} · drag to Columns, Rows or Filter` },
+    kindGlyph(f.kind), IC.el('span', { class: 'xb-field-label' }, f.label),
+    place ? IC.el('span', { class: 'xb-used' }, place) : null, add);
+  item.addEventListener('dragstart', (e) => { dragKey = f.key; e.dataTransfer.setData('text/plain', f.key); e.dataTransfer.effectAllowed = 'copyMove'; item.classList.add('is-dragging'); });
+  item.addEventListener('dragend', () => item.classList.remove('is-dragging'));
+  item.addEventListener('dblclick', () => dropOn('rows', f.key));
+  return item;
+}
+document.getElementById('xb-field-search').addEventListener('input', renderFieldList);
+
+// ── Shelves ──
+function shelfChip(shelf, key, label, kind, menu, onRemove) {
+  const more = IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': `Options for ${label}` }, IC.icon('chevron-down', 14));
+  more.addEventListener('click', (e) => { e.stopPropagation(); IC.popMenu(more, label, menu); });
+  const chip = IC.el('div', { class: 'xb-chip', draggable: 'true', 'data-key': key },
+    IC.el('span', { class: 'xb-grip' }, IC.icon('grip', 14)), kindGlyph(kind),
+    IC.el('span', { class: 'xb-chip-label', title: label }, label), menu.length ? more : null,
+    IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': `Remove ${label}`, onclick: onRemove }, IC.icon('x', 13)));
+  chip.addEventListener('dragstart', (e) => { dragKey = key; e.dataTransfer.setData('text/plain', key); chip.classList.add('is-dragging'); });
+  chip.addEventListener('dragend', () => chip.classList.remove('is-dragging'));
+  chip.addEventListener('dragover', (e) => { e.preventDefault(); chip.classList.add('drop-before'); });
+  chip.addEventListener('dragleave', () => chip.classList.remove('drop-before'));
+  chip.addEventListener('drop', (e) => {
+    e.preventDefault(); e.stopPropagation(); chip.classList.remove('drop-before');
+    if (dragKey && dragKey !== key) dropOn(shelf, dragKey, key);
+    dragKey = null;
+  });
+  return chip;
+}
+function renderShelves() {
+  const cols = document.getElementById('shelf-columns'), rows = document.getElementById('shelf-rows');
+  if (!cols || !metadata) return;
+  const colChips = selectedBanners.map(name => {
+    const v = varByName(name);
+    return shelfChip('columns', `v:${name}`, v?.label || name, 'single',
+      [{ label: 'Move to Rows', run: () => toRows(`v:${name}`) }],
+      () => { selectedBanners = selectedBanners.filter(b => b !== name); updateSummary(); });
+  });
+  if (customGroups.length) {
+    const label = `${document.getElementById('cg-banner-name').value.trim() || 'Custom groups'}: ${customGroups.map(g => g.name).join(', ')}`;
+    const chip = IC.el('button', { type: 'button', class: 'xb-chip xb-chip--custom', onclick: openCustomGroups, title: 'Edit the custom groups' },
+      kindGlyph('grid'), IC.el('span', { class: 'xb-chip-label' }, label));
+    colChips.push(chip);
+  }
+  cols.replaceChildren(...(colChips.length ? colChips : [IC.el('p', { class: 'xb-drop-empty' }, 'Total only. Drop questions here, e.g. Gender or Age group.')]));
+  cols.classList.toggle('has', colChips.length > 0);
+
+  const included = currentTables().filter(t => !tablesOff.has(t.key));
+  rows.replaceChildren(...(included.length ? included.map(t => {
+    const menu = [{ label: 'Rename table…', run: () => { const title = prompt('Table title', t.title); if (title != null) renameTable(t, title); } }];
+    if (t.kind === 'single' && bannerable(t.name)) menu.push({ label: 'Move to Columns', run: () => toColumns(t.name) });
+    if (t.kind !== 'single') {
+      menu.push({ label: t.kind === 'multi' ? 'Show as a grid' : 'Show as a multi-select set', run: () => setGroupKind(t, t.kind === 'multi' ? 'grid' : 'multi') });
+      menu.push({ label: 'Ungroup (one table per question)', run: () => { delete (t.kind === 'multi' ? mrsGroups : gridGroups)[t.name]; updateSummary(); } });
+    }
+    return shelfChip('rows', t.key, t.title, t.kind, menu, () => { tablesOff.add(t.key); updateSummary(); });
+  }) : [IC.el('p', { class: 'xb-drop-empty' }, 'Drop questions here. Each becomes a table.')]));
+  rows.classList.toggle('has', included.length > 0);
+  document.getElementById('xb-rows-count').textContent = `${included.length} table${included.length === 1 ? '' : 's'}`;
+  document.getElementById('xb-custom-count').textContent = customGroups.length ? `(${customGroups.length})` : '';
+  renderFilterShelf();
+}
+function renderFilterShelf() {
+  const n = document.querySelectorAll('#filter-conditions > .cg-row').length;
+  document.getElementById('xb-filter-empty').hidden = n > 0;
+}
+for (const drop of document.querySelectorAll('#crosstabs-section [data-shelf]')) {
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('is-over'); });
+  drop.addEventListener('dragleave', (e) => { if (!drop.contains(e.relatedTarget)) drop.classList.remove('is-over'); });
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault(); drop.classList.remove('is-over');
+    if (dragKey) dropOn(drop.dataset.shelf, dragKey);
+    dragKey = null;
+  });
+}
+// A drag that ends anywhere clears the drop highlights (dragleave isn't always sent)
+document.addEventListener('dragend', () => document.querySelectorAll('.is-over, .drop-before').forEach(n => n.classList.remove('is-over', 'drop-before')));
+// Filter rows edit themselves (variable, operator, value): redraw the tables when they change
+document.getElementById('filter-conditions').addEventListener('change', () => { renderFieldList(); schedulePreview(); });
+
+// ── Values: mirrors of the Options step's controls ──
+const VALUE_MIRRORS = [['xb-t2b', 'opt-t2b'], ['xb-sort', 'opt-sort']];
+function syncValues() {
+  const sig = document.getElementById('sig-select'), mine = document.getElementById('xb-sig');
+  if (!mine.options.length) mine.append(...[...sig.options].map(o => IC.el('option', { value: o.value }, o.textContent)));
+  mine.value = sig.value;
+  for (const [a, b] of VALUE_MIRRORS) document.getElementById(a).checked = document.getElementById(b).checked;
+}
+document.getElementById('xb-sig').addEventListener('change', (e) => { document.getElementById('sig-select').value = e.target.value; schedulePreview(); });
+for (const [a, b] of VALUE_MIRRORS) {
+  document.getElementById(a).addEventListener('change', (e) => { document.getElementById(b).checked = e.target.checked; schedulePreview(); });
+}
+for (const id of ['xb-show-pct', 'xb-show-counts']) document.getElementById(id).addEventListener('change', () => drawPreview());
+for (const id of ['opt-bonferroni', 'weight-select', 'cg-banner-name']) document.getElementById(id).addEventListener('change', () => { renderShelves(); schedulePreview(); });
+
+function renderCrosstabs() {
+  if (!metadata) return;
+  renderFieldList();
+  renderShelves();
+  schedulePreview();
+}
+
+// ── Live tables (/v1/tabulate/preview) ──
+const PREVIEW_PAGE = 6, PREVIEW_MAX = 50;
+let previewLimit = PREVIEW_PAGE, previewTimer = null, previewCtl = null, previewSeq = 0, lastPreview = null;
+function setLive(state, text) {
+  const live = document.getElementById('xb-live');
+  live.className = `xb-live${state === 'busy' ? ' is-busy' : state === 'error' ? ' is-error' : ''}`;
+  live.textContent = text;
+}
+function schedulePreview() {
+  if (!isCrosstabsStep() || !metadata) return;
+  setLive('busy', 'Updating…');
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(runPreview, 250);
+}
+async function runPreview() {
+  const included = currentTables().filter(t => !tablesOff.has(t.key));
+  const shown = included.slice(0, Math.min(previewLimit, PREVIEW_MAX));
+  if (!shown.length) { lastPreview = null; drawPreview(); setLive('ok', 'Live'); return; }
+  const spec = buildSpec();
+  spec.tables = shown.map(t => t.name);
+  delete spec.output_mode; delete spec.title;
+  const form = new FormData();
+  appendData(form);
+  form.append('spec', JSON.stringify(spec));
+  if (previewCtl) previewCtl.abort();
+  previewCtl = new AbortController();
+  const seq = ++previewSeq;
+  try {
+    const resp = await fetch(`${API_BASE}/v1/tabulate/preview`, { method: 'POST', headers: { Authorization: `Bearer ${API_KEY}` }, body: form, signal: previewCtl.signal });
+    const body = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(body.detail?.message || body.error?.message || `HTTP ${resp.status}`);
+    if (seq !== previewSeq) return;
+    lastPreview = { data: body.data, included: included.length, shown: shown.length };
+    drawPreview();
+    setLive('ok', 'Live');
+  } catch (e) {
+    if (e.name === 'AbortError' || seq !== previewSeq) return;
+    setLive('error', 'Couldn’t update');
+    document.getElementById('xb-result-meta').textContent = e.message;
+  }
+}
+
+const pctText = (p) => p == null ? '–' : `${Math.round(p * 100)}%`;
+function baseMark(n) { return n < 30 ? ' **' : n < 100 ? ' *' : ''; }
+function drawPreview() {
+  const host = document.getElementById('xb-tables');
+  const meta = document.getElementById('xb-result-meta'), legend = document.getElementById('xb-legend');
+  const nFilter = readConditions('filter-conditions').length;
+  if (!lastPreview) {
+    host.replaceChildren(IC.el('div', { class: 'ic-empty' }, IC.icon('table', 36),
+      IC.el('div', { style: { fontWeight: 600, color: 'var(--ic-text)' } }, 'Drop a question into Rows'),
+      IC.el('div', {}, 'Each one becomes a table. Columns are shared by every table.')));
+    meta.textContent = ''; legend.textContent = '';
+    return;
+  }
+  const { data, included, shown } = lastPreview;
+  meta.textContent = [`${IC.number(data.n_cases)} respondents in the file`, nFilter ? `${nFilter} filter condition${nFilter > 1 ? 's' : ''}` : 'everyone counted',
+    included > shown ? `showing ${shown} of ${included} tables` : `${included} table${included === 1 ? '' : 's'}`].join(' · ');
+  legend.textContent = `${data.significance.note}. * base under 100, ** under 30.`;
+  const blocks = data.tables.map(t => previewTable(t, data));
+  for (const f of data.failed) blocks.push(IC.el('p', { class: 'ic-alert ic-alert--warning' }, `${f.variable}: ${f.error}`));
+  if (included > shown) {
+    const more = Math.min(PREVIEW_PAGE, PREVIEW_MAX - shown);
+    blocks.push(more > 0
+      ? IC.el('button', { type: 'button', class: 'ic-btn ic-btn--secondary', style: { alignSelf: 'center' },
+          onclick: () => { previewLimit += PREVIEW_PAGE; schedulePreview(); } }, `Show ${more} more table${more === 1 ? '' : 's'}`)
+      : IC.el('p', { class: 'ic-help', style: { textAlign: 'center' } }, `The preview shows the first ${PREVIEW_MAX} tables; all ${included} are in the Excel.`));
+  }
+  host.replaceChildren(...blocks);
+}
+
+function previewTable(t, data) {
+  const showPct = document.getElementById('xb-show-pct').checked, showCounts = document.getElementById('xb-show-counts').checked || !showPct;
+  const blocks = t.items.map(item => {
+    const th = (text, attrs = {}) => IC.el('th', attrs, text);
+    const head = IC.el('thead', {},
+      IC.el('tr', {}, th('', { class: 'lt', rowspan: '3' }), th('Total', { rowspan: '2', class: 'xb-tot' }),
+        ...data.banners.map(b => th(b.label, { class: 'grp', colspan: String(b.columns.length) }))),
+      IC.el('tr', {}, ...data.banners.flatMap(b => b.columns.map((c, i) => th(c.label, { class: i === 0 ? 'gl' : '' })))),
+      IC.el('tr', { class: 'letters' }, th(''), ...data.banners.flatMap(b => b.columns.map((c, i) => th(`(${c.letter})`, { class: i === 0 ? 'gl' : '' })))));
+    const baseCell = (n, cls = '') => IC.el('td', { class: `${cls}${n < 30 ? ' low' : ''}`, title: n < 100 ? 'Small base' : null }, `${IC.number(Math.round(n))}${baseMark(n)}`);
+    const body = IC.el('tbody', {},
+      IC.el('tr', { class: 'base' }, IC.el('td', { class: 'rl' }, item.is_mrs ? 'Base: answered' : 'Base'),
+        item.total ? baseCell(item.total.base, 'xb-tot') : IC.el('td'),
+        ...item.banners.flatMap(b => b.bases.map((n, i) => baseCell(n, i === 0 ? 'gl' : '')))),
+      ...t.rows.map((row, r) => IC.el('tr', { class: row.kind === 'answer' ? '' : row.kind === 'net' ? 'net' : 'NET' },
+        IC.el('td', { class: 'rl' }, row.label),
+        item.total ? valueCell(item.total.cells[r], 'xb-tot', showPct, showCounts) : IC.el('td'),
+        ...item.banners.flatMap(b => b.cells[r].map((c, i) => valueCell(c, i === 0 ? 'gl' : '', showPct, showCounts))))));
+    return IC.el('div', {},
+      t.is_grid ? IC.el('p', { class: 'xb-item' }, item.label) : null,
+      IC.el('div', { class: 'xb-wrap' }, IC.el('table', { class: 'xb-xt' }, head, body)));
+  });
+  const key = t.key;
+  const tableInfo = currentTables().find(x => x.name === key);
+  return IC.el('section', { class: 'xb-table' },
+    IC.el('div', { class: 'xb-table-title' }, IC.el('h3', {}, t.title),
+      IC.el('span', { class: 'xb-q' }, t.is_grid ? `${key} · grid` : tableInfo?.kind === 'multi' ? `${key} · multi-select` : key),
+      tableInfo ? IC.el('button', { type: 'button', class: 'ic-icon-btn', style: { marginLeft: 'auto' }, 'aria-label': `Remove ${t.title} from Rows`,
+        title: 'Remove from Rows', onclick: () => { tablesOff.add(tableInfo.key); updateSummary(); } }, IC.icon('x', 14)) : null),
+    ...blocks);
+}
+function valueCell(c, cls, showPct, showCounts) {
+  const sig = c.sig && c.sig !== '-' ? c.sig.replace(/\s+/g, '') : '';
+  const main = showPct ? pctText(c.pct) : IC.number(Math.round(c.count));
+  return IC.el('td', { class: `${cls}${c.pct == null ? ' dim' : ''}` }, main,
+    sig ? IC.el('span', { class: 'xb-sig' }, sig) : null,
+    showPct && showCounts ? IC.el('span', { class: 'xb-count' }, IC.number(Math.round(c.count))) : null);
+}
 
 // ── Custom Groups ──
 let customGroups = [];  // [{name: "...", conditions: [{variable, operator, value}]}]
@@ -1423,7 +1708,7 @@ function updateSummary() {
   const nFilter = readConditions('filter-conditions').length;
   if (nFilter) parts.push(`Filter: ${nFilter} condition${nFilter > 1 ? 's' : ''}`);
   parts.push(`Tables: ${included.length}`);
-  renderTables();  // a question chosen as a banner leaves the Tables list
+  renderTables();  // a question chosen as a banner leaves Rows; redraws the Crosstabs step
   if (nCg > 0) parts.push(`Custom: ${nCg}`);
   el.textContent = parts.join(' | ');
 }
@@ -1473,7 +1758,17 @@ async function generate() {
   progress.classList.remove('hidden'); result.classList.add('hidden'); error.classList.add('hidden');
   progressText.textContent = 'Uploading file and running crosstabs...';
 
-  // The Tables step: included tables, in order, with their titles
+  const spec = buildSpec();
+  const form = new FormData();
+  appendData(form);
+  form.append('spec', JSON.stringify(spec));
+  if (docxFile) form.append('ticket', docxFile);
+  await sendTabulate(form, btn, progress, progressText, result, error);
+}
+
+// The tabulation spec from the steps (the export and the Crosstabs preview use the same one)
+function buildSpec() {
+  // Rows: included tables, in order, with their titles
   const tables = currentTables().filter(t => !tablesOff.has(t.key));
   const stubs = tables.filter(t => t.kind === 'single').map(t => t.name);
   const includedMrs = Object.fromEntries(tables.filter(t => t.kind === 'multi').map(t => [t.name, mrsGroups[t.name]]));
@@ -1527,12 +1822,10 @@ async function generate() {
 
   // MRS
   if (Object.keys(includedMrs).length > 0) spec.mrs_groups = includedMrs;
+  return spec;
+}
 
-  const form = new FormData();
-  appendData(form);
-  form.append('spec', JSON.stringify(spec));
-  if (docxFile) form.append('ticket', docxFile);
-
+async function sendTabulate(form, btn, progress, progressText, result, error) {
   try {
     const start = performance.now();
     const resp = await fetch(`${API_BASE}/v1/tabulate`, { method: 'POST', headers: {'Authorization': `Bearer ${API_KEY}`}, body: form });
@@ -1692,7 +1985,7 @@ async function generateFromTicket() {
 
 function editTicketManually() {
   document.getElementById('ticket-confirm').classList.add('hidden');
-  goStep(STEP_PANELS.indexOf('banners-section'));
+  goStep(STEP_PANELS.indexOf('crosstabs-section'));
 }
 
 // ── Auto-Analyze ──

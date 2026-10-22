@@ -320,6 +320,26 @@
     setTimeout(() => t.remove(), 3600);
   }
 
+  // ── Pop-up menu ────────────────────────────────────────────
+  // IC.popMenu(button, 'Title' | null, [{ label, run, danger? }]): fixed to the viewport so a
+  // scrolling container doesn't clip it; closes on outside click, Escape or scroll.
+  let popEl = null;
+  function closePop() { if (popEl) { popEl.remove(); popEl = null; } }
+  function popMenu(anchor, title, entries) {
+    closePop();
+    popEl = el('div', { class: 'ic-menu ic-pop', role: 'menu' },
+      title ? el('div', { class: 'ic-menu-label', text: title }) : null,
+      entries.map(x => el('button', { class: 'ic-menu-item', type: 'button', role: 'menuitem', style: x.danger ? { color: 'var(--ic-danger)' } : null,
+        onclick: (e) => { e.stopPropagation(); closePop(); x.run(); } }, x.label)));
+    document.body.append(popEl);
+    const r = anchor.getBoundingClientRect(), w = popEl.offsetWidth, h = popEl.offsetHeight;
+    popEl.style.left = `${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`;
+    popEl.style.top = `${r.bottom + h + 8 > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6}px`;
+  }
+  document.addEventListener('click', (e) => { if (popEl && !popEl.contains(e.target)) closePop(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
+  window.addEventListener('scroll', closePop, true);
+
   // ── Stepper ────────────────────────────────────────────────
   // IC.stepper(container, ['Banners', 'Stubs'], currentIndex, { onSelect(i), vertical })
   function stepper(container, steps, current, opts) {
@@ -337,5 +357,5 @@
     });
   }
 
-  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, greeting, fileIcon, toast, stepper, appbarSteps, NAV, FEATURES };
+  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, greeting, fileIcon, toast, popMenu, stepper, appbarSteps, NAV, FEATURES };
 })();

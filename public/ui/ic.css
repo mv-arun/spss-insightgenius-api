@@ -122,6 +122,7 @@ ic-topbar {
 .ic-menu-label { padding: 8px 10px 6px; font-size: 12px; color: var(--ic-text-subtle); border-bottom: 1px solid var(--ic-border); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; }
 .ic-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; background: none; border-radius: 6px; font: inherit; font-size: 13px; color: var(--ic-text); text-decoration: none; cursor: pointer; text-align: left; }
 .ic-menu-item:hover { background: var(--ic-surface-muted); }
+.ic-pop { position: fixed; right: auto; top: auto; min-width: 220px; max-width: min(340px, calc(100vw - 16px)); z-index: 70; }
 
 /* ── App bar (replaces sidebar + topbar) ─────────────────── */
 .ic-app--bar { display: block; }

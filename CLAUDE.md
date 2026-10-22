@@ -78,8 +78,9 @@ Optional features (off by default; `ENABLE_DATASETS`, `ENABLE_AI_CHAT`):
 - Datasets is the only part of the app that needs Supabase.
 
 Navigation: no sidebar. The app is one stepped flow at `/app` (also `/export`), with its steps in the app bar:
-- Dataset (library table when Datasets is on + upload) → Variables (`/review?embed=1` in a frame: the Variables grid) → Banners + respondent filter → Tables → Options → Custom groups → Generate
-- Plan for the next steps (Crosstabs builder replacing Banners / Tables / Custom groups): `docs/proposals/variables-crosstabs-plan.md`
+- Dataset (library table when Datasets is on + upload) → Variables (`/review?embed=1` in a frame: the Variables grid) → Crosstabs → Options → Generate
+- Crosstabs: variable list; Columns (= banners, + custom groups), Rows (= the tables, in order; multi-select / grid groups), Filter (respondent conditions), Values; live tables from `/v1/tabulate/preview` (6 at a time, up to 50). The shelves edit the same state the export spec is built from (`buildSpec()`).
+- Plan and what's left (Row %, A→Z sort, hiding categories, nested columns): `docs/proposals/variables-crosstabs-plan.md`
 - `/home`, `/workflows` (and `/datasets*` when Datasets is on) redirect to `/app`; `home.html`, `workflows.html`, `datasets.html`, `dataset*.html` are no longer served.
 - Off the bar but served: `/review` (standalone Variables), `/express`, `/wizard`, `/export-mcp`, `/settings` (account menu)
 

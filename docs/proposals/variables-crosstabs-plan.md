@@ -1,6 +1,6 @@
 # Variables + Crosstabs: implementation plan
 
-Status: proposal, not built. Preview: [variables-crosstabs-preview.html](variables-crosstabs-preview.html), with sample data and nothing saved.
+Status: phases 0–3 built (app bar + Dataset step, Variables grid, `/v1/tabulate/preview` + parsed-data cache, Crosstabs step); phase 4 extras and phase 5 clean-up to do. Preview: [variables-crosstabs-preview.html](variables-crosstabs-preview.html), with sample data and nothing saved.
 
 ## Goal
 
