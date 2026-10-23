@@ -772,3 +772,42 @@ def test_table_specs_are_validated(client, auth_headers, tmp_path):
     assert resp.status_code == 400 and resp.json()["detail"]["code"] == "VALIDATION_ERROR"
     bad = {"stubs": ["fruit"], "table_specs": [{"table": "fruit", "banners": "cut"}], "tables": ["fruit"]}
     assert _preview(client, auth_headers, sav, bad, 400)["detail"]["code"] == "VALIDATION_ERROR"
+
+
+# ── Pages: one sheet per page, its tables stacked with their own columns ──
+
+def test_pages_layout_puts_the_mapped_tables_on_each_sheet(client, auth_headers, tmp_path):
+    sav = _sav(tmp_path, _per_table_df(), _PER_TABLE_LABELS)
+    spec = {"stubs": ["fruit", "size"], "output_mode": "pages", "bonferroni": False,
+            "table_specs": [{"table": "fruit", "banners": ["cut"]}, {"table": "size", "banners": []}],
+            "pages": [{"name": "Overview", "tables": ["size", "fruit"]}, {"name": "Fruit again", "tables": ["fruit"]}]}
+    _, wb = _tabulate(client, auth_headers, sav, spec)
+    assert wb.sheetnames == ["Overview", "Fruit again"]
+    rows = [list(r) for r in wb["Overview"].iter_rows(values_only=True)]
+    titles = [r[0] for r in rows if r[0] in ("size", "fruit")]
+    assert titles == ["size", "fruit"]                                    # the page's order
+    start = next(i for i, r in enumerate(rows) if r[0] == "fruit")
+    assert rows[start + 1][1:5] == [None, "cut", None, None]              # banner name over its columns
+    assert rows[start + 2][1:5] == ["Total", "North", "South", "West"]
+    assert rows[start + 3][2:5] == ["(A)", "(B)", "(C)"]
+    apple = next(i for i in range(start, len(rows)) if rows[i][0] == "Apple")
+    preview = _preview(client, auth_headers, sav, {**spec, "tables": ["fruit"]})["tables"][0]
+    cells = preview["items"][0]["banners"][0]["cells"][[r["label"] for r in preview["rows"]].index("Apple")]
+    assert rows[apple][2:5] == pytest.approx([c["pct"] for c in cells])  # same numbers as the preview
+    assert rows[apple + 1][1] == "-" and [v or "" for v in rows[apple + 1][2:5]] == [c["sig"] for c in cells]
+    size = next(r for r in rows[start:] if r[0] == "Column Sample Size")
+    assert size[1:5] == [120, 40, 40, 40]
+    size_rows = rows[:start]
+    assert next(r for r in size_rows if r[0] == "Column Sample Size")[1:3] == [120, None]   # size: Total only
+
+
+def test_pages_are_validated(client, auth_headers, tmp_path):
+    sav = _sav(tmp_path, _per_table_df(), _PER_TABLE_LABELS)
+    post = lambda spec: client.post("/v1/tabulate", headers=auth_headers, files={"file": ("t.sav", sav, "application/octet-stream")},
+                                    data={"spec": json.dumps(spec)})
+    r = post({"stubs": ["fruit"], "output_mode": "pages"})
+    assert r.status_code == 400 and "pages" in r.json()["detail"]["message"]
+    r = post({"stubs": ["fruit"], "output_mode": "pages", "pages": [{"name": "P1", "tables": ["nope"]}]})
+    assert r.status_code == 400 and "nope" in r.json()["detail"]["message"]
+    r = post({"stubs": ["fruit"], "output_mode": "pages", "pages": [{"name": "P1", "tables": "fruit"}]})
+    assert r.status_code == 400

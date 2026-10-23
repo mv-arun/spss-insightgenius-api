@@ -88,22 +88,50 @@
   @media (max-width: 520px) { .ww-stats { grid-template-columns: 1fr; } }
 
   /* Crosstabs: variables | shelves + live tables */
-  .xb { display: grid; grid-template-columns: 230px 230px minmax(0, 1fr); grid-template-areas: "rail fields main"; gap: 16px; align-items: start; }
-  .xb-rail { grid-area: rail; position: sticky; top: calc(var(--ic-topbar-h) + 16px); display: flex; flex-direction: column; max-height: calc(100vh - var(--ic-topbar-h) - 32px); }
-  .xb-rail-list { list-style: none; margin: 0; padding: 6px; overflow: auto; flex: 1; min-height: 120px; display: flex; flex-direction: column; gap: 2px; }
-  .xb-rail-item { display: flex; gap: 8px; align-items: flex-start; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
-  .xb-rail-item:hover { background: var(--ic-surface-muted); }
-  .xb-rail-item.is-current { background: var(--ic-blue-100); }
+  .xb { display: grid; grid-template-columns: 250px minmax(0, 1fr); grid-template-areas: "fields main"; gap: 16px; align-items: start; }
+  .xb-strip { margin: 0; }
+  .xb-strip-row { display: grid; grid-template-columns: 190px minmax(0, 1fr); align-items: center; gap: 12px; padding: 6px 12px; }
+  .xb-strip-row + .xb-strip-row { border-top: 1px solid var(--ic-border); }
+  .xb-strip-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+  .xb-strip-actions { display: flex; flex-wrap: wrap; gap: 4px; flex-basis: 100%; }
+  .xb-strip-actions .ic-btn--sm { height: 28px; }
+  .xb-rail-list { list-style: none; margin: 0; padding: 8px 2px 4px; display: flex; gap: 8px; overflow-x: auto; min-height: 52px; align-items: stretch; border-radius: 10px; }
+  .xb-rail-item { position: relative; flex: 0 0 200px; display: flex; gap: 8px; align-items: flex-start; padding: 6px 10px; border-radius: 10px;
+                  border: 1px solid var(--ic-border); background: var(--ic-surface); cursor: pointer; }
+  .xb-rail-item:hover { border-color: var(--ic-border-strong); }
+  .xb-rail-item.is-current { background: var(--ic-blue-50); border-color: var(--ic-navy-800); box-shadow: inset 0 0 0 1px var(--ic-navy-800); }
   .xb-rail-item.is-current .xb-rail-title { color: var(--ic-navy-800); font-weight: 600; }
   .xb-rail-item.is-empty .xb-rail-title { color: var(--ic-warning); }
-  .xb-rail-item.drop-before { box-shadow: 0 -2px 0 var(--ic-blue-500); }
+  .xb-rail-item.drop-before { box-shadow: -3px 0 0 var(--ic-blue-500); }
   .xb-rail-num { min-width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 600;
                  background: var(--ic-surface-muted); color: var(--ic-text-muted); flex-shrink: 0; }
   .xb-rail-item.is-current .xb-rail-num { background: var(--ic-navy-800); color: #fff; }
   .xb-rail-text { min-width: 0; display: flex; flex-direction: column; }
   .xb-rail-title { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .xb-rail-sub { font-size: 11.5px; color: var(--ic-text-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .xb-rail-foot { padding: 8px 10px 10px; border-top: 1px solid var(--ic-border); display: grid; gap: 4px; }
+  .xb-rail-page { position: absolute; top: -7px; right: 8px; display: inline-flex; align-items: center; gap: 3px; height: 16px; padding: 0 5px; border-radius: 999px;
+                  font-size: 10px; font-weight: 600; color: #fff; background: var(--pg-color); }
+  .xb-page-strip { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px; align-items: stretch; }
+  .xb-sheet { position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 8px; min-width: 140px; padding: 5px 12px 5px 8px; border-radius: 10px;
+              border: 1px solid var(--ic-border); border-top: 3px solid var(--pg-color); background: var(--ic-surface); cursor: pointer; text-align: left; }
+  .xb-sheet:hover { border-color: var(--ic-border-strong); border-top-color: var(--pg-color); }
+  .xb-sheet.is-over { background: var(--ic-blue-50); box-shadow: 0 0 0 2px var(--pg-color); }
+  .xb-sheet-icon { color: var(--pg-color); display: inline-flex; }
+  .xb-sheet-text { display: flex; flex-direction: column; min-width: 0; }
+  .xb-sheet-name { font-weight: 600; font-size: 13px; white-space: nowrap; }
+  .xb-sheet-sub { font-size: 11.5px; color: var(--ic-text-subtle); white-space: nowrap; }
+  .xb-sheet-del { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; opacity: 0; }
+  .xb-sheet:hover .xb-sheet-del, .xb-sheet-del:focus-visible { opacity: 1; }
+  .xb-page-empty { font-size: 12px; color: var(--ic-text-subtle); padding: 4px; }
+  .rv-body { padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 22px; }
+  .rv-page { border: 1px solid var(--ic-border); border-top: 3px solid var(--pg-color, var(--ic-border-strong)); border-radius: 12px; padding: 12px 14px 16px; }
+  .rv-page-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .rv-page-head h3 { font-size: 14.5px; font-weight: 600; }
+  .rv-page-head .xb-sheet-icon { color: var(--pg-color, var(--ic-text-muted)); }
+  .rv-table + .rv-table { margin-top: 22px; padding-top: 18px; border-top: 1px dashed var(--ic-border); }
+  .rv-table-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+  .rv-table-head .xb-rail-num { align-self: center; }
+  .rv-table-head .xb-rail-sub { flex: 1; }
   .xb-editor-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--ic-border); }
   .xb-title-input { flex: 1; min-width: 0; font-weight: 600; }
   .xb-editor-nav { display: flex; gap: 2px; }
@@ -201,12 +229,11 @@
   .xb-sig { color: var(--ic-blue-600); font-weight: 700; font-size: 10.5px; margin-left: 3px; vertical-align: super; }
   .xb-count { display: block; font-size: 11px; color: var(--ic-text-subtle); }
   @media (max-width: 1180px) {
-    .xb { grid-template-columns: 220px minmax(0, 1fr); grid-template-areas: "rail main" "fields main"; }
-    .xb-rail, .xb-fields { position: static; max-height: 440px; }
+    .xb { grid-template-columns: 220px minmax(0, 1fr); }
   }
   @media (max-width: 760px) {
-    .xb { grid-template-columns: minmax(0, 1fr); grid-template-areas: "rail" "fields" "main"; }
-    .xb-rail { max-height: 280px; }
+    .xb { grid-template-columns: minmax(0, 1fr); grid-template-areas: "fields" "main"; }
+    .xb-strip-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
     .xb-chip { max-width: 100%; }
     .xb-more summary { flex-wrap: wrap; }
     .xb-fields { position: static; max-height: none; }
@@ -215,6 +242,60 @@
     .xb-add { opacity: 1; }
   }
 
+  /* Crosstabs: wider page, view switch, start dialog */
+  #crosstabs-section > .xb-mode { display: none; }  /* lives on the top line while the step is open */
+  .ic-context-actions { display: flex; gap: 6px; margin-left: auto; }
+  .ic-context-actions:empty { display: none; }
+  .jump { position: fixed; right: 20px; bottom: 20px; z-index: 45; display: flex; flex-direction: column; gap: 6px; }
+  .jump-btn { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--ic-surface);
+              border: 1px solid var(--ic-border-strong); color: var(--ic-text-muted); box-shadow: var(--ic-shadow); }
+  .jump-btn:hover { color: var(--ic-text); border-color: var(--ic-blue-500); }
+  .ic-toast-stack { bottom: 108px; }
+  .ic-page.is-wide { max-width: 1760px !important; }  /* beats the page's inline 1280px */
+  .xb-mode { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--ic-surface); border: 1px solid var(--ic-border); }
+  .xb-mode-btn { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--ic-text-muted); }
+  .xb-mode-btn:hover { color: var(--ic-text); background: var(--ic-surface-muted); }
+  .xb-mode-btn[aria-selected="true"] { background: var(--ic-blue-100); color: var(--ic-navy-800); font-weight: 600; }
+  .xb-mode-btn .ic-badge { height: 18px; padding: 0 6px; }
+  .xb-start-option { width: 100%; text-align: left; }
+  .xb-start-option .option-text { display: flex; flex-direction: column; }
+  .xb-rail-list.is-over { background: var(--ic-blue-50); box-shadow: inset 0 0 0 1.5px var(--ic-blue-500); }
+
+  /* Arrange pages: tables (left) linked to their place on a page (right) */
+  .pg-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 16px 20px 6px; }
+  .pg-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+  .pg-how { padding: 0 20px 10px; }
+  .pg-board { display: flex; gap: 14px; overflow-x: auto; padding: 6px 20px 22px; align-items: flex-start; }
+  .pg-sheet { flex: 0 0 280px; display: flex; flex-direction: column; border: 1px solid var(--ic-border); border-radius: 12px;
+              background: var(--ic-surface); box-shadow: var(--ic-shadow-sm); }
+  .pg-sheet-head { display: flex; align-items: center; gap: 8px; padding: 9px 6px 9px 12px; border-top: 3px solid var(--pg-color, var(--ic-border-strong));
+                   border-radius: 12px 12px 0 0; border-bottom: 1px solid var(--ic-border); }
+  .pg-sheet-head .xb-sheet-icon { color: var(--pg-color, var(--ic-text-subtle)); }
+  .pg-sheet-name { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-weight: 600; font-size: 13.5px; color: var(--ic-text); padding: 3px 4px; border-radius: 6px; }
+  .pg-sheet-name:hover, .pg-sheet-name:focus { background: var(--ic-surface-muted); outline: none; }
+  .pg-sheet-title { flex: 1; font-weight: 600; font-size: 13.5px; }
+  .pg-sheet-body { list-style: none; margin: 0; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 170px;
+                   border-radius: 0 0 12px 12px; background: var(--ic-surface-muted); }
+  .pg-sheet.is-over .pg-sheet-body { background: var(--ic-blue-50); box-shadow: inset 0 0 0 2px var(--pg-color, var(--ic-blue-500)); }
+  .pg-tray { flex-basis: 260px; border-style: dashed; background: var(--ic-surface-muted); }
+  .pg-tray .pg-sheet-head { border-top-color: transparent; }
+  .pg-tray .pg-sheet-body { background: transparent; }
+  .pg-block { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 8px 6px 8px 8px; border-radius: 9px;
+              background: var(--ic-surface); border: 1px solid var(--ic-border); box-shadow: var(--ic-shadow-sm); cursor: grab; }
+  .pg-block:hover { border-color: var(--ic-border-strong); }
+  .pg-block.drop-before { box-shadow: 0 -3px 0 var(--pg-color, var(--ic-blue-500)); }
+  .pg-block-num { min-width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; font-size: 10.5px; font-weight: 700;
+                  color: #fff; background: var(--pg-color, var(--ic-border-strong)); }
+  .pg-block-text { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .pg-block-thumb { height: 18px; border-radius: 4px; border: 1px solid var(--ic-border);
+                    background: repeating-linear-gradient(90deg, transparent 0 27px, var(--ic-border) 27px 28px),
+                                linear-gradient(var(--ic-blue-50) 0 6px, transparent 6px); }
+  .pg-block .ic-icon-btn { width: 22px; height: 22px; }
+  .pg-sheet-empty { margin: auto 0; padding: 22px 10px; text-align: center; font-size: 12px; color: var(--ic-text-subtle);
+                    border: 1.5px dashed var(--ic-border-strong); border-radius: 9px; }
+  .pg-add-col { flex: 0 0 200px; min-height: 216px; border-radius: 12px; border: 1.5px dashed var(--ic-border-strong); color: var(--ic-text-muted);
+                display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 500; }
+  .pg-add-col:hover { color: var(--ic-text); border-color: var(--ic-blue-500); background: var(--ic-blue-50); }
   #review-frame { display: block; width: 100%; border: 0; border-radius: var(--ic-radius); }
 </style>
 </head>
@@ -392,19 +473,14 @@
 
       <!-- Step 3: Crosstabs — the report's tables on the left; build one table at a time -->
       <section id="crosstabs-section" class="fade-in" hidden>
-        <div class="xb">
-          <aside class="ic-card xb-rail" aria-label="Tables">
-            <div class="xb-panel-head">
-              <span class="xb-kicker">Tables</span>
-              <span id="xb-rail-count" class="ic-help"></span>
-            </div>
-            <ol id="xb-rail-list" class="xb-rail-list"></ol>
-            <div class="xb-rail-foot">
-              <button type="button" class="ic-btn ic-btn--secondary ic-btn--sm ic-btn--block" onclick="addBlankTable()"><ic-icon name="plus" size="14"></ic-icon>New table</button>
-              <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm ic-btn--block" onclick="addMissingTables()" title="A table for each question that doesn't have one, set up like the selected table">Add a table per question</button>
-            </div>
-          </aside>
+        <div id="xb-mode-tabs" class="xb-mode" role="tablist" aria-label="Crosstabs view">
+          <button id="xb-mode-build" type="button" role="tab" class="xb-mode-btn" aria-selected="true" onclick="setXbView('build')"><ic-icon name="table" size="16"></ic-icon>Build tables</button>
+          <button id="xb-mode-pages" type="button" role="tab" class="xb-mode-btn" aria-selected="false" onclick="setXbView('pages')"><ic-icon name="layers" size="16"></ic-icon>Arrange pages <span id="xb-pages-count" class="ic-badge" hidden></span></button>
+          <button id="xb-mode-review" type="button" role="tab" class="xb-mode-btn" aria-selected="false" onclick="setXbView('review')"><ic-icon name="eye" size="16"></ic-icon>Review all</button>
+        </div>
 
+
+        <div class="xb">
           <aside class="ic-card xb-fields" aria-label="Variables">
             <div class="xb-panel-head">
               <span class="xb-kicker">Variables</span>
@@ -419,6 +495,28 @@
           </aside>
 
           <div class="xb-right">
+          <!-- The report: its tables, and the pages (Excel sheets) they go on -->
+          <section id="xb-strip" class="ic-card xb-strip" aria-label="Tables and pages">
+            <div class="xb-strip-row">
+              <div class="xb-strip-head">
+                <span class="xb-kicker">Tables</span><span id="xb-rail-count" class="ic-badge"></span>
+                <div class="xb-strip-actions">
+                  <button type="button" class="ic-btn ic-btn--primary ic-btn--sm" onclick="addBlankTable()"><ic-icon name="plus" size="14"></ic-icon>New table</button>
+                  <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="addMissingTables()" title="A table for each question that doesn't have one, set up like the selected table">Table per question</button>
+                </div>
+              </div>
+              <ol id="xb-rail-list" class="xb-rail-list" aria-label="Tables, in output order"></ol>
+            </div>
+            <div class="xb-strip-row">
+              <div class="xb-strip-head">
+                <span class="xb-kicker">Pages</span>
+                <div class="xb-strip-actions">
+                  <button type="button" class="ic-btn ic-btn--secondary ic-btn--sm" onclick="addPage()"><ic-icon name="plus" size="14"></ic-icon>Add page</button>
+                </div>
+              </div>
+              <div id="xb-page-strip" class="xb-page-strip" aria-label="Pages: drag a table onto one"></div>
+            </div>
+          </section>
             <section class="ic-card xb-editor" aria-label="This table">
               <div class="xb-editor-head">
                 <span id="xb-table-pos" class="xb-kicker"></span>
@@ -470,8 +568,8 @@
                       <select id="xb-sort" class="ic-select ic-select--sm" style="width:auto" aria-label="Answer order"></select></label>
                     <label class="ic-check">Significance
                       <select id="xb-sig" class="ic-select ic-select--sm" style="width:auto" aria-label="Significance level"></select></label>
-                    <p id="xb-layout-hint" class="ic-help" hidden style="flex-basis:100%">Answer order, Row % and hidden answers go into the
-                      "Total and banner sheets" Excel. <button type="button" class="ic-link" onclick="useBannerSheets()">Use that layout</button></p>
+                    <p id="xb-layout-hint" class="ic-help" hidden style="flex-basis:100%">Answer order and hidden answers go into the
+                      "Total and banner sheets" and "Pages" Excel; Row % into "Total and banner sheets". <button type="button" class="ic-link" onclick="useBannerSheets()">Use that layout</button></p>
                   </div>
                   <div></div>
                 </div>
@@ -488,7 +586,7 @@
               <div class="ic-card-footer step-footer xb-result-foot">
                 <span id="xb-legend" class="ic-help" style="margin-right:auto"></span>
                 <button type="button" class="ic-btn ic-btn--ghost" onclick="prevStep()"><ic-icon name="arrow-left" size="16"></ic-icon>Back</button>
-                <button type="button" class="ic-btn ic-btn--primary js-next" onclick="nextStep()">Next <ic-icon name="arrow-right" size="16"></ic-icon></button>
+                <button type="button" class="ic-btn ic-btn--primary js-next" onclick="setXbView('review')">Review all tables <ic-icon name="arrow-right" size="16"></ic-icon></button>
               </div>
             </section>
 
@@ -565,6 +663,47 @@
             </details>
           </div>
         </div>
+
+        <!-- Arrange pages: which tables go on which page (a sheet of the Pages Excel) -->
+        <section id="xb-pages" class="ic-card" hidden aria-label="Arrange pages">
+          <div class="pg-bar">
+            <div>
+              <h2 class="ic-section-title">Arrange pages</h2>
+              <p id="pg-summary" class="ic-help"></p>
+            </div>
+            <div class="pg-quick" role="group" aria-label="Quick layouts">
+              <span class="ic-help">Tables per page:</span>
+              <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="perPage(1)">1</button>
+              <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="perPage(2)">2</button>
+              <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="perPage(3)">3</button>
+              <button type="button" class="ic-btn ic-btn--ghost ic-btn--sm" onclick="perPage(0)">All on one</button>
+              <button type="button" class="ic-btn ic-btn--secondary ic-btn--sm" onclick="addPage()"><ic-icon name="plus" size="14"></ic-icon>Page</button>
+            </div>
+          </div>
+          <p class="ic-help pg-how">Each column is a sheet of the Excel (output <strong>Pages</strong> in Options), its tables one under another in this order.
+            Drag a table to another sheet, or up and down to change its place.</p>
+          <div id="pg-board" class="pg-board" aria-label="Sheets"></div>
+          <div class="ic-card-footer step-footer">
+            <button type="button" class="ic-btn ic-btn--ghost" onclick="setXbView('build')"><ic-icon name="arrow-left" size="16"></ic-icon>Build tables</button>
+            <button type="button" class="ic-btn ic-btn--primary js-next" onclick="setXbView('review')">Review all tables <ic-icon name="arrow-right" size="16"></ic-icon></button>
+          </div>
+        </section>
+
+        <!-- Review all: every table as it will be exported, page by page -->
+        <section id="xb-review" class="ic-card" hidden aria-label="Review all tables">
+          <div class="pg-bar">
+            <div>
+              <h2 class="ic-section-title">Review all tables</h2>
+              <p id="rv-summary" class="ic-help"></p>
+            </div>
+            <span id="rv-live" class="xb-live">Live</span>
+          </div>
+          <div id="rv-body" class="rv-body"></div>
+          <div class="ic-card-footer step-footer">
+            <button type="button" class="ic-btn ic-btn--ghost" onclick="setXbView('build')"><ic-icon name="arrow-left" size="16"></ic-icon>Build tables</button>
+            <button type="button" class="ic-btn ic-btn--primary js-next" onclick="nextStep()">Next: Options <ic-icon name="arrow-right" size="16"></ic-icon></button>
+          </div>
+        </section>
       </section>
 
       <!-- Step 5: Options -->
@@ -658,6 +797,14 @@
                   <div class="ic-option-desc">A Total sheet, then one sheet per banner and its (Stat) sheet with significance letters. Group names are the table titles.</div>
                 </div>
                 <input type="radio" name="output-mode" value="banner_sheets" class="ic-checkbox">
+              </label>
+              <label class="ic-option">
+                <span class="ic-option-icon"><ic-icon name="layers" size="16"></ic-icon></span>
+                <div class="option-text">
+                  <div class="ic-option-title">Pages</div>
+                  <div class="ic-option-desc">One sheet per page as arranged on the Crosstabs step, its tables one under another, each with its own columns and significance letters.</div>
+                </div>
+                <input type="radio" name="output-mode" value="pages" class="ic-checkbox">
               </label>
               <div class="ic-option">
                 <span class="ic-option-icon"><ic-icon name="sliders" size="16"></ic-icon></span>
@@ -788,7 +935,8 @@ function goStep(i) {
   renderContext();
   // The review frame measured itself while hidden: ask it for its height again now it has a width
   if (STEP_PANELS[i] === 'review-section') requestAnimationFrame(syncReviewHeight);
-  if (STEP_PANELS[i] === 'crosstabs-section') { syncValues(); renderCrosstabs({ filters: true }); }
+  document.querySelector('main.ic-page').classList.toggle('is-wide', STEP_PANELS[i] === 'crosstabs-section');
+  if (STEP_PANELS[i] === 'crosstabs-section') { syncValues(); renderXbView(); if (!xtStartChosen && !restoring) askHowToStart(); }
   window.scrollTo({ top: 0 });
 }
 
@@ -807,10 +955,31 @@ function renderContext() {
     return;
   }
   const meta = metadata ? `${IC.number(metadata.n_cases)} respondents · ${IC.number(metadata.n_variables)} variables` : 'Reading…';
+  const tabs = document.getElementById('xb-mode-tabs');
   host.replaceChildren(IC.el('div', { class: 'ic-file-chip' },
     IC.el('span', { class: 'ic-file-icon' }, IC.icon(IC.fileIcon(savFile.name), 16)), savFile.name,
     IC.el('span', { class: 'meta' }, meta),
-    IC.el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => goStep(0) }, 'Change')));
+    IC.el('button', { class: 'ic-btn ic-btn--ghost ic-btn--sm', type: 'button', onclick: () => goStep(0) }, 'Change')),
+    STEP_PANELS[currentStep] === 'crosstabs-section' ? tabs : null,
+    topActions());
+  if (STEP_PANELS[currentStep] !== 'crosstabs-section') document.getElementById('crosstabs-section').prepend(tabs);
+}
+
+// Back / Next at the top do what the visible footer's buttons do (labels included)
+function visibleFooter() {
+  return [...document.querySelectorAll('main .step-footer')].find(f => f.offsetParent !== null);
+}
+function topActions() {
+  const box = IC.el('div', { class: 'ic-context-actions' });
+  setTimeout(() => {  // the footer is visible once this render is done
+    const foot = visibleFooter();
+    const back = foot?.querySelector('.ic-btn--ghost'), next = foot?.querySelector('.ic-btn--primary');
+    box.replaceChildren(
+      back ? IC.el('button', { type: 'button', class: 'ic-btn ic-btn--ghost ic-btn--sm', onclick: () => back.click() }, IC.icon('arrow-left', 14), back.textContent.trim()) : null,
+      next ? IC.el('button', { type: 'button', class: 'ic-btn ic-btn--primary ic-btn--sm', disabled: next.disabled || null, onclick: () => next.click() },
+        next.textContent.trim(), IC.icon('arrow-right', 14)) : null);
+  });
+  return box;
 }
 
 // ── Step 1: datasets in the library (when Datasets is on) ──
@@ -987,7 +1156,7 @@ async function loadMetadata() {
     document.getElementById('auto-result')?.classList.add('hidden');
     document.getElementById('result-section')?.classList.add('hidden');
     populateUI();
-    startTables();  // one table per question (groups included), Total only
+    xtStartChosen = false; xtPages = null; xtView = 'build';  // Crosstabs asks how to start
     document.getElementById('auto-analyze-bar').classList.remove('hidden');
     metaReady = true; renderStepper(); renderContext();  // unlock Variables → Generate
   } catch (e) {
@@ -1472,16 +1641,21 @@ function renderRail() {
   const list = document.getElementById('xb-rail-list');
   if (!list) return;
   document.getElementById('xb-rail-count').textContent = `${xtTables.length}`;
+  renderPageStrip();
   list.replaceChildren(...xtTables.map((t, i) => {
     const f = fieldByKey(t.row);
     const nf = t.filters.length;
+    const page = typeof pageOf === 'function' ? pageOf(t.id) : null;
     const item = IC.el('li', { class: `xb-rail-item${t.id === currentTableId ? ' is-current' : ''}${f ? '' : ' is-empty'}`,
       draggable: 'true', tabindex: '0', 'aria-current': t.id === currentTableId ? 'true' : null,
-      onclick: () => selectTable(t.id), onkeydown: (e) => { if (e.key === 'Enter') selectTable(t.id); } },
+      title: 'Click to edit · drag to reorder or onto a page',
+      onclick: () => { if (xtView !== 'build') setXbView('build'); selectTable(t.id); }, onkeydown: (e) => { if (e.key === 'Enter') selectTable(t.id); } },
+      page ? IC.el('span', { class: 'xb-rail-page' }, IC.icon('file-sheet', 10), page.name) : null,
       IC.el('span', { class: 'xb-rail-num' }, String(i + 1)),
       IC.el('span', { class: 'xb-rail-text' },
         IC.el('span', { class: 'xb-rail-title' }, f ? tableLabel(t) : (t.title || 'Choose a question')),
         IC.el('span', { class: 'xb-rail-sub' }, columnsText(t), nf ? ` · filter (${nf})` : '')));
+    if (page) item.style.setProperty('--pg-color', PAGE_COLORS[xtPages.indexOf(page) % PAGE_COLORS.length]);
     item.addEventListener('dragstart', (e) => { dragTableId = t.id; e.dataTransfer.setData('text/plain', `table:${t.id}`); item.classList.add('is-dragging'); });
     item.addEventListener('dragend', () => { item.classList.remove('is-dragging'); dragTableId = null; });
     item.addEventListener('dragover', (e) => { if (dragTableId != null) { e.preventDefault(); item.classList.add('drop-before'); } });
@@ -1493,9 +1667,10 @@ function renderRail() {
     });
     return item;
   }));
-  if (!xtTables.length) list.append(IC.el('li', { class: 'xb-drop-empty', style: { listStyle: 'none' } }, 'No tables yet. Add one below.'));
+  if (!xtTables.length) list.append(IC.el('li', { class: 'xb-drop-empty', style: { listStyle: 'none' } },
+    'No tables yet: + New table, double-click a question, or drag one here.'));
   const now = list.querySelector('.is-current');
-  if (now && (now.offsetTop < list.scrollTop || now.offsetTop > list.scrollTop + list.clientHeight - 40)) list.scrollTop = now.offsetTop - 60;
+  if (now && (now.offsetLeft < list.scrollLeft || now.offsetLeft + now.offsetWidth > list.scrollLeft + list.clientWidth)) list.scrollLeft = now.offsetLeft - 40;
 }
 
 // ── Variable list ──
@@ -1650,7 +1825,7 @@ function outputMode() { return document.querySelector('input[name="output-mode"]
 function renderLayoutHint() {
   const used = document.getElementById('opt-sort').value || document.getElementById('opt-row-pct').checked
     || Object.values(hiddenCodes).some(c => c.length);
-  document.getElementById('xb-layout-hint').hidden = !used || outputMode() === 'banner_sheets';
+  document.getElementById('xb-layout-hint').hidden = !used || ['banner_sheets', 'pages'].includes(outputMode());
 }
 function useBannerSheets() {
   document.querySelector('input[name="output-mode"][value="banner_sheets"]').checked = true;
@@ -1663,6 +1838,7 @@ for (const id of ['opt-bonferroni', 'weight-select', 'cg-banner-name']) document
 
 function renderCrosstabs({ filters = false } = {}) {
   if (!metadata) return;
+  renderXbCount();
   if (filters) setConditionRows('filter-conditions', currentTable()?.filters);
   renderRail();
   renderFieldList();
@@ -1776,6 +1952,286 @@ function valueCell(c, cls, showPct, showCounts) {
     (showPct || showRow) && showCounts ? IC.el('span', { class: 'xb-count' }, IC.number(Math.round(c.count))) : null);
 }
 
+// ── How to start: a table for every question, or none ──
+let xtStartChosen = false;
+function askHowToStart() {
+  const dlg = document.getElementById('xb-start');  // its markup follows this script
+  if (!dlg.dataset.ready) { dlg.dataset.ready = '1'; dlg.addEventListener('cancel', (e) => e.preventDefault()); }  // a choice is needed
+  const n = crosstabFields().length;
+  document.getElementById('xb-start-count').textContent = `${n} table${n === 1 ? '' : 's'}, Total only, in questionnaire order`;
+  if (!dlg.open) dlg.showModal();
+}
+function chooseStart(all) {
+  if (all) startTables(); else { xtTables = []; currentTableId = null; }
+  xtStartChosen = true;
+  document.getElementById('xb-start').close();
+  updateSummary();
+  renderCrosstabs({ filters: true });
+  if (!all) document.getElementById('xb-field-search').focus();
+}
+
+// A question dropped on the table list gets a new table
+{
+  const list = document.getElementById('xb-rail-list');
+  list.addEventListener('dragover', (e) => { if (dragTableId == null && dragKey) { e.preventDefault(); list.classList.add('is-over'); } });
+  list.addEventListener('dragleave', (e) => { if (!list.contains(e.relatedTarget)) list.classList.remove('is-over'); });
+  list.addEventListener('drop', (e) => {
+    list.classList.remove('is-over');
+    if (dragTableId != null || !dragKey) return;
+    e.preventDefault();
+    addTableFor(dragKey);
+    dragKey = null;
+  });
+}
+
+// ── Pages: which tables go on which page (a sheet in the "Pages" Excel) ──
+// xtPages: [{ id, name, tables: [table id…] }] in page order; null until the analyst arranges pages.
+let xtPages = null, nextPageId = 1, xtView = 'build';
+const PAGE_COLORS = ['var(--ic-blue-600)', 'var(--ic-success)', 'var(--ic-warning)', 'var(--ic-navy-700)', 'var(--ic-danger)', 'var(--ic-blue-500)'];
+const readyTables = () => xtTables.filter(t => fieldByKey(t.row));
+const pageOf = (tableId) => (xtPages || []).find(p => p.tables.includes(tableId));
+
+function setXbView(view) {
+  saveFilterRows();
+  xtView = view;
+  if (view === 'pages' && !xtPages) perPage(1);
+  renderXbView();
+  window.scrollTo({ top: 0 });
+  saveSoon();
+}
+function usePagesOutput() {
+  if (outputMode() === 'pages') return;
+  document.querySelector('input[name="output-mode"][value="pages"]').checked = true;
+  renderLayoutHint();
+  IC.toast('The Excel will have one sheet per page (Options: Pages)');
+}
+function renderXbView() {
+  const pages = xtView === 'pages', review = xtView === 'review';
+  document.querySelector('#crosstabs-section > .xb').hidden = pages || review;
+  document.getElementById('xb-pages').hidden = !pages;
+  document.getElementById('xb-review').hidden = !review;
+  document.getElementById('xb-strip').hidden = review || pages;
+  for (const v of ['build', 'pages', 'review']) document.getElementById(`xb-mode-${v}`).setAttribute('aria-selected', String(xtView === v));
+  const n = (xtPages || []).filter(p => p.tables.length).length;
+  document.getElementById('xb-pages-count').textContent = xtPages ? String(n) : '';
+  document.getElementById('xb-pages-count').hidden = !xtPages;
+  if (review) { renderRail(); renderReview(); } else if (pages) { renderRail(); renderPages(); } else renderCrosstabs({ filters: true });
+  renderContext();
+}
+
+// Quick layouts: n tables per page (0 = all on one page)
+function perPage(n) {
+  const ids = readyTables().map(t => t.id);
+  const size = n || Math.max(ids.length, 1);
+  xtPages = [];
+  for (let i = 0; i < ids.length; i += size) xtPages.push({ id: nextPageId++, name: `Page ${xtPages.length + 1}`, tables: ids.slice(i, i + size) });
+  if (!xtPages.length) xtPages.push({ id: nextPageId++, name: 'Page 1', tables: [] });
+  usePagesOutput();
+  renderPages(); saveSoon();
+}
+function addPage() {
+  xtPages = xtPages || [];
+  xtPages.push({ id: nextPageId++, name: `Page ${xtPages.length + 1}`, tables: [] });
+  usePagesOutput();
+  renderPages(); saveSoon();
+}
+function deletePage(id) {
+  xtPages = xtPages.filter(p => p.id !== id);
+  renderPages(); renderPageStrip(); renderRail(); saveSoon();
+}
+// Put a table on a page (before another table there, or at the end); a table is on one page at a time
+function placeOnPage(tableId, pageId, beforeId = null) {
+  for (const p of xtPages) p.tables = p.tables.filter(id => id !== tableId);
+  const page = xtPages.find(p => p.id === pageId);
+  const at = beforeId == null ? -1 : page.tables.indexOf(beforeId);
+  at < 0 ? page.tables.push(tableId) : page.tables.splice(at, 0, tableId);
+  renderPages(); saveSoon();
+}
+function takeOffPage(tableId) {
+  for (const p of xtPages) p.tables = p.tables.filter(id => id !== tableId);
+  renderPages(); saveSoon();
+}
+function pagesSpec() {
+  const name = (t) => tableName(t);
+  return (xtPages || []).map(p => ({ name: p.name, tables: p.tables.map(id => xtTables.find(t => t.id === id)).filter(t => t && fieldByKey(t.row)).map(name) }))
+    .filter(p => p.tables.length);
+}
+
+let dragPageTable = null;
+function renderPages() {
+  if (!xtPages) { renderPageStrip(); return; }
+  const live = new Set(readyTables().map(t => t.id));  // forget tables that were deleted
+  for (const p of xtPages) p.tables = p.tables.filter(id => live.has(id));
+  const color = (page) => PAGE_COLORS[xtPages.indexOf(page) % PAGE_COLORS.length];
+  const loose = readyTables().filter(t => !pageOf(t.id));
+  const placed = readyTables().length - loose.length;
+  document.getElementById('pg-summary').textContent =
+    `${xtPages.length} sheet${xtPages.length === 1 ? '' : 's'} · ${placed} of ${readyTables().length} tables placed` +
+    (loose.length ? ` · ${loose.length} not on a sheet (left out of the Pages Excel)` : '');
+
+  // A table: its place on the sheet, its title and columns, a thumbnail of a table
+  const block = (t, page, n) => {
+    const b = IC.el('li', { class: 'pg-block', draggable: 'true', 'data-table': t.id, title: 'Drag to another sheet or to a new place' },
+      IC.el('span', { class: 'pg-block-num' }, page ? String(n) : String(xtTables.indexOf(t) + 1)),
+      IC.el('span', { class: 'pg-block-text' }, IC.el('span', { class: 'xb-rail-title' }, tableLabel(t)),
+        IC.el('span', { class: 'xb-rail-sub' }, columnsText(t)), IC.el('span', { class: 'pg-block-thumb', 'aria-hidden': 'true' })),
+      page ? IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': `Take ${tableLabel(t)} off ${page.name}`, title: 'Take off this sheet',
+        onclick: () => takeOffPage(t.id) }, IC.icon('x', 13)) : IC.el('span'));
+    b.addEventListener('dragstart', (e) => { e.stopPropagation(); dragPageTable = t.id; e.dataTransfer.setData('text/plain', `ptable:${t.id}`); b.classList.add('is-dragging'); });
+    b.addEventListener('dragend', () => { b.classList.remove('is-dragging'); dragPageTable = null; });
+    if (page) {
+      b.addEventListener('dragover', (e) => { if (dragPageTable != null && dragPageTable !== t.id) { e.preventDefault(); e.stopPropagation(); b.classList.add('drop-before'); } });
+      b.addEventListener('dragleave', () => b.classList.remove('drop-before'));
+      b.addEventListener('drop', (e) => {
+        if (dragPageTable == null) return;
+        e.preventDefault(); e.stopPropagation(); b.classList.remove('drop-before');
+        placeOnPage(dragPageTable, page.id, t.id);
+      });
+    }
+    return b;
+  };
+  // A sheet (or the tray of tables on no sheet): drop a table anywhere on it
+  const column = (page, tables) => {
+    const head = page
+      ? [IC.el('span', { class: 'xb-sheet-icon' }, IC.icon('file-sheet', 18)),
+         IC.el('input', { class: 'pg-sheet-name', value: page.name, 'aria-label': 'Sheet name',
+           onchange: (e) => { page.name = e.target.value.trim() || page.name; renderPages(); saveSoon(); } }),
+         IC.el('span', { class: 'ic-help' }, String(tables.length)),
+         IC.el('button', { type: 'button', class: 'ic-icon-btn', 'aria-label': `Delete ${page.name}`, title: 'Delete sheet (its tables go back to the tray)',
+           onclick: () => deletePage(page.id) }, IC.icon('trash', 14))]
+      : [IC.el('span', { class: 'xb-sheet-icon' }, IC.icon('table', 18)), IC.el('span', { class: 'pg-sheet-title' }, 'Not on a sheet'),
+         IC.el('span', { class: 'ic-help' }, String(tables.length))];
+    const col = IC.el('section', { class: page ? 'pg-sheet' : 'pg-sheet pg-tray', 'data-page': page ? page.id : '' },
+      IC.el('header', { class: 'pg-sheet-head' }, ...head),
+      IC.el('ol', { class: 'pg-sheet-body' }, ...(tables.length ? tables.map((t, i) => block(t, page, i + 1))
+        : [IC.el('li', { class: 'pg-sheet-empty' }, 'Drop tables here')])));
+    if (page) col.style.setProperty('--pg-color', color(page));
+    col.addEventListener('dragover', (e) => { if (dragPageTable != null) { e.preventDefault(); col.classList.add('is-over'); } });
+    col.addEventListener('dragleave', (e) => { if (!col.contains(e.relatedTarget)) col.classList.remove('is-over'); });
+    col.addEventListener('drop', (e) => {
+      col.classList.remove('is-over');
+      if (dragPageTable == null) return;
+      e.preventDefault();
+      page ? placeOnPage(dragPageTable, page.id) : takeOffPage(dragPageTable);
+    });
+    return col;
+  };
+  document.getElementById('pg-board').replaceChildren(
+    ...(loose.length ? [column(null, loose)] : []),
+    ...xtPages.map(p => column(p, p.tables.map(id => xtTables.find(t => t.id === id)))),
+    IC.el('button', { type: 'button', class: 'pg-add-col', onclick: addPage }, IC.icon('plus', 20), 'Add sheet'));
+  renderXbCount();
+  renderPageStrip();
+  renderRail();
+}
+
+// The pages strip on top: a sheet per page; drop a table card on one to put it there
+function renderPageStrip() {
+  const strip = document.getElementById('xb-page-strip');
+  if (!strip) return;
+  if (!xtPages || !xtPages.length) {
+    strip.replaceChildren(IC.el('p', { class: 'xb-page-empty' },
+      'No pages yet. Add a page, then drag tables onto it: each page is one sheet of the Excel.'));
+    return;
+  }
+  strip.replaceChildren(...xtPages.map((page, i) => {
+    const tile = IC.el('div', { class: 'xb-sheet', role: 'button', tabindex: '0', title: 'Drop a table here · click to arrange · double-click to rename',
+      onclick: () => setXbView('pages'),
+      ondblclick: (e) => { e.stopPropagation(); const n = prompt('Page name', page.name); if (n && n.trim()) { page.name = n.trim(); renderPages(); saveSoon(); } } },
+      IC.el('span', { class: 'xb-sheet-icon' }, IC.icon('file-sheet', 22)),
+      IC.el('span', { class: 'xb-sheet-text' }, IC.el('span', { class: 'xb-sheet-name' }, page.name),
+        IC.el('span', { class: 'xb-sheet-sub' }, page.tables.length ? `${page.tables.length} table${page.tables.length === 1 ? '' : 's'}` : 'Drop tables here')),
+      IC.el('button', { type: 'button', class: 'ic-icon-btn xb-sheet-del', 'aria-label': `Delete ${page.name}`, title: 'Delete page',
+        onclick: (e) => { e.stopPropagation(); deletePage(page.id); } }, IC.icon('x', 12)));
+    tile.style.setProperty('--pg-color', PAGE_COLORS[i % PAGE_COLORS.length]);
+    tile.addEventListener('dragover', (e) => { if (dragTableId != null || dragPageTable != null) { e.preventDefault(); tile.classList.add('is-over'); } });
+    tile.addEventListener('dragleave', () => tile.classList.remove('is-over'));
+    tile.addEventListener('drop', (e) => {
+      tile.classList.remove('is-over');
+      const id = dragTableId ?? dragPageTable;
+      if (id == null) return;
+      e.preventDefault();
+      const t = xtTables.find(x => x.id === id);
+      if (!fieldByKey(t?.row)) { IC.toast('Give the table a question first.', 'danger'); return; }
+      placeOnPage(id, page.id);
+      IC.toast(`${tableLabel(t)} → ${page.name}`);
+    });
+    return tile;
+  }));
+}
+
+// ── Review all: every table as it will be exported (page by page with the Pages output) ──
+let reviewSeq = 0;
+async function renderReview() {
+  const body = document.getElementById('rv-body'), live = document.getElementById('rv-live');
+  const ready = readyTables();
+  const usePages = outputMode() === 'pages' && xtPages && xtPages.some(p => p.tables.length);
+  const groups = usePages
+    ? [...xtPages.filter(p => p.tables.length).map((p, i) => ({ title: p.name, color: PAGE_COLORS[xtPages.indexOf(p) % PAGE_COLORS.length],
+        tables: p.tables.map(id => xtTables.find(t => t.id === id)).filter(t => t && fieldByKey(t.row)) })),
+       { title: 'Not on a page (left out of the Excel)', tables: ready.filter(t => !pageOf(t.id)) }].filter(g => g.tables.length)
+    : [{ title: 'All tables', tables: ready }];
+  document.getElementById('rv-summary').textContent = !ready.length ? 'No tables yet.'
+    : `${ready.length} table${ready.length === 1 ? '' : 's'}` + (usePages ? ` on ${groups.filter(g => g.color).length} page${groups.filter(g => g.color).length === 1 ? '' : 's'}` : '')
+      + ` · ${outputLabel()}` + (xtTables.length > ready.length ? ` · ${xtTables.length - ready.length} without a question (left out)` : '');
+  if (!ready.length) { body.replaceChildren(IC.el('div', { class: 'ic-empty' }, 'Build a table first.')); return; }
+  const seq = ++reviewSeq;
+  live.className = 'xb-live is-busy'; live.textContent = 'Loading…';
+  body.replaceChildren(...groups.map(g => IC.el('div', { class: 'ic-skeleton', style: { height: '80px' } })));
+  try {
+    const byKey = {}, failed = {};
+    let data = null;
+    const names = [...new Set(ready.map(tableName))];
+    for (let i = 0; i < names.length; i += 50) {
+      const spec = buildSpec();
+      spec.tables = names.slice(i, i + 50);
+      delete spec.output_mode; delete spec.pages; delete spec.title;
+      const form = new FormData();
+      appendData(form);
+      form.append('spec', JSON.stringify(spec));
+      const resp = await fetch(`${API_BASE}/v1/tabulate/preview`, { method: 'POST', headers: { Authorization: `Bearer ${API_KEY}` }, body: form });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(json.detail?.message || `HTTP ${resp.status}`);
+      data = json.data;
+      for (const t of data.tables) byKey[t.key] = t;
+      for (const f of data.failed) failed[f.variable] = f.error;
+      if (seq !== reviewSeq) return;
+    }
+    body.replaceChildren(...groups.map(g => {
+      const sec = IC.el('section', { class: 'rv-page' },
+        IC.el('header', { class: 'rv-page-head' }, IC.el('span', { class: 'xb-sheet-icon' }, IC.icon(g.color ? 'file-sheet' : 'table', 18)),
+          IC.el('h3', {}, g.title), IC.el('span', { class: 'ic-help' }, `${g.tables.length} table${g.tables.length === 1 ? '' : 's'}`)),
+        ...g.tables.map(t => {
+          const json = byKey[tableName(t)];
+          const edit = IC.el('button', { type: 'button', class: 'ic-btn ic-btn--ghost ic-btn--sm', onclick: () => { setXbView('build'); selectTable(t.id); } },
+            IC.icon('pencil', 14), 'Edit');
+          return IC.el('div', { class: 'rv-table' },
+            IC.el('div', { class: 'rv-table-head' }, IC.el('span', { class: 'xb-rail-num' }, String(xtTables.indexOf(t) + 1)),
+              IC.el('span', { class: 'xb-rail-sub' }, columnsText(t) + (t.filters.length ? ` · filter (${t.filters.length})` : '')), edit),
+            json ? previewTable(json, data)
+              : IC.el('p', { class: 'ic-alert ic-alert--warning' }, `${tableLabel(t)}: this table can’t be built (${failed[tableName(t)] || 'nobody answered'}).`));
+        }));
+      if (g.color) sec.style.setProperty('--pg-color', g.color);
+      return sec;
+    }));
+    live.className = 'xb-live'; live.textContent = 'Live';
+  } catch (e) {
+    if (seq !== reviewSeq) return;
+    live.className = 'xb-live is-error'; live.textContent = 'Couldn’t load';
+    body.replaceChildren(IC.el('p', { class: 'ic-alert ic-alert--danger' }, e.message));
+  }
+}
+function outputLabel() {
+  return { multi_sheet: 'Excel: one sheet per question', single_sheet: 'Excel: all questions in one sheet',
+           banner_sheets: 'Excel: Total and banner sheets', pages: 'Excel: one sheet per page' }[outputMode()] || '';
+}
+function renderXbCount() {
+  const n = (xtPages || []).filter(p => p.tables.length).length;
+  document.getElementById('xb-pages-count').textContent = xtPages ? String(n) : '';
+  document.getElementById('xb-pages-count').hidden = !xtPages;
+}
+
+
 // ── Pick up where you left off ──
 // The data file, its reviewed coding and every choice are kept in this browser (IndexedDB), so a
 // refresh doesn't lose the shelves. Not kept: files over 100 MB; dropped after 7 days or on sign-out.
@@ -1821,7 +2277,7 @@ function currentChoices() {
   return {
     fileName: savFile.name, fileSize: savFile.size, savedAt: Date.now(),
     step: currentStep, furthest: furthestStep, codebook: reviewedCodebook, libraryId: openLibraryId,
-    xtTables, currentTableId, nextTableId, mrsGroups, gridGroups, customGroups, hiddenCodes, outputMode: outputMode(),
+    xtTables, currentTableId, nextTableId, xtStartChosen, xtPages, nextPageId, xtView, mrsGroups, gridGroups, customGroups, hiddenCodes, outputMode: outputMode(),
     values: Object.fromEntries(KEPT_VALUES.map(id => [id, document.getElementById(id).value])),
     checks: Object.fromEntries(KEPT_CHECKS.map(id => [id, document.getElementById(id).checked])),
   };
@@ -1832,6 +2288,8 @@ function applyChoices(s) {
   if (Array.isArray(s.xtTables)) {  // older saves (one set of columns for all tables) keep the fresh tables
     xtTables = s.xtTables; nextTableId = s.nextTableId || xtTables.reduce((m, t) => Math.max(m, t.id + 1), 1);
     currentTableId = xtTables.some(t => t.id === s.currentTableId) ? s.currentTableId : xtTables[0]?.id ?? null;
+    xtStartChosen = s.xtStartChosen ?? true;
+    xtPages = s.xtPages || null; nextPageId = s.nextPageId || 1; xtView = s.xtView || 'build';
   }
   for (const [id, value] of Object.entries(s.values || {})) {
     const input = document.getElementById(id);
@@ -2020,6 +2478,12 @@ async function generate() {
   progressText.textContent = 'Uploading file and running crosstabs...';
 
   const spec = buildSpec();
+  if (spec.output_mode === 'pages' && !spec.pages.length) {
+    progress.classList.add('hidden'); error.classList.remove('hidden');
+    document.getElementById('error-text').textContent = 'The output is Pages but no table is on a page: arrange them on the Crosstabs step (Arrange pages), or pick another output.';
+    btn.disabled = false; btn.innerHTML = '<ic-icon name="file-sheet" size="18"></ic-icon> Generate Excel';
+    return;
+  }
   if (!spec.table_order.length) {
     progress.classList.add('hidden'); error.classList.remove('hidden');
     document.getElementById('error-text').textContent = 'No tables yet: give at least one table a question on the Crosstabs step.';
@@ -2083,6 +2547,7 @@ function buildSpec(only = null) {
   const inUse = new Set([...columnsInUse, ...fields.map(f => f.name)]);
   const hide = Object.fromEntries(Object.entries(hiddenCodes).filter(([name, codes]) => codes.length && inUse.has(name)));
   if (Object.keys(hide).length) spec.hide_codes = hide;
+  if (spec.output_mode === 'pages') spec.pages = pagesSpec();
   return spec;
 }
 
@@ -2527,6 +2992,32 @@ goStep(0);
 loadLibrary();
 restoreSaved();
 </script>
+
+<!-- Jump to the top / bottom of a long step -->
+<div class="jump" aria-label="Jump">
+  <button type="button" class="jump-btn" title="To the top" aria-label="To the top" onclick="window.scrollTo(0, 0)"><ic-icon name="chevron-up" size="18"></ic-icon></button>
+  <button type="button" class="jump-btn" title="To the bottom" aria-label="To the bottom" onclick="window.scrollTo(0, document.documentElement.scrollHeight)"><ic-icon name="chevron-down" size="18"></ic-icon></button>
+</div>
+
+<!-- Crosstabs: how to start -->
+<dialog id="xb-start" class="ic-modal" aria-labelledby="xb-start-title">
+  <div class="ic-modal-header"><div>
+    <h3 id="xb-start-title" class="ic-section-title">How do you want to build the tables?</h3>
+    <p class="ic-help">Either way the questions stay on screen, so you can add tables at any time.</p>
+  </div></div>
+  <div class="ic-modal-body ic-stack" style="gap:10px">
+    <button type="button" class="ic-option xb-start-option" onclick="chooseStart(true)">
+      <span class="ic-option-icon"><ic-icon name="list" size="18"></ic-icon></span>
+      <span class="option-text"><span class="ic-option-title">A table for every question</span>
+        <span id="xb-start-count" class="ic-option-desc"></span></span>
+    </button>
+    <button type="button" class="ic-option xb-start-option" onclick="chooseStart(false)">
+      <span class="ic-option-icon"><ic-icon name="plus" size="18"></ic-icon></span>
+      <span class="option-text"><span class="ic-option-title">Start with no tables</span>
+        <span class="ic-option-desc">Build only the tables you want: double-click a question, drag it onto the table list, or use + New table.</span></span>
+    </button>
+  </div>
+</dialog>
 
 <!-- Weight Wizard Modal -->
 <div id="weight-wizard-modal" style="display:none" class="ic-modal-backdrop">

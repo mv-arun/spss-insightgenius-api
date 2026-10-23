@@ -132,7 +132,7 @@ class TabulateSpec:
     grid_mode: str = "individual"  # "individual" (each var as crosstab) or "summary" (compact T2B/Mean table)
     include_means: bool = False
     include_total_column: bool = True  # Total as first column (T2-5)
-    output_mode: str = "multi_sheet"  # "multi_sheet", "single_sheet" or "banner_sheets"
+    output_mode: str = "multi_sheet"  # "multi_sheet", "single_sheet", "banner_sheets" or "pages"
     custom_groups_label: str = "Custom Groups"  # banner name of the custom groups ("By Data Cut")
     # banner_sheets (and /v1/tabulate/preview) only:
     sort_rows: bool | str = False  # True / "total": answers by Total, highest first; "az": by label ("Other" / "None" stay last)
@@ -154,6 +154,9 @@ class TabulateSpec:
     # A table not listed uses banners / filters / custom_groups above. Tables with the same setup are
     # tabulated together; every layout writes each table with its own columns.
     table_specs: list[dict[str, Any]] | None = None
+    # output_mode "pages": [{"name": "Page 1", "tables": ["Q1", "Q2"]}, …] — one sheet per page, its tables
+    # stacked in that order, each with all of its own columns (Total, then each banner)
+    pages: list[dict[str, Any]] | None = None
 
     def __post_init__(self):
         if self.significance_levels:
@@ -1131,6 +1134,9 @@ def _build_excel(result: TabulationResult, spec: TabulateSpec, data: Any) -> byt
     if spec.output_mode == "banner_sheets":
         from services.banner_workbook import build_banner_workbook
         return build_banner_workbook(result, spec, data)
+    if spec.output_mode == "pages":
+        from services.banner_workbook import build_pages_workbook
+        return build_pages_workbook(result, spec, data)
     # table_specs: each table is written with its own part (columns, filters, data)
     parts = result.parts or [TabulationPart(tables=[], result=result, spec=spec, data=data)]
 

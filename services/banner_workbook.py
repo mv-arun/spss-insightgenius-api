@@ -478,6 +478,77 @@ def preview_tables(result, spec, data) -> dict:
     }
 
 
+def _write_page_table(ws, r, p: Placed, n_cases: int) -> int:
+    """One table on a page: Total then each of its banners side by side, letters (within each banner)
+    under every value, Column Sample Size; a grid repeats this per item. Returns the next free row."""
+    calc, table = p.calc, p.table
+    total = [("Total", calc.total)] if calc.total else []
+    cols = total + [(bc.value_label, bc) for group in p.groups for bc in group]
+    groups = [(None, [bc for _, bc in total])] + [(g[0].banner_label, g) for g in p.groups]
+    _put(ws, r, 1, table.title, font=TITLE, align=None, fill=None)
+    r += 1
+    for item in table.items:
+        if len(table.items) > 1:
+            _put(ws, r, 1, item.label, font=LABEL, align=LEFT, fill=None)
+            r += 1
+        # header: banner names over their columns, then the column names and letters
+        _put(ws, r, 1, "Column %\nColumn Comparisons", font=HEAD, align=CENTER)
+        c = 2
+        for label, members in groups:
+            if not members:
+                continue
+            _put(ws, r, c, label or "", font=HEAD, align=CENTER)
+            if len(members) > 1:
+                ws.merge_cells(start_row=r, start_column=c, end_row=r, end_column=c + len(members) - 1)
+            for j, bc in enumerate(members):
+                _put(ws, r + 1, c + j, bc.value_label if label else "Total", font=HEAD, align=CENTER)
+                _put(ws, r + 2, c + j, "" if label is None else f"({get_column_letter(j + 1)})", align=CENTER)
+            c += len(members)
+        r += 3
+        for row in table.rows:
+            _put(ws, r, 1, row.label, font=LABEL, align=LEFT)
+            _put(ws, r + 1, 1, None, font=LABEL, align=LEFT)
+            c = 2
+            for label, members in groups:
+                for bc in members:
+                    v = calc.value(item, bc, row)
+                    _put(ws, r, c, v, fmt="0%")
+                    _put(ws, r + 1, c, calc.letters(item, members, bc, row) if v is not None and label else "-")
+                    c += 1
+            r += 2
+        _put(ws, r, 1, "Column Sample Size", font=LABEL, align=CENTER, fill=BASE_FILL, border=BASE_BORDER)
+        for j, (_, bc) in enumerate(cols):
+            _put(ws, r, 2 + j, int(round(calc.base(item, bc))), fmt="0", fill=BASE_FILL, border=BASE_BORDER)
+        r += 1
+    _put(ws, r, 1, f"{_sample_line(calc, table, n_cases)}; {_stat_note(calc.spec)}", font=TITLE, align=None, fill=None)
+    return r + 1 + GAP
+
+
+def build_pages_workbook(result, spec, data) -> bytes:
+    """output_mode "pages": one sheet per page (spec.pages), its tables stacked in the given order."""
+    placed = {p.table.key: p for p in _placed(result, spec, data)}
+    n_cases = len(data.df)
+    wb = Workbook()
+    wb.remove(wb.active)
+    for page in spec.pages or []:
+        ws = _sheet(wb, str(page.get("name") or f"Page {len(wb.worksheets) + 1}"))
+        r, widest = FIRST_ROW, 1
+        for key in page.get("tables", []):
+            p = placed.get(key)
+            if p is None:  # a table that couldn't be built (nobody answered) leaves a note
+                _put(ws, r, 1, f"{key}: no table (nobody answered)", font=TITLE, align=None, fill=None)
+                r += 1 + GAP
+                continue
+            r = _write_page_table(ws, r, p, n_cases)
+            widest = max(widest, 1 + sum(len(g) for g in p.groups))
+        _widths(ws, widest)
+    if not wb.worksheets:
+        wb.create_sheet("Tables")
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
 def build_banner_workbook(result, spec, data) -> bytes:
     placed = _placed(result, spec, data)
     n_cases = len(data.df)

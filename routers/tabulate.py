@@ -63,6 +63,7 @@ def _tab_spec(spec_dict: dict, cb) -> TabulateSpec:
             hide_codes=_hide_codes(spec_dict.get("hide_codes")),
             show_row_pct=bool(spec_dict.get("show_row_pct", False)),
             table_specs=_table_specs(spec_dict.get("table_specs")),
+            pages=_pages(spec_dict.get("pages")),
             table_order=spec_dict.get("table_order"),
             table_titles=spec_dict.get("table_titles"),
             show_counts=spec_dict.get("show_counts", True),
@@ -75,6 +76,14 @@ def _tab_spec(spec_dict: dict, cb) -> TabulateSpec:
         )
     except (ValueError, TypeError) as e:
         raise HTTPException(400, detail={"code": "VALIDATION_ERROR", "message": str(e)})
+    if spec.output_mode == "pages":
+        names = set(spec.stubs) | set(spec.mrs_groups or {}) | set(spec.grid_groups or {})
+        if not spec.pages:
+            raise HTTPException(400, detail={"code": "VALIDATION_ERROR", "message": "output_mode \"pages\" needs 'pages'"})
+        unknown = [t for page in spec.pages for t in page["tables"] if t not in names]
+        if unknown:
+            raise HTTPException(400, detail={"code": "VALIDATION_ERROR",
+                                             "message": f"Pages name tables that aren't in stubs or the groups: {unknown}"})
     if spec.table_specs and spec.stubs == ["_all_"]:
         raise HTTPException(400, detail={"code": "VALIDATION_ERROR",
                                          "message": "With table_specs, name the tables in 'stubs' (and the groups), not [\"_all_\"]"})
@@ -112,6 +121,16 @@ def _table_specs(value) -> list | None:
             raise ValueError(f"table_specs[{t['table']}].banners must be a list of variable names")
         if t.get("filters") is not None and not isinstance(t["filters"], list):
             raise ValueError(f"table_specs[{t['table']}].filters must be a list of conditions")
+    return value
+
+
+def _pages(value) -> list | None:
+    """pages: [{"name": "Page 1", "tables": ["Q1", "Q2"]}, …] for output_mode "pages"."""
+    if not value:
+        return None
+    if not isinstance(value, list) or not all(isinstance(p, dict) and isinstance(p.get("tables"), list)
+                                              and all(isinstance(t, str) for t in p["tables"]) for p in value):
+        raise ValueError("pages must be a list of {\"name\": text, \"tables\": [table names]}")
     return value
 
 
@@ -410,6 +429,9 @@ async def tabulate_preview(
     if not isinstance(spec_dict, dict):
         raise HTTPException(400, detail={"code": "INVALID_SPEC", "message": "spec must be a JSON object"})
 
+    # The layout (pages, sheets) is the export's business, not the preview's
+    spec_dict.pop("pages", None)
+    spec_dict.pop("output_mode", None)
     # Only the tables asked for: stubs, and the multi-select / grid groups named in `tables`
     tables = spec_dict.pop("tables", None)
     if tables is not None:
