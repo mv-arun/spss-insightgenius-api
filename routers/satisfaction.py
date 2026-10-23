@@ -134,7 +134,7 @@ def _run_satisfaction_summary(file_bytes: bytes, filename: str, spec: dict):
 async def satisfaction_summary_endpoint(
     request: Request,
     file: UploadFile = File(None, description="Data file: .sav, .csv, .tsv, .xlsx, .xls (or use file_id)"),
-    file_id: str | None = Form(None, description="File session ID from /v1/library/upload"),
+    file_id: str | None = Form(None, description="File session ID from /v1/files/upload"),
     spec: str = Form(..., description='JSON: {"variables": ["sat_speed","sat_price"], "scale": "1-5"}'),
     key: KeyConfig = Depends(require_scope("crosstab")),
     _rl: None = Depends(check_rate_limit),

@@ -33,23 +33,27 @@ key: KeyConfig = Depends(require_scope("process"))  # key with specific scope
 User identity = `key.name`. NEVER accept user_id from client input.
 
 ### File flow
-1. Upload via `/v1/files/upload` or MCP `spss_upload_file` → stored in Redis with 30min sliding TTL
-2. Returns `file_id` (UUID)
+1. Upload via `/v1/files/upload` (multipart), `/v1/files/upload-base64` (JSON) or MCP `spss_upload_file` → stored in Redis with 30min sliding TTL
+2. Returns `file_id` (UUID); `GET`/`DELETE /v1/files/{file_id}` show / end the session
 3. All analysis endpoints accept `file_id` parameter
 4. Parsed once per worker per file + codebook (`services/data_cache.py`, `PARSED_CACHE_MB`, default 512; used by /v1/tabulate, /v1/tabulate/preview, /v1/crosstab). Callers get their own copy: tabulation adds columns to the data it's given.
 
 ### Response envelope
 ```json
 {"success": true, "data": {...}, "meta": {"request_id": "abc", "processing_time_ms": 123}}
-{"success": false, "error": {"code": "VARIABLE_NOT_FOUND", "message": "..."}}
+{"success": false, "error": {"code": "VARIABLE_NOT_FOUND", "message": "..."}, "detail": {...}}
 ```
+- Errors: keep raising `HTTPException(status, detail={"code", "message"})`; the handlers in `main.py` wrap every error (and 422s) in the envelope, keeping FastAPI's `detail` for older callers.
+- File outputs (`/v1/tabulate`, `/v1/auto-analyze`, `/v1/convert`, `/v1/exports/data-workbook`) take `response_format`: `file` (bytes) / `url` (download link, 15 min) / `base64`. Use `shared/file_output.py`.
+- Async: `/v1/tabulate` + `webhook_url` → 202 + job; jobs are written through to Redis (`shared/job_store.py`) so any worker can answer `/v1/jobs/{id}`.
+- Integration guide for other apps: `/docs/api` (`public/api-docs.html`; its endpoint reference renders `/openapi.json`, so keep summaries / descriptions / Form descriptions accurate).
 
-## Endpoints (29 REST + MCP)
+## Endpoints (32 REST + MCP)
 
 | Category | Endpoints |
 |----------|-----------|
 | System | GET /v1/health, GET /v1/usage |
-| Files | POST /v1/files/upload, GET /downloads/{token} |
+| Files | POST /v1/files/upload, POST /v1/files/upload-base64, GET/DELETE /v1/files/{file_id}, GET /downloads/{token} |
 | Library | POST/GET/PATCH/DELETE /v1/library/*, GET /v1/library/{id}/file (original bytes), GET /v1/library/search/files |
 | Metadata | POST /v1/metadata |
 | Analysis | /v1/frequency, /v1/crosstab, /v1/anova, /v1/correlation, /v1/gap-analysis, /v1/satisfaction-summary |
@@ -90,13 +94,13 @@ Sign-in:
 - `/` is the split-screen sign-in; signed in, it goes to `/app`.
 - App pages need the `ic_session` cookie (`routers/ui_auth.py`). Without it they redirect to `/?next=…`.
 - There is one account, set by `UI_LOGIN_EMAIL` / `UI_LOGIN_PASSWORD` (`UI_LOGIN_NAME` is optional). Sign-in is refused while either is unset.
-- `/upload` (MCP uploader), `/privacy` and `/docs/mcp` stay public.
+- `/upload` (MCP uploader), `/privacy`, `/docs/api` and `/docs/mcp` stay public.
 - The pages still call the API with the demo key from `/static/config.js`.
 
 ## Testing
 
 ```bash
-python -m pytest tests/ -x -q --tb=short  # 287 tests, ~45s
+python -m pytest tests/ -x -q --tb=short  # 298 tests, ~45s
 ```
 
 - `tests/test_tabulation_real.py` — golden standard tests vs R export

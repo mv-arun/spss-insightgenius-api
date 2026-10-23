@@ -124,7 +124,6 @@
     const parts = String(name || '').trim().split(/[\s@._-]+/).filter(Boolean);
     return ((parts[0] || '?')[0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
   }
-  function firstName(name) { return String(name || '').trim().split(/\s+/)[0] || ''; }
 
   // Signed-in user: avatar, name and a menu with Settings and Sign out
   function userMenu() {
@@ -158,7 +157,7 @@
     connectedCallback() {
       if (this.dataset.ready) return;
       this.dataset.ready = '1';
-      const docs = el('a', { class: 'ic-icon-btn', href: '/docs', target: '_blank', rel: 'noopener', title: 'API docs', 'aria-label': 'API docs' }, icon('book', 18));
+      const docs = el('a', { class: 'ic-icon-btn', href: '/docs/api', target: '_blank', rel: 'noopener', title: 'API docs', 'aria-label': 'API docs' }, icon('book', 18));
       this.append(brand('/app'), el('nav', { class: 'ic-appbar-steps', 'aria-label': 'Steps' }),
         el('div', { class: 'ic-appbar-right' }, docs, userMenu()));
     }
@@ -308,5 +307,5 @@
     });
   }
 
-  window.IC = { el, icon, api, apiKey, me, signOut, initials, firstName, number, bytes, timeAgo, fileIcon, toast, popover, popMenu, closePop, stepper, appbarSteps, FEATURES };
+  window.IC = { el, icon, api, apiKey, me, signOut, initials, number, bytes, timeAgo, fileIcon, toast, popover, popMenu, closePop, stepper, appbarSteps, FEATURES };
 })();

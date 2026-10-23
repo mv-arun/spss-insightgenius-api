@@ -1,7 +1,6 @@
 """POST /v1/auto-analyze — Zero-config SPSS analysis. Upload a .sav, get a complete Excel back."""
 
 import asyncio
-import io
 import json
 import logging
 import time
@@ -9,7 +8,6 @@ import time
 logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import StreamingResponse
 
 from auth import require_scope, KeyConfig
 from middleware.processing import run_in_executor
@@ -17,6 +15,7 @@ from middleware.rate_limiter import check_rate_limit
 from shared.codebook_resolver import resolve_codebook
 from shared.file_resolver import resolve_file
 from services.quantipy_engine import QuantiProEngine, QUANTIPYMRX_AVAILABLE
+from shared.file_output import RESPONSE_FORMAT_HELP, check_response_format, file_response
 from services.data_loader import SPSS_FORMATS, file_format, load_data
 from services.data_workbook import append_data_workbook
 from services.tabulation_builder import TabulateSpec, build_tabulation
@@ -217,23 +216,27 @@ def _run_auto_analyze(file_bytes: bytes, filename: str, options: dict):
 async def auto_analyze(
     request: Request,
     file: UploadFile = File(None, description="Data file: .sav, .csv, .tsv, .xlsx, .xls (or use file_id)"),
-    file_id: str | None = Form(None, description="File session ID from /v1/library/upload"),
+    file_id: str | None = Form(None, description="File session ID from /v1/files/upload"),
     codebook: str | None = Form(None, description="Codebook JSON from /v1/codebook (edited coding); default: inferred, or saved for file_id"),
     ticket: UploadFile = File(None, description="Reporting Ticket .docx — AI parses it to override auto-detection"),
     options: str = Form("{}", description='Optional JSON: {"max_banners": 3, "output_mode": "multi_sheet", "significance_level": 0.95, '
                                          '"significance_levels": [0.95, 0.90]}. Default: CAPITAL letters at 95%, lowercase at 90%'),
+    response_format: str = Form("file", description=RESPONSE_FORMAT_HELP),
     key: KeyConfig = Depends(require_scope("process")),
     _rl: None = Depends(check_rate_limit),
 ):
     start = time.perf_counter()
+    response_format = check_response_format(response_format)
 
     file_bytes, filename = await resolve_file(file=file, file_id=file_id)
     cb = await resolve_codebook(codebook, file_id)
 
     try:
         options_dict = json.loads(options)
-    except json.JSONDecodeError:
-        options_dict = {}
+    except json.JSONDecodeError as e:
+        raise HTTPException(400, detail={"code": "INVALID_SPEC", "message": f"Invalid JSON in options: {e}"})
+    if not isinstance(options_dict, dict):
+        raise HTTPException(400, detail={"code": "INVALID_SPEC", "message": "options must be a JSON object"})
 
     # Parse Reporting Ticket if provided — override auto-detection with ticket spec
     if ticket and ticket.filename and ticket.filename.endswith('.docx'):
@@ -309,11 +312,10 @@ async def auto_analyze(
         except Exception as e:
             logger.warning("[AUTO] Data workbook failed (non-blocking): %s", e)
 
-    return StreamingResponse(
-        io.BytesIO(excel_bytes),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    return await file_response(
+        excel_bytes, result["filename"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        response_format,
         headers={
-            "Content-Disposition": f'attachment; filename="{result["filename"]}"',
             "X-Processing-Time-Ms": str(elapsed),
             "X-Stubs-Total": str(summary["total_stubs"]),
             "X-Stubs-Success": str(summary["stubs_success"]),

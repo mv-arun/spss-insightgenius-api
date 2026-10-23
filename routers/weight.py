@@ -22,7 +22,7 @@ router = APIRouter(tags=["Weighting"])
 @router.post("/v1/weight/preview", summary="Preview variable distribution for weighting")
 async def weight_preview(
     file: UploadFile = File(None, description="Data file: .sav, .csv, .tsv, .xlsx, .xls (or use file_id)"),
-    file_id: str | None = Form(None, description="File session ID from /v1/library/upload"),
+    file_id: str | None = Form(None, description="File session ID from /v1/files/upload"),
     codebook: str | None = Form(None, description="Codebook JSON from /v1/codebook (edited coding); default: inferred, or saved for file_id"),
     variable: str = Form(...),
     key: KeyConfig = Depends(require_auth),
@@ -90,7 +90,7 @@ async def weight_preview(
 @router.post("/v1/weight/compute", summary="Compute RIM weight from target distributions")
 async def weight_compute(
     file: UploadFile = File(None, description="Data file: .sav, .csv, .tsv, .xlsx, .xls (or use file_id)"),
-    file_id: str | None = Form(None, description="File session ID from /v1/library/upload"),
+    file_id: str | None = Form(None, description="File session ID from /v1/files/upload"),
     codebook: str | None = Form(None, description="Codebook JSON from /v1/codebook (edited coding); default: inferred, or saved for file_id"),
     targets: str = Form(...),
     max_iterations: int = Form(50),

@@ -42,7 +42,7 @@ async def resolve_file(
 
     raise HTTPException(400, detail={
         "code": "NO_FILE",
-        "message": "Provide 'file' (upload) or 'file_id' (from /v1/library/upload). "
+        "message": "Provide 'file' (upload) or 'file_id' (from /v1/files/upload). "
                    "Upload at https://crosstab.indicolabs.io/upload to get a file_id.",
     })
 
@@ -84,7 +84,7 @@ async def _resolve_from_redis(file_id: str) -> tuple[bytes, str]:
     if not file_bytes:
         raise HTTPException(404, detail={
             "code": "FILE_NOT_FOUND",
-            "message": f"file_id '{file_id}' not found or expired. Re-upload at /v1/library/upload.",
+            "message": f"file_id '{file_id}' not found or expired. Re-upload with POST /v1/files/upload.",
         })
 
     return file_bytes, filename

@@ -8,7 +8,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -62,16 +65,17 @@ def create_application() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         description=(
-            "**Indico Crosstab API** — REST API for processing SPSS (.sav) files.\n\n"
-            "Powered by QuantipyMRX for market research analysis: crosstabs with significance testing, "
-            "auto-detection of question types, NPS, Top/Bottom Box, nets, and AI-powered "
-            "Reporting Ticket parsing via Claude Haiku.\n\n"
+            "**Indico Crosstab API** — market research tables from survey data files "
+            "(.sav, .csv, .tsv, .xlsx, .xls): crosstabs with significance letters, nets, "
+            "weighting and Excel tabulations.\n\n"
+            "**Guide:** [/docs/api](/docs/api) — authentication, sending files, response formats, "
+            "async jobs, errors and every field of the tabulation spec.\n\n"
             "## Authentication\n"
-            "All endpoints require `Authorization: Bearer sk_live_...` or `sk_test_...`\n\n"
+            "`Authorization: Bearer sk_live_...` (or `sk_test_...`) on every `/v1` request.\n\n"
             "## Rate Limits\n"
-            "| Plan | Requests/min | Max file size |\n"
+            "| Plan | Requests/min | Max file size (/v1/tabulate) |\n"
             "|------|-------------|---------------|\n"
-            "| Free (sk_test_) | 10 | 5 MB |\n"
+            "| Free | 10 | 5 MB |\n"
             "| Pro | 60 | 50 MB |\n"
             "| Business | 200 | 200 MB |\n"
         ),
@@ -81,12 +85,20 @@ def create_application() -> FastAPI:
         openapi_url="/openapi.json",
         lifespan=lifespan,
         openapi_tags=[
-            {"name": "System", "description": "Health check and system info"},
-            {"name": "Metadata", "description": "Extract variable metadata from SPSS files"},
-            {"name": "Analysis", "description": "Frequency, crosstab, NPS, and other analyses"},
-            {"name": "Processing", "description": "Full pipeline: upload + analyze + return results"},
-            {"name": "Conversion", "description": "Convert SPSS files to other formats"},
-            {"name": "AI Features", "description": "Haiku-powered ticket parsing and smart labeling"},
+            {"name": "System", "description": "Health check and usage"},
+            {"name": "Files", "description": "File sessions: upload once, then pass `file_id` to any endpoint"},
+            {"name": "Metadata", "description": "Variables, labels and detected question types"},
+            {"name": "Codebook", "description": "How each column is coded; edit and save the coding"},
+            {"name": "Analysis", "description": "Frequency, crosstab, ANOVA, correlation, gap and satisfaction analyses (JSON)"},
+            {"name": "Processing", "description": "Tabulation workbooks (Excel), live previews and auto-analysis"},
+            {"name": "Weighting", "description": "RIM weighting"},
+            {"name": "Setups", "description": "Saved client rules applied to a file's coding"},
+            {"name": "Export", "description": "Respondent-level data workbooks"},
+            {"name": "Conversion", "description": "Convert data files to xlsx, csv, dta or parquet"},
+            {"name": "Jobs", "description": "Status of background (webhook) jobs"},
+            {"name": "Downloads", "description": "Temporary download links"},
+            {"name": "AI Features", "description": "Claude-powered ticket parsing and spec generation"},
+            {"name": "Keys", "description": "Manage API keys"},
         ],
     )
 
@@ -108,6 +120,34 @@ def create_application() -> FastAPI:
 
     # Standardized error handlers using shared.response.error_response
     from shared.response import error_response
+
+    # Every error has the same envelope: {"success": false, "error": {"code", "message"}}.
+    # "detail" (FastAPI's default) is kept alongside it for existing callers.
+    STATUS_CODES = {400: "BAD_REQUEST", 401: "UNAUTHORIZED", 403: "FORBIDDEN", 404: "NOT_FOUND",
+                    405: "METHOD_NOT_ALLOWED", 409: "CONFLICT", 413: "FILE_TOO_LARGE",
+                    415: "UNSUPPORTED_FORMAT", 422: "VALIDATION_ERROR", 429: "RATE_LIMITED",
+                    503: "SERVICE_UNAVAILABLE"}
+
+    def _error(status: int, detail, headers=None) -> JSONResponse:
+        if isinstance(detail, dict):
+            code = detail.get("code") or STATUS_CODES.get(status, "ERROR")
+            message = detail.get("message") or detail.get("error") or detail.get("detail") or ""
+        else:
+            code, message = STATUS_CODES.get(status, "ERROR"), str(detail or "")
+        body = error_response(code, str(message))
+        body["detail"] = detail
+        return JSONResponse(status_code=status, content=body, headers=headers)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+        return _error(exc.status_code, exc.detail, getattr(exc, "headers", None))
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        problems = [f"{'.'.join(str(p) for p in e.get('loc', ()) if p != 'body')}: {e.get('msg')}" for e in exc.errors()]
+        body = error_response("VALIDATION_ERROR", "; ".join(problems) or "Invalid request")
+        body["detail"] = jsonable_encoder(exc.errors())
+        return JSONResponse(status_code=422, content=body)
 
     @app.exception_handler(asyncio.TimeoutError)
     async def timeout_handler(request: Request, exc: asyncio.TimeoutError):
@@ -291,7 +331,8 @@ def create_application() -> FastAPI:
             app.add_api_route(path, to_app(), methods=["GET"], include_in_schema=False)
 
         # Public pages: the MCP file uploader (linked from Claude) and docs
-        public_pages = {"/upload": "upload.html", "/privacy": "privacy.html", "/docs/mcp": "mcp-docs.html"}
+        public_pages = {"/upload": "upload.html", "/privacy": "privacy.html", "/docs/mcp": "mcp-docs.html",
+                        "/docs/api": "api-docs.html"}
         for path, name in public_pages.items():
             app.add_api_route(path, (lambda n: lambda: page(n))(name), methods=["GET"], include_in_schema=False)
 

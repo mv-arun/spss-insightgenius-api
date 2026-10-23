@@ -1,29 +1,20 @@
 # Indico Crosstab API
 
-**Professional SPSS processing API + MCP server for market research.** Upload .sav files, get crosstabs with significance testing, auto-detected question types, and publication-ready Excel exports. Includes AI-powered zero-config analysis.
+**Market research tables as an API + MCP server.** Send a survey data file (.sav, .csv, .tsv, .xlsx, .xls), get crosstabs with significance letters, nets, weighting and publication-ready Excel tabulations.
 
-**Live**: [crosstab.indicolabs.io](https://crosstab.indicolabs.io) | **API Docs**: [crosstab.indicolabs.io/docs](https://crosstab.indicolabs.io/docs) | **MCP**: `crosstab.indicolabs.io/mcp/sse`
+**Live**: [crosstab.indicolabs.io](https://crosstab.indicolabs.io) | **API guide**: [/docs/api](https://crosstab.indicolabs.io/docs/api) | **Try it**: [/docs](https://crosstab.indicolabs.io/docs) (Swagger) | **OpenAPI**: [/openapi.json](https://crosstab.indicolabs.io/openapi.json) | **MCP**: [/docs/mcp](https://crosstab.indicolabs.io/docs/mcp)
 
 ---
 
 ## Quick Start
 
-### Option 1: Web UI (no code needed)
+### Option 1: Web app (no code needed)
 
-1. Open [crosstab.indicolabs.io](https://crosstab.indicolabs.io)
-2. Drag & drop your `.sav` file
-3. Click **Auto-Analyze** for instant results, or configure manually:
-   - Select banner variables (demographics for columns)
-   - Choose stubs (questions for rows)
-   - Enable Top 2 Box / Means
-4. Click **Generate Excel** → download your tabulation
+Sign in at [crosstab.indicolabs.io](https://crosstab.indicolabs.io); the app (`/app`) is one stepped flow:
+**Dataset** (upload) → **Variables** (how every column was read; fix labels, types, bases, build derived
+variables) → **Crosstabs** (build the tables: rows, columns, filters, live preview) → **Options** → **Generate** (Excel).
 
-### Review how a file was read
-
-In the web app (`/app`) this is **Step 2 — Review data**, right after upload; the following steps (banners, stubs, tabulation, one-click analysis) use the reviewed coding. Standalone: open `/review`, drop any SPSS / Excel / CSV file and see the codebook — how every column was coded, with
-counts and reasons — next to a live crosstab and chart. Fix anything that was misread (rename, change type,
-exclude "Don't know" from bases, merge or reorder answers) and build derived variables (bands, groups,
-Single/Dual/Triple counts, priority groups…) with a live preview. Approve to run the full analysis.
+The Variables step is also served on its own at `/review`.
 
 ### Option 2: Auto-Analyze (zero config)
 
@@ -34,7 +25,7 @@ curl -X POST https://crosstab.indicolabs.io/v1/auto-analyze \
   -o auto_analysis.xlsx
 ```
 
-AI auto-detects banners, groups variables into MRS/Grid, applies nets, and generates a complete Excel.
+Auto-detects banners, groups variables into MRS/Grid, applies nets, and generates a complete Excel.
 
 ### Option 3: Full Control
 
@@ -52,83 +43,90 @@ curl -X POST https://crosstab.indicolabs.io/v1/tabulate \
   }' -o tabulation.xlsx
 ```
 
-### Option 4: Python
+### Option 4: From another app
+
+Upload once, reuse the `file_id`, and choose how files come back (`response_format`: `file`, `url` or `base64`):
 
 ```python
 import requests, json
 
-resp = requests.post(
-    "https://crosstab.indicolabs.io/v1/tabulate",
-    headers={"Authorization": "Bearer YOUR_API_KEY"},
-    files={"file": open("survey.sav", "rb")},
-    data={"spec": json.dumps({
-        "banners": ["gender", "region"],
-        "stubs": ["_all_"],
-        "include_means": True,
-        "significance_level": 0.95,
-    })}
-)
-with open("tabulation.xlsx", "wb") as f:
-    f.write(resp.content)
-print(f"Done: {resp.headers['X-Stubs-Success']} tables generated")
+API, H = "https://crosstab.indicolabs.io", {"Authorization": "Bearer YOUR_API_KEY"}
+
+file_id = requests.post(f"{API}/v1/files/upload", headers=H,
+                        files={"file": open("survey.sav", "rb")}).json()["file_id"]
+
+resp = requests.post(f"{API}/v1/tabulate", headers=H, data={
+    "file_id": file_id,
+    "spec": json.dumps({"banners": ["gender", "region"], "stubs": ["_all_"]}),
+    "response_format": "url",
+})
+resp.raise_for_status()
+print(resp.json()["data"]["download_url"])   # valid 15 minutes
 ```
+
+JSON-only callers can upload with `POST /v1/files/upload-base64`; long jobs can run in the background
+with `webhook_url` (poll `GET /v1/jobs/{job_id}`). Errors are always
+`{"success": false, "error": {"code", "message"}}`. Everything is in the [API guide](https://crosstab.indicolabs.io/docs/api).
 
 ### Option 5: MCP (for AI agents)
 
-Connect to `https://crosstab.indicolabs.io/mcp/sse` and use any of the 12 tools. Files are passed as base64.
+Connect to `https://crosstab.indicolabs.io/mcp/sse` (setup: [/docs/mcp](https://crosstab.indicolabs.io/docs/mcp)).
+Upload with `spss_upload_file` (or the `/upload` page) and pass the `file_id` to the other tools.
 
 ---
 
-## Endpoints (14)
+## Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| **POST** | `/v1/auto-analyze` | **Zero-config** — upload .sav, get complete Excel (AI-detected banners, MRS, grids, nets) |
-| **POST** | `/v1/tabulate` | **Full tabulation → Excel** with sig letters, nets, means, MRS, grids, custom groups. Accepts optional .docx Reporting Ticket. |
-| POST | `/v1/metadata` | Variable metadata + suggested banners + detected groups + preset nets |
-| POST | `/v1/codebook` | How each column is coded: codes + raw answers + counts, missing codes, multi-selects, derived variables, reasons (also `GET /v1/files/{file_id}/codebook`). Send `edits` to change it (rename, recode, exclude from base, merge, derived variables: bands / recode / priority / count / combination / coalesce / flags); `PATCH /v1/files/{file_id}/codebook` saves edits with the file session. Analysis endpoints accept the edited `codebook` |
-| POST | `/v1/frequency` | Frequency table (counts, %, mean, std, median) |
-| POST | `/v1/crosstab` | Single crosstab with sig letters (A/B/C) + chi-square p-value |
-| POST | `/v1/correlation` | Correlation matrix (Pearson/Spearman/Kendall) with p-values |
-| POST | `/v1/anova` | One-way ANOVA with Tukey HSD post-hoc comparisons |
-| POST | `/v1/gap-analysis` | Importance-Performance gap analysis with quadrants |
-| POST | `/v1/satisfaction-summary` | Compact T2B/B2B/Mean for multiple scale variables |
-| POST | `/v1/process` | Multi-operation pipeline (auto-detect or manual) |
-| POST | `/v1/convert` | Convert .sav → xlsx, csv, parquet, dta |
-| POST | `/v1/parse-ticket` | Parse Reporting Ticket .docx → tab plan (Haiku AI) |
-| GET | `/v1/health` | Health check + engine status |
-| GET | `/v1/usage` | Usage stats for your API key |
+The full, always-current list with every field is the [API guide](https://crosstab.indicolabs.io/docs/api) (generated from the OpenAPI schema).
 
-## MCP Tools (12)
+| Area | Endpoints |
+|------|-----------|
+| Files | `POST /v1/files/upload`, `POST /v1/files/upload-base64`, `GET`/`DELETE /v1/files/{file_id}`, `GET /downloads/{token}` |
+| Metadata & coding | `POST /v1/metadata`, `POST /v1/codebook`, `GET`/`PATCH /v1/files/{file_id}/codebook` |
+| Analysis (JSON) | `/v1/frequency`, `/v1/crosstab`, `/v1/correlation`, `/v1/anova`, `/v1/gap-analysis`, `/v1/satisfaction-summary`, `/v1/wave-compare`, `/v1/process` |
+| Tabulation (Excel) | `/v1/tabulate` (sync, or async with `webhook_url`), `/v1/tabulate/preview` (JSON), `/v1/auto-analyze` |
+| Export | `/v1/convert` (xlsx, csv, dta, parquet), `/v1/exports/data-workbook` |
+| Weighting | `/v1/weight/preview`, `/v1/weight/compute` |
+| Setups | `GET /v1/setups`, `POST /v1/setups/match`, `POST /v1/setups/apply` |
+| AI | `/v1/smart-spec`, `/v1/parse-ticket` (plus `/v1/chat*` when `ENABLE_AI_CHAT`) |
+| Jobs & keys | `GET /v1/jobs/{job_id}`, `/v1/keys` |
+| System | `GET /v1/health`, `GET /v1/usage` |
+
+## MCP Tools
 
 | Tool | Description |
 |------|-------------|
-| `get_spss_metadata` | Variable metadata + auto-detect |
-| `get_variable_info` | Single variable detail |
-| `analyze_frequencies` | Frequency table |
-| `analyze_crosstabs` | Crosstab with sig letters |
-| `analyze_correlation` | Correlation matrix |
-| `analyze_anova` | ANOVA + Tukey HSD |
-| `analyze_gap` | Gap analysis with quadrants |
-| `summarize_satisfaction` | Satisfaction summary |
-| `create_tabulation` | Full tabulation → Excel (base64) |
-| `auto_analyze` | Zero-config → Excel (base64) |
-| `export_data` | Format conversion |
-| `list_files` | Available tools |
+| `spss_get_started` | How to use the tools |
+| `spss_upload_file` | Start a file session → `file_id` |
+| `spss_get_metadata` | Variable metadata + auto-detect |
+| `spss_get_codebook` | How each column is coded |
+| `spss_describe_variable` | Single variable detail |
+| `spss_analyze_frequencies` | Frequency table |
+| `spss_analyze_crosstab` | Crosstab with sig letters |
+| `spss_analyze_correlation` | Correlation matrix |
+| `spss_analyze_anova` | ANOVA + Tukey HSD |
+| `spss_analyze_gap` | Gap analysis with quadrants |
+| `spss_summarize_satisfaction` | Satisfaction summary |
+| `spss_create_tabulation` | Full tabulation → Excel (download link) |
+| `spss_auto_analyze` | Zero-config → Excel (download link) |
+| `spss_export_data` | Format conversion |
+| `spss_get_server_info` | Server version and limits |
 
 ---
 
 ## Tabulate Spec
 
+The main fields (all of them: [API guide → Tabulation spec](https://crosstab.indicolabs.io/docs/api#spec)):
+
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `banners` | string[] | *required* | Demographics for columns (e.g., `["gender", "region"]`) |
+| `banners` | string[] | none (Total only) | Demographics for columns (e.g., `["gender", "region"]`) |
 | `stubs` | string[] | `["_all_"]` | Questions for rows (`_all_` = auto-select all) |
 | `significance_level` | float | `0.95` | 0.90, 0.95, or 0.99 |
 | `weight` | string | `null` | Weight variable name |
 | `include_means` | bool | `false` | Add Mean row with T-test sig letters |
 | `include_total_column` | bool | `true` | Total as first column |
-| `output_mode` | string | `"multi_sheet"` | `"multi_sheet"`, `"single_sheet"`, or `"banner_sheets"` (Total / By banner / Stat) |
+| `output_mode` | string | `"multi_sheet"` | `"multi_sheet"`, `"single_sheet"`, `"banner_sheets"` (Total / By banner / Stat) or `"pages"` (with `pages`) |
 | `nets` | object | `null` | Per-variable net definitions |
 | `mrs_groups` | object | `null` | MRS groups: `{"name": ["var1", "var2"]}` |
 | `grid_groups` | object | `null` | Grid groups: `{"name": {"variables": [...], "show": ["t2b","mean"]}}` |
@@ -169,21 +167,23 @@ All endpoints require: `Authorization: Bearer sk_live_...` or `sk_test_...`
 
 ### Rate Limits
 
-| Plan | Requests/min | Max file | Price |
-|------|-------------|----------|-------|
-| Free | 10 | 5 MB | $0 |
-| Growth | 60 | 50 MB | $29/mo |
-| Business | 200 | 200 MB | $99/mo |
-| Enterprise | Unlimited | 500 MB | Custom |
+| Plan | Requests/min | Max file (/v1/tabulate) |
+|------|-------------|----------|
+| Free | 10 | 5 MB |
+| Pro | 60 | 50 MB |
+| Business | 200 | 200 MB |
 
 ### Error Codes
+
+Every error: `{"success": false, "error": {"code": "...", "message": "..."}}` (full list in the [API guide](https://crosstab.indicolabs.io/docs/api#errors)).
 
 | Code | HTTP | Meaning |
 |------|------|---------|
 | `UNAUTHORIZED` | 401 | Missing/invalid API key |
 | `FORBIDDEN` | 403 | Valid key, wrong scope |
 | `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
-| `INVALID_FILE_FORMAT` | 400 | Not a .sav file |
+| `INVALID_FILE_FORMAT` | 400 | The file can't be read |
+| `FILE_NOT_FOUND` | 404 | `file_id` unknown or expired |
 | `FILE_TOO_LARGE` | 413 | Exceeds plan limit |
 | `VARIABLE_NOT_FOUND` | 400 | Variable doesn't exist |
 | `PROCESSING_FAILED` | 500 | Engine error |
@@ -230,8 +230,9 @@ workbook). Auto-analyze appends them when the codebook has the setting;
 |-------|-----------|
 | API | FastAPI + Pydantic v2 |
 | Engine | QuantipyMRX (crosstab, sig testing, auto-detect, MRS, NPS) |
-| AI | Claude Haiku (ticket parsing, smart labels, executive summary) |
-| Auth | API keys (SHA256, no DB) |
+| AI | Claude Sonnet (smart-spec, chat), Haiku (ticket parsing, labels, executive summary) |
+| Auth | API keys (SHA-256 hashes) + Clerk OAuth for MCP |
+| Storage | Redis (file sessions, downloads, jobs, rate limits); Supabase (keys, usage, library) |
 | Rate Limiting | Redis (fallback: in-memory) |
 | MCP | FastMCP with SSE transport |
 | Deploy | Railway (Docker, Gunicorn, 4 replicas, auto-deploy) |

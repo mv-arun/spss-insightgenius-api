@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API Docs · Indico Crosstab</title>
+<meta name="description" content="Indico Crosstab REST API: authentication, sending files, response formats, async jobs, errors, the tabulation spec and every endpoint.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/ui/ic.css">
+<script src="/static/ui/ic.js"></script>
+<style>
+  .doc-layout { max-width: 1180px; margin: 0 auto; padding: 32px 16px 24px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; }
+  .doc-toc { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; font-size: 13px; }
+  .doc-toc a { display: block; padding: 5px 10px; border-radius: var(--ic-radius-sm); color: var(--ic-text-muted); text-decoration: none; }
+  .doc-toc a:hover { background: var(--ic-blue-50); color: var(--ic-text); }
+  .doc-toc .doc-toc-group { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ic-text-subtle); margin: 14px 10px 4px; }
+  .doc-head { margin-bottom: 20px; }
+  .doc-head .ic-title { font-size: 26px; }
+  .doc-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .doc-cards { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .doc-card { scroll-margin-top: 16px; min-width: 0; }
+  .doc-card h2 { margin: 0 0 12px; font-size: 17px; font-weight: 600; color: var(--ic-text); }
+  .doc-card h3 { margin: 18px 0 8px; font-size: 13.5px; font-weight: 600; color: var(--ic-text); }
+  .doc-prose { font-size: 14px; line-height: 1.65; color: var(--ic-text-muted); }
+  .doc-prose p + p { margin-top: 8px; }
+  .doc-prose strong { color: var(--ic-text); font-weight: 600; }
+  .doc-prose ul, .doc-prose ol { display: flex; flex-direction: column; gap: 5px; padding-left: 22px; margin: 8px 0; }
+  .doc-prose ul { list-style: disc; } .doc-prose ol { list-style: decimal; }
+  .doc-prose a { color: var(--ic-blue-600); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+  :not(pre) > code { background: var(--ic-surface-muted); border: 1px solid var(--ic-border); border-radius: 4px; padding: 1px 5px; color: var(--ic-navy-800); overflow-wrap: anywhere; }
+  pre.ic-code { background: var(--ic-navy-900); color: #e7ecfa; padding: 14px 16px; border-radius: var(--ic-radius); white-space: pre; overflow-x: auto; line-height: 1.55; margin: 8px 0; font-size: 12px; }
+  .doc-tabs { display: flex; gap: 4px; margin-top: 8px; }
+  .doc-tabs button { font: inherit; font-size: 12.5px; padding: 5px 12px; border-radius: var(--ic-radius-sm); border: 1px solid var(--ic-border); background: var(--ic-surface); color: var(--ic-text-muted); cursor: pointer; }
+  .doc-tabs button[aria-selected="true"] { background: var(--ic-navy-900); color: #fff; border-color: var(--ic-navy-900); }
+  .doc-table-wrap { overflow-x: auto; margin: 8px 0; }
+  .doc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .doc-table th { text-align: left; font-weight: 600; color: var(--ic-text); background: var(--ic-surface-muted); border-bottom: 1px solid var(--ic-border); padding: 7px 10px; white-space: nowrap; }
+  .doc-table td { border-bottom: 1px solid var(--ic-border); padding: 7px 10px; vertical-align: top; color: var(--ic-text-muted); line-height: 1.5; }
+  .doc-table td:first-child { white-space: nowrap; }
+  .doc-table td:first-child code { color: var(--ic-blue-600); font-weight: 600; }
+  .doc-req { font-size: 10.5px; font-weight: 600; color: var(--ic-danger); margin-left: 4px; }
+  .doc-type { font-size: 11.5px; color: var(--ic-text-subtle); }
+  .doc-note { font-size: 12.5px; color: var(--ic-text-subtle); margin-top: 10px; }
+  .doc-ref-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 4px; }
+  .doc-ref-tools .ic-input { max-width: 320px; }
+  .doc-ref-group { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ic-text-subtle); margin: 22px 0 4px; }
+  .doc-ref-group-desc { font-size: 13px; color: var(--ic-text-muted); margin-bottom: 8px; }
+  .doc-ep { border: 1px solid var(--ic-border); border-radius: var(--ic-radius); margin-top: 8px; background: var(--ic-surface); scroll-margin-top: 16px; }
+  .doc-ep > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-wrap: wrap; }
+  .doc-ep > summary::-webkit-details-marker { display: none; }
+  .doc-ep > summary code { font-size: 13px; font-weight: 600; color: var(--ic-text); background: none; border: 0; padding: 0; }
+  .doc-ep > summary .doc-ep-sum { font-size: 13px; color: var(--ic-text-muted); }
+  .doc-ep[open] > summary { border-bottom: 1px solid var(--ic-border); }
+  .doc-ep-body { padding: 12px 16px 16px; }
+  .doc-method { min-width: 58px; justify-content: center; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 700; }
+  .doc-footer { text-align: center; padding: 24px 16px 32px; font-size: 12px; color: var(--ic-text-subtle); }
+  .doc-footer a { color: inherit; }
+  @media (max-width: 900px) { .doc-layout { grid-template-columns: minmax(0, 1fr); } .doc-toc { display: none; } }
+  @media (max-width: 600px) { .ic-public-header { height: auto; min-height: var(--ic-topbar-h); padding: 12px 16px; gap: 8px 12px; flex-wrap: wrap; } .ic-public-header nav { gap: 6px 14px; flex-wrap: wrap; } .ic-public-header nav a { font-size: 13px; } }
+</style>
+</head>
+<body class="ic-body">
+  <header class="ic-public-header">
+    <a class="ic-brand" href="/" style="padding:0"><span class="ic-brand-mark"><ic-icon name="logo" size="16"></ic-icon></span>Indico Crosstab</a>
+    <nav aria-label="Main">
+      <a href="/docs/api" aria-current="page" style="color:var(--ic-text)">API docs</a>
+      <a href="/docs">Try it (Swagger)</a>
+      <a href="/docs/mcp">MCP docs</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/">Sign in</a>
+    </nav>
+  </header>
+
+  <div class="doc-layout">
+    <nav class="doc-toc" aria-label="On this page">
+      <div class="doc-toc-group">Guide</div>
+      <a href="#overview">Overview</a>
+      <a href="#quickstart">Quick start</a>
+      <a href="#auth">Authentication</a>
+      <a href="#inputs">Sending files</a>
+      <a href="#outputs">Getting results</a>
+      <a href="#jobs">Async jobs &amp; webhooks</a>
+      <a href="#errors">Errors</a>
+      <a href="#limits">Limits, retries, CORS</a>
+      <a href="#spec">Tabulation spec</a>
+      <a href="#recipes">Recipes</a>
+      <div class="doc-toc-group">Reference</div>
+      <div id="toc-ref"><a href="#reference">Endpoints</a></div>
+    </nav>
+
+    <main class="doc-cards">
+      <div class="doc-head">
+        <h1 class="ic-title">API Documentation</h1>
+        <p class="ic-subtitle">Call Indico Crosstab from your own app: send survey data, get tables, crosstabs and Excel workbooks back.</p>
+        <div class="doc-badges">
+          <span class="ic-badge ic-badge--info">REST · JSON</span>
+          <span class="ic-badge ic-badge--success">.sav .csv .tsv .xlsx .xls</span>
+          <span class="ic-badge">Bearer API keys</span>
+          <span class="ic-badge ic-badge--warning">Webhooks</span>
+          <span class="ic-badge" id="badge-version">v1</span>
+        </div>
+      </div>
+
+      <!-- Overview -->
+      <section class="ic-card ic-card-body doc-card" id="overview">
+        <h2>Overview</h2>
+        <div class="doc-prose">
+          <p>Base URL: <code id="base-url">https://crosstab.indicolabs.io</code>. Every endpoint is under <code>/v1</code>. The machine-readable contract is at <a href="/openapi.json"><code>/openapi.json</code></a> (OpenAPI 3): generate a client from it, or import it into Postman / Insomnia.</p>
+          <p>A typical integration:</p>
+          <ol>
+            <li><strong>Send the data file</strong>: upload it once to <code>POST /v1/files/upload</code> and keep the <code>file_id</code>, or send it with each request.</li>
+            <li><strong>Look at it</strong>: <code>POST /v1/metadata</code> lists the variables, labels and detected question types (single, multi-select, grid, numeric).</li>
+            <li><strong>Analyse</strong>: JSON results from <code>/v1/frequency</code>, <code>/v1/crosstab</code>, <code>/v1/tabulate/preview</code> and the other analysis endpoints.</li>
+            <li><strong>Export</strong>: an Excel workbook from <code>/v1/tabulate</code> (your spec) or <code>/v1/auto-analyze</code> (no spec), as a file, a download link or base64.</li>
+          </ol>
+          <p>The engine is deterministic: the same file and spec always give the same numbers. Only the endpoints under <em>AI Features</em> (and the optional executive summary) use a language model.</p>
+        </div>
+      </section>
+
+      <!-- Quick start -->
+      <section class="ic-card ic-card-body doc-card" id="quickstart">
+        <h2>Quick start</h2>
+        <div class="doc-prose"><p>Upload a file, then make a crosstab and an Excel tabulation from it.</p></div>
+        <div class="doc-tabs" role="tablist" data-tabs="qs">
+          <button role="tab" aria-selected="true" data-tab="curl">curl</button>
+          <button role="tab" aria-selected="false" data-tab="python">Python</button>
+          <button role="tab" aria-selected="false" data-tab="js">JavaScript</button>
+        </div>
+        <pre class="ic-code" data-panel="qs:curl"><code>export KEY=sk_live_your_key
+export API=https://crosstab.indicolabs.io
+
+# 1. Upload once → file_id (valid 30 minutes after its last use)
+FILE_ID=$(curl -s -H "Authorization: Bearer $KEY" \
+  -F "file=@survey.sav" $API/v1/files/upload | jq -r .file_id)
+
+# 2. Crosstab as JSON
+curl -s -H "Authorization: Bearer $KEY" \
+  -F "file_id=$FILE_ID" \
+  -F 'spec={"row": "Q1", "col": "Gender"}' \
+  $API/v1/crosstab
+
+# 3. Excel tabulation (the .xlsx file)
+curl -s -H "Authorization: Bearer $KEY" \
+  -F "file_id=$FILE_ID" \
+  -F 'spec={"banners": ["Gender", "Region"], "stubs": ["_all_"]}' \
+  -o tables.xlsx $API/v1/tabulate</code></pre>
+        <pre class="ic-code" data-panel="qs:python" hidden><code>import json, requests
+
+API = "https://crosstab.indicolabs.io"
+H = {"Authorization": "Bearer sk_live_your_key"}
+
+# 1. Upload once
+with open("survey.sav", "rb") as f:
+    file_id = requests.post(f"{API}/v1/files/upload", headers=H,
+                            files={"file": ("survey.sav", f)}).json()["file_id"]
+
+# 2. Crosstab as JSON
+r = requests.post(f"{API}/v1/crosstab", headers=H, data={
+    "file_id": file_id, "spec": json.dumps({"row": "Q1", "col": "Gender"})})
+r.raise_for_status()
+table = r.json()["data"]
+
+# 3. Excel tabulation
+r = requests.post(f"{API}/v1/tabulate", headers=H, data={
+    "file_id": file_id,
+    "spec": json.dumps({"banners": ["Gender", "Region"], "stubs": ["_all_"]})})
+if not r.ok:
+    print(r.json()["error"])          # {"code": "...", "message": "..."}
+open("tables.xlsx", "wb").write(r.content)</code></pre>
+        <pre class="ic-code" data-panel="qs:js" hidden><code>const API = "https://crosstab.indicolabs.io";
+const H = { Authorization: "Bearer sk_live_your_key" };  // keep keys server-side
+
+// 1. Upload once (Node 18+: fetch, FormData and Blob are built in)
+const up = new FormData();
+up.append("file", new Blob([await fs.promises.readFile("survey.sav")]), "survey.sav");
+const { file_id } = await (await fetch(`${API}/v1/files/upload`, { method: "POST", headers: H, body: up })).json();
+
+// 2. Crosstab as JSON
+const ct = new FormData();
+ct.append("file_id", file_id);
+ct.append("spec", JSON.stringify({ row: "Q1", col: "Gender" }));
+const { data } = await (await fetch(`${API}/v1/crosstab`, { method: "POST", headers: H, body: ct })).json();
+
+// 3. Excel tabulation, as a download link instead of bytes
+const tab = new FormData();
+tab.append("file_id", file_id);
+tab.append("spec", JSON.stringify({ banners: ["Gender"], stubs: ["_all_"] }));
+tab.append("response_format", "url");
+const res = await (await fetch(`${API}/v1/tabulate`, { method: "POST", headers: H, body: tab })).json();
+console.log(res.data.download_url);   // valid 15 minutes, no key needed</code></pre>
+      </section>
+
+      <!-- Auth -->
+      <section class="ic-card ic-card-body doc-card" id="auth">
+        <h2>Authentication</h2>
+        <div class="doc-prose">
+          <p>Send your API key on every <code>/v1</code> request:</p>
+        </div>
+        <pre class="ic-code"><code>Authorization: Bearer sk_live_xxxxxxxxxxxxxxxx</code></pre>
+        <div class="doc-prose">
+          <ul>
+            <li>Keys start with <code>sk_live_</code> or <code>sk_test_</code>. Only a SHA-256 hash is stored on the server, so a lost key can't be recovered: revoke it and create another (<code>/v1/keys</code>).</li>
+            <li>Each key has a <strong>plan</strong> (free / pro / business: rate and size limits) and <strong>scopes</strong>. A key without the scope an endpoint needs gets <code>403 FORBIDDEN</code>.</li>
+            <li>Keep keys on your server. A browser app should call its own backend, which calls this API.</li>
+            <li><code>GET /v1/health</code> and <code>GET /downloads/{token}</code> need no key (the download token is the secret).</li>
+          </ul>
+        </div>
+        <h3>Scopes</h3>
+        <div class="doc-table-wrap"><table class="doc-table">
+          <thead><tr><th>Scope</th><th>Endpoints</th></tr></thead>
+          <tbody>
+            <tr><td><code>metadata</code></td><td><code>/v1/metadata</code>, <code>/v1/codebook</code>, <code>/v1/files/{file_id}/codebook</code>, <code>/v1/setups/*</code></td></tr>
+            <tr><td><code>frequency</code></td><td><code>/v1/frequency</code></td></tr>
+            <tr><td><code>crosstab</code></td><td><code>/v1/crosstab</code>, <code>/v1/anova</code>, <code>/v1/correlation</code>, <code>/v1/gap-analysis</code>, <code>/v1/satisfaction-summary</code></td></tr>
+            <tr><td><code>process</code></td><td><code>/v1/tabulate</code>, <code>/v1/tabulate/preview</code>, <code>/v1/auto-analyze</code>, <code>/v1/process</code>, <code>/v1/exports/data-workbook</code>, <code>/v1/smart-spec</code>, <code>/v1/wave-compare</code></td></tr>
+            <tr><td><code>convert</code></td><td><code>/v1/convert</code></td></tr>
+            <tr><td><code>parse_ticket</code></td><td><code>/v1/parse-ticket</code></td></tr>
+            <tr><td><em>any valid key</em></td><td><code>/v1/files/*</code>, <code>/v1/jobs/*</code>, <code>/v1/usage</code>, <code>/v1/weight/*</code>, <code>/v1/keys</code></td></tr>
+          </tbody>
+        </table></div>
+        <p class="doc-note">Each endpoint's exact requirement is in the <a href="#reference">reference</a> below.</p>
+      </section>
+
+      <!-- Inputs -->
+      <section class="ic-card ic-card-body doc-card" id="inputs">
+        <h2>Sending files</h2>
+        <div class="doc-prose">
+          <p>Accepted formats: SPSS <code>.sav</code>, <code>.csv</code>, <code>.tsv</code>, <code>.xlsx</code>, <code>.xls</code>. CSV and Excel files are read into the same structure as SPSS (value labels and question types are inferred), so every endpoint works on every format. The extension of the filename tells the API how to read the file.</p>
+          <p>Requests that take a file are <code>multipart/form-data</code>. Give the data in <strong>one</strong> of three ways:</p>
+        </div>
+        <div class="doc-table-wrap"><table class="doc-table">
+          <thead><tr><th>Way</th><th>How</th><th>Best for</th></tr></thead>
+          <tbody>
+            <tr><td><code>file</code></td><td>Attach the file to the request itself.</td><td>One-off calls.</td></tr>
+            <tr><td><code>file_id</code></td><td><code>POST /v1/files/upload</code> (multipart) once, then send the <code>file_id</code> form field instead of the file.</td><td>Several calls on the same file. Faster: the file is parsed once and cached.</td></tr>
+            <tr><td><code>file_id</code> from JSON</td><td><code>POST /v1/files/upload-base64</code> with <code>{"filename": "survey.sav", "content_base64": "…"}</code>.</td><td>Callers that can only send JSON (low-code tools, some gateways).</td></tr>
+          </tbody>
+        </table></div>
+        <h3>File sessions</h3>
+        <div class="doc-prose">
+          <ul>
+            <li>A session lasts <strong>30 minutes after its last use</strong>: every request with the <code>file_id</code> renews it.</li>
+            <li><code>GET /v1/files/{file_id}</code> tells you what's in a session and how long it has left (without renewing it). <code>DELETE /v1/files/{file_id}</code> ends it now.</li>
+            <li>An expired <code>file_id</code> gets <code>404 FILE_NOT_FOUND</code>: upload again.</li>
+            <li>The coding of a session (how each column is read: labels, nets, groups) can be edited with <code>PATCH /v1/files/{file_id}/codebook</code>; later requests with that <code>file_id</code> use it.</li>
+          </ul>
+        </div>
+        <pre class="ic-code"><code>POST /v1/files/upload-base64
+Content-Type: application/json
+
+{"filename": "survey.sav", "content_base64": "JEZMMkAoIy…"}
+
+→ 200 {"file_id": "4f6c…", "filename": "survey.sav", "format": "sav",
+       "n_cases": 1200, "n_variables": 84, "size_bytes": 512304,
+       "session_ttl_seconds": 1800, "message": "…"}</code></pre>
+        <h3>JSON fields inside form requests</h3>
+        <div class="doc-prose">
+          <p>Structured options travel as a JSON <strong>string</strong> in a form field: <code>spec</code> (tabulate, crosstab, ANOVA …), <code>options</code> (auto-analyze), <code>codebook</code>, <code>settings</code>. Serialize with <code>json.dumps</code> / <code>JSON.stringify</code>. Invalid JSON is a <code>400 INVALID_SPEC</code>.</p>
+          <p>Some endpoints also take a Reporting Ticket (<code>ticket</code>, .docx) or a questionnaire (.docx/.pdf) as extra files.</p>
+        </div>
+      </section>
+
+      <!-- Outputs -->
+      <section class="ic-card ic-card-body doc-card" id="outputs">
+        <h2>Getting results</h2>
+        <h3>JSON endpoints</h3>
+        <div class="doc-prose"><p>Analysis endpoints answer with one envelope:</p></div>
+        <pre class="ic-code"><code>{
+  "success": true,
+  "data": { … },                                   // the result
+  "meta": { "request_id": "a1b2c3d4", "processing_time_ms": 182 }
+}</code></pre>
+        <h3>File endpoints: <code>response_format</code></h3>
+        <div class="doc-prose">
+          <p><code>/v1/tabulate</code>, <code>/v1/auto-analyze</code>, <code>/v1/convert</code> and <code>/v1/exports/data-workbook</code> produce a file. The <code>response_format</code> form field chooses how you get it:</p>
+        </div>
+        <div class="doc-table-wrap"><table class="doc-table">
+          <thead><tr><th>Value</th><th>Response</th><th>Use when</th></tr></thead>
+          <tbody>
+            <tr><td><code>file</code> (default)</td><td>The bytes, with <code>Content-Type</code> and <code>Content-Disposition: attachment; filename="…"</code>.</td><td>You save or stream the file.</td></tr>
+            <tr><td><code>url</code></td><td>JSON: <code>data.download_url</code> (valid 15 minutes, no key needed), <code>expires_in_seconds</code>.</td><td>You hand the file to a user or another service.</td></tr>
+            <tr><td><code>base64</code></td><td>JSON: <code>data.content_base64</code>.</td><td>Your platform can only handle JSON.</td></tr>
+          </tbody>
+        </table></div>
+        <pre class="ic-code"><code>// response_format=url
+{
+  "success": true,
+  "data": {
+    "filename": "tables_survey.xlsx",
+    "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "size_bytes": 48211,
+    "download_url": "https://crosstab.indicolabs.io/downloads/7d1e…",
+    "expires_in_seconds": 900,
+    "info": { "stubs_total": "24", "stubs_success": "24", "stubs_failed": "0", "processing_time_ms": "1830" }
+  },
+  "meta": { "request_id": "…", "processing_time_ms": 1830 }
+}</code></pre>
+        <h3>Response headers</h3>
+        <div class="doc-table-wrap"><table class="doc-table">
+          <thead><tr><th>Header</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>X-Request-Id</code></td><td>Quote it when you report a problem.</td></tr>
+            <tr><td><code>X-Processing-Time-Ms</code></td><td>Server time spent on the request.</td></tr>
+            <tr><td><code>X-RateLimit-Limit</code> / <code>-Remaining</code> / <code>-Reset</code></td><td>Your per-minute budget.</td></tr>
+            <tr><td><code>X-Stubs-Total</code> / <code>-Success</code> / <code>-Failed</code></td><td>Tabulate and auto-analyze: tables asked for, written, and skipped (e.g. nobody answered). Also in <code>data.info</code> for the JSON formats.</td></tr>
+            <tr><td><code>X-Banners</code>, <code>X-MRS-Groups</code>, <code>X-Grid-Groups</code>, <code>X-Nets-Applied</code></td><td>Auto-analyze: what it detected and used.</td></tr>
+            <tr><td><code>X-Warnings</code></td><td>Data workbook: JSON list of columns or tabs left out.</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- Jobs -->
+      <section class="ic-card ic-card-body doc-card" id="jobs">
+        <h2>Async jobs &amp; webhooks</h2>
+        <div class="doc-prose">
+          <p>Big tabulations can take longer than your HTTP client wants to wait. Add a <code>webhook_url</code> form field to <code>POST /v1/tabulate</code>: the spec is checked straight away (a bad spec is still a <code>400</code>), then you get <code>202 Accepted</code> and the work continues in the background.</p>
+        </div>
+        <pre class="ic-code"><code>→ 202 {"success": true, "data": {"job_id": "9b2…", "status": "pending",
+        "poll_url": "/v1/jobs/9b2…", "webhook_url": "https://your.app/hooks/crosstab"}}</code></pre>
+        <div class="doc-prose">
+          <ul>
+            <li><strong>Poll</strong> <code>GET /v1/jobs/{job_id}</code> (same key): <code>status</code> goes <code>pending</code> → <code>running</code> → <code>done</code> or <code>failed</code>. Jobs are kept for 1 hour.</li>
+            <li><strong>Or wait for the webhook</strong>: we <code>POST</code> JSON to your URL when the job ends, retrying 3 times (1 s, 2 s backoff) on network errors or 4xx/5xx. Answer with any 2xx.</li>
+            <li>A finished job's <code>result.download_url</code> stays valid for 1 hour.</li>
+          </ul>
+        </div>
+        <pre class="ic-code"><code>// webhook body (and GET /v1/jobs/{job_id} → data)
+{
+  "event": "job.completed",                 // or "job.failed"
+  "job_id": "9b2…",
+  "status": "done",                          // or "failed"
+  "result": {
+    "download_url": "https://crosstab.indicolabs.io/downloads/…",
+    "size_bytes": 48211,
+    "expires_at": 1793189440.5
+  },
+  // failed: "result": {"error": {"code": "VARIABLE_NOT_FOUND", "message": "…"}}
+  "timestamp": 1793185840.5
+}</code></pre>
+        <p class="doc-note">The webhook isn't signed: treat it as a notification, and confirm with <code>GET /v1/jobs/{job_id}</code> before you trust its contents. Use a hard-to-guess URL.</p>
+      </section>
+
+      <!-- Errors -->
+      <section class="ic-card ic-card-body doc-card" id="errors">
+        <h2>Errors</h2>
+        <div class="doc-prose"><p>Every error has the same shape. Branch on <code>error.code</code> (stable), show <code>error.message</code> (human-readable, may change). <code>detail</code> repeats the original payload for older clients.</p></div>
+        <pre class="ic-code"><code>HTTP/1.1 400 Bad Request
+{
+  "success": false,
+  "error": { "code": "VARIABLE_NOT_FOUND", "message": "Stub variables not found: ['Q99']" },
+  "detail": { "code": "VARIABLE_NOT_FOUND", "message": "Stub variables not found: ['Q99']" }
+}</code></pre>
+        <div class="doc-table-wrap"><table class="doc-table">
+          <thead><tr><th>Status</th><th>Codes</th><th>What to do</th></tr></thead>
+          <tbody>
+            <tr><td>400</td><td><code>NO_FILE</code>, <code>INVALID_SPEC</code>, <code>VALIDATION_ERROR</code>, <code>VARIABLE_NOT_FOUND</code>, <code>INVALID_FILE_FORMAT</code>, <code>INVALID_BASE64</code>, <code>INVALID_SETTINGS</code></td><td>Fix the request; retrying won't help.</td></tr>
+            <tr><td>401</td><td><code>UNAUTHORIZED</code></td><td>Missing or unknown API key.</td></tr>
+            <tr><td>403</td><td><code>FORBIDDEN</code></td><td>The key lacks the endpoint's scope.</td></tr>
+            <tr><td>404</td><td><code>FILE_NOT_FOUND</code>, <code>NOT_FOUND</code>, <code>DOWNLOAD_EXPIRED</code></td><td>Expired session, job or link: upload or run again.</td></tr>
+            <tr><td>413</td><td><code>FILE_TOO_LARGE</code></td><td>Over your plan's size limit.</td></tr>
+            <tr><td>415</td><td><code>UNSUPPORTED_FORMAT</code></td><td>Send .sav, .csv, .tsv, .xlsx or .xls.</td></tr>
+            <tr><td>422</td><td><code>VALIDATION_ERROR</code>, <code>INVALID_FILE</code></td><td>A required field is missing, or the file can't be read.</td></tr>
+            <tr><td>429</td><td><code>RATE_LIMIT_EXCEEDED</code></td><td>Wait for <code>X-RateLimit-Reset</code> / <code>Retry-After</code>, then retry.</td></tr>
+            <tr><td>500</td><td><code>PROCESSING_FAILED</code></td><td>Our side. Retry once; report with <code>X-Request-Id</code>.</td></tr>
+            <tr><td>503</td><td><code>SERVER_BUSY</code>, <code>SESSIONS_UNAVAILABLE</code>, <code>DOWNLOADS_UNAVAILABLE</code></td><td>Retry after <code>Retry-After</code> seconds.</td></tr>
+            <tr><td>504</td><td><code>PROCESSING_TIMEOUT</code></td><td>Use the async mode (<code>webhook_url</code>) or fewer tables.</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- Limits -->
+      <section class="ic-card ic-card-body doc-card" id="limits">
+        <h2>Limits, retries, CORS</h2>
+        <div class="doc-table-wrap"><table class="doc-table">
+          <thead><tr><th>Plan</th><th>Requests / minute</th><th>File size (/v1/tabulate)</th></tr></thead>
+          <tbody>
+            <tr><td>Free</td><td>10</td><td>5 MB</td></tr>
+            <tr><td>Pro</td><td>60</td><td>50 MB</td></tr>
+            <tr><td>Business</td><td>200</td><td>200 MB</td></tr>
+          </tbody>
+        </table></div>
+        <div class="doc-prose">
+          <ul>
+            <li>File sessions (<code>/v1/files/upload</code>) take files up to 100 MB.</li>
+            <li><strong>Safe retries:</strong> send an <code>Idempotency-Key: &lt;uuid&gt;</code> header on a POST. If the same key comes again within 5 minutes, you get the first response back instead of a second run.</li>
+            <li><strong>CORS:</strong> browsers may call the API only from the allowed origins. Server-to-server calls aren't affected. Ask us to add your origin, or call from your backend.</li>
+            <li>A request that runs past the processing limit is stopped with <code>504</code>; use the async mode for large jobs.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Spec -->
+      <section class="ic-card ic-card-body doc-card" id="spec">
+        <h2>Tabulation spec (<code>/v1/tabulate</code>, <code>/v1/tabulate/preview</code>)</h2>
+        <div class="doc-prose">
+          <p><strong>Stubs</strong> are the questions (one table each); <strong>banners</strong> are the variables across the top (one column per answer, lettered A, B, C … for significance). All fields are optional except that you'll usually set <code>banners</code> and <code>stubs</code>.</p>
+        </div>
+        <pre class="ic-code"><code>{
+  "banners": ["Gender", "Region"],
+  "stubs": ["Q1", "Q2", "Q5"],
+  "weight": "WEIGHT1",
+  "significance_levels": [0.95, 0.90],
+  "nets": {"Q1": {"Top 2 Box": [4, 5], "Bottom 2 Box": [1, 2]}},
+  "mrs_groups": {"Brand awareness": ["AWARE_A", "AWARE_B", "AWARE_C"]},
+  "filters": [{"variable": "Country", "operator": "eq", "value": 1}],
+  "output_mode": "banner_sheets",
+  "title": "Customer Satisfaction 2026"
+}</code></pre>
+        <h3>What to tabulate</h3>
+        <div class="doc-table-wrap"><table class="doc-table">
+          <thead><tr><th>Field</th><th>Type · default</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>stubs</code></td><td class="doc-type">string[] · ["_all_"]</td><td>Variables to tabulate. <code>["_all_"]</code> = every variable with value labels.</td></tr>
+            <tr><td><code>banners</code></td><td class="doc-type">string[] · none</td><td>Column variables. None = a Total-only table. (<code>banner</code>: a single one, older form.)</td></tr>
+            <tr><td><code>mrs_groups</code></td><td class="doc-type">{name: string[]}</td><td>Multi-select questions: one table per group from its 0/1 option variables (% of respondents ticking each).</td></tr>
+            <tr><td><code>grid_groups</code></td><td class="doc-type">{name: {variables, show}}</td><td>Grids / batteries. <code>show</code>: any of <code>"t2b"</code>, <code>"b2b"</code>, <code>"mean"</code>.</td></tr>
+            <tr><td><code>grid_mode</code></td><td class="doc-type">"individual"</td><td><code>"individual"</code> (a crosstab per item) or <code>"summary"</code> (one compact T2B / mean table).</td></tr>
+            <tr><td><code>nets</code></td><td class="doc-type">{var: {label: codes[]}}</td><td>Extra rows merging answers, e.g. Top 2 Box. Nets saved in the codebook are added automatically.</td></tr>
+            <tr><td><code>custom_groups</code></td><td class="doc-type">[{name, conditions}]</td><td>Extra banner columns defined by conditions (same form as <code>filters</code>, AND-ed). Banner name: <code>custom_groups_label</code> (default "Custom Groups").</td></tr>
+            <tr><td><code>filters</code></td><td class="doc-type">[{variable, operator, value}]</td><td>Only respondents matching all conditions. Operators: <code>eq</code>, <code>ne</code>, <code>gt</code>, <code>gte</code>, <code>lt</code>, <code>lte</code>, <code>in</code>, <code>not_in</code> (value: a list).</td></tr>
+            <tr><td><code>table_specs</code></td><td class="doc-type">[{table, banners, filters, custom_groups}]</td><td>Per-table columns and filters. Tables not listed use the top-level ones. Name the tables in <code>stubs</code> / the groups (not <code>_all_</code>).</td></tr>
+            <tr><td><code>weight</code></td><td class="doc-type">string · none</td><td>Weight variable.</td></tr>
+          </tbody>
+        </table></div>
+        <h3>Statistics</h3>
+        <div class="doc-table-wrap"><table class="doc-table">
+          <thead><tr><th>Field</th><th>Type · default</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>significance_level</code></td><td class="doc-type">number · 0.95</td><td>Confidence level of the column tests (letters).</td></tr>
+            <tr><td><code>significance_levels</code></td><td class="doc-type">number[]</td><td>Two levels, e.g. <code>[0.95, 0.90]</code>: CAPITAL letters at the higher, lowercase at the lower.</td></tr>
+            <tr><td><code>bonferroni</code></td><td class="doc-type">bool · true</td><td>Correct the pairwise tests for multiple comparisons. False matches uncorrected tables.</td></tr>
+            <tr><td><code>low_base_warn</code> / <code>low_base_flag</code></td><td class="doc-type">int · 100 / 30</td><td>Mark bases below these with <code>*</code> / <code>**</code>. 0 = off.</td></tr>
+            <tr><td><code>include_means</code></td><td class="doc-type">bool · false</td><td>Add mean rows for scales.</td></tr>
+            <tr><td><code>show_chi2</code></td><td class="doc-type">bool · true</td><td>Chi-square p-value in table headers.</td></tr>
+          </tbody>
+        </table></div>
+        <h3>Layout</h3>
+        <div class="doc-table-wrap"><table class="doc-table">
+          <thead><tr><th>Field</th><th>Type · default</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>output_mode</code></td><td class="doc-type">"multi_sheet"</td><td><code>"multi_sheet"</code> (a sheet per table + summary), <code>"single_sheet"</code>, <code>"banner_sheets"</code> (Total / By banner / Stat sheets), <code>"pages"</code> (see <code>pages</code>).</td></tr>
+            <tr><td><code>pages</code></td><td class="doc-type">[{name, tables}]</td><td>For <code>"pages"</code>: one sheet per page, its tables stacked in that order.</td></tr>
+            <tr><td><code>include_total_column</code></td><td class="doc-type">bool · true</td><td>Total as the first column.</td></tr>
+            <tr><td><code>show_counts</code> / <code>show_percentages</code></td><td class="doc-type">bool · true</td><td>Which numbers the cells show.</td></tr>
+            <tr><td><code>title</code></td><td class="doc-type">string</td><td>Workbook title.</td></tr>
+            <tr><td><code>table_order</code> / <code>table_titles</code></td><td class="doc-type">string[] / {name: title}</td><td><code>banner_sheets</code>: order and titles of the tables.</td></tr>
+            <tr><td><code>sort_rows</code></td><td class="doc-type">false</td><td><code>banner_sheets</code> &amp; preview: <code>"total"</code> (by Total, highest first) or <code>"az"</code>.</td></tr>
+            <tr><td><code>hide_codes</code></td><td class="doc-type">{name: codes[]}</td><td><code>banner_sheets</code> &amp; preview: answers or columns left out (bases unchanged).</td></tr>
+            <tr><td><code>show_row_pct</code></td><td class="doc-type">bool · false</td><td><code>banner_sheets</code>: also a "(Row %)" sheet per banner.</td></tr>
+            <tr><td><code>include_summary</code></td><td class="doc-type">bool · false</td><td>AI executive summary as the first sheet. <code>study_context</code>: optional notes for it.</td></tr>
+          </tbody>
+        </table></div>
+        <h3>Preview only</h3>
+        <div class="doc-prose"><p><code>/v1/tabulate/preview</code> takes the same spec plus <code>"tables": ["Q1", "Brand awareness"]</code> (up to 50) and returns those tables as JSON (rows, bases, column % and letters), the same numbers the workbook will show.</p></div>
+      </section>
+
+      <!-- Recipes -->
+      <section class="ic-card ic-card-body doc-card" id="recipes">
+        <h2>Recipes</h2>
+        <h3>No spec at all: auto-analysis</h3>
+        <pre class="ic-code"><code>curl -H "Authorization: Bearer $KEY" -F "file=@survey.sav" \
+  -F 'options={"max_banners": 3}' -o report.xlsx $API/v1/auto-analyze</code></pre>
+        <h3>Large job, notified by webhook</h3>
+        <pre class="ic-code"><code>curl -H "Authorization: Bearer $KEY" -F "file_id=$FILE_ID" \
+  -F 'spec={"banners": ["Region"], "stubs": ["_all_"]}' \
+  -F "webhook_url=https://your.app/hooks/crosstab" $API/v1/tabulate
+# → 202 {"data": {"job_id": "…"}}; later: GET $API/v1/jobs/&lt;job_id&gt;</code></pre>
+        <h3>JSON-only platform (Zapier, Make, a gateway)</h3>
+        <pre class="ic-code"><code>1. POST /v1/files/upload-base64   {"filename": "survey.csv", "content_base64": "…"}  → file_id
+2. POST /v1/tabulate  (form: file_id, spec, response_format=url)  → data.download_url</code></pre>
+        <h3>Convert a .sav to CSV with labels</h3>
+        <pre class="ic-code"><code>curl -H "Authorization: Bearer $KEY" -F "file=@survey.sav" \
+  -F "target_format=csv" -F "apply_labels=true" -o survey.csv $API/v1/convert</code></pre>
+        <h3>Weighted crosstab with two significance levels</h3>
+        <pre class="ic-code"><code>curl -H "Authorization: Bearer $KEY" -F "file_id=$FILE_ID" \
+  -F 'spec={"row": "Q1", "col": "AgeGroup", "weight": "WEIGHT1", "significance_levels": [0.95, 0.90]}' \
+  $API/v1/crosstab</code></pre>
+      </section>
+
+      <!-- Reference -->
+      <section class="ic-card ic-card-body doc-card" id="reference">
+        <h2>Endpoint reference</h2>
+        <div class="doc-prose"><p>Generated from <a href="/openapi.json"><code>/openapi.json</code></a>, so it always matches the running server. Send requests from the browser in <a href="/docs">Swagger</a>.</p></div>
+        <div class="doc-ref-tools" style="margin-top:12px">
+          <input class="ic-input" type="search" id="ref-filter" placeholder="Filter endpoints (e.g. tabulate, files, GET)" aria-label="Filter endpoints">
+          <button class="ic-btn ic-btn--secondary ic-btn--sm" type="button" id="ref-expand">Expand all</button>
+        </div>
+        <div id="ref"><p class="doc-note">Loading the reference…</p></div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="doc-footer">
+    Indico Crosstab &bull; Powered by QuantipyMRX &bull; Built by <a href="https://indicolabs.io">Indico Labs</a>
+  </footer>
+
+<script>
+(() => {
+  const $ = (s, root = document) => root.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // This server's own address in the examples
+  $('#base-url').textContent = location.origin;
+
+  // Code tabs (curl / Python / JavaScript)
+  document.querySelectorAll('.doc-tabs').forEach((tabs) => {
+    const group = tabs.dataset.tabs;
+    tabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-tab]');
+      if (!btn) return;
+      tabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b === btn)));
+      document.querySelectorAll(`[data-panel^="${group}:"]`).forEach((p) => { p.hidden = p.dataset.panel !== `${group}:${btn.dataset.tab}`; });
+    });
+  });
+
+  // A little Markdown (what the endpoint descriptions use): code blocks, `code`, **bold**, [links](…), lists
+  function md(text) {
+    const blocks = [];
+    let s = String(text || '').replace(/```(?:\w+)?\n([\s\S]*?)```/g, (_, code) => {
+      blocks.push(`<pre class="ic-code"><code>${esc(code.replace(/\n$/, ''))}</code></pre>`);
+      return `\u0000${blocks.length - 1}\u0000`;
+    });
+    const inline = (t) => esc(t)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => /^(https?:|\/|#)/.test(href) ? `<a href="${href}">${label}</a>` : label);
+    return s.split(/\n{2,}/).map((para) => {
+      const block = para.match(/^\u0000(\d+)\u0000$/);
+      if (block) return blocks[+block[1]];
+      const lines = para.split('\n');
+      if (lines.every((l) => /^\s*[-*] /.test(l))) return `<ul>${lines.map((l) => `<li>${inline(l.replace(/^\s*[-*] /, ''))}</li>`).join('')}</ul>`;
+      if (lines.every((l) => /^\s*\|/.test(l))) return `<pre class="ic-code"><code>${esc(para)}</code></pre>`;
+      return `<p>${lines.map(inline).join('<br>').replace(/\u0000(\d+)\u0000/g, (_, i) => blocks[+i])}</p>`;
+    }).join('');
+  }
+
+  const METHOD_BADGE = { get: 'ic-badge--success', post: 'ic-badge--info', put: 'ic-badge--warning', patch: 'ic-badge--warning', delete: 'ic-badge--danger' };
+
+  function resolve(spec, schema) {
+    let guard = 0;
+    while (schema && schema.$ref && guard++ < 10) {
+      schema = schema.$ref.replace(/^#\//, '').split('/').reduce((o, k) => o?.[k], spec);
+    }
+    return schema || {};
+  }
+
+  function typeOf(spec, schema) {
+    schema = resolve(spec, schema);
+    if (schema.anyOf || schema.oneOf) {
+      const parts = (schema.anyOf || schema.oneOf).map((s) => typeOf(spec, s)).filter((t) => t !== 'null');
+      return [...new Set(parts)].join(' | ') || 'any';
+    }
+    if (schema.type === 'array') return `${typeOf(spec, schema.items || {})}[]`;
+    if (schema.format === 'binary') return 'file';
+    if (schema.enum) return schema.enum.map((v) => JSON.stringify(v)).join(' | ');
+    return schema.type || (schema.properties ? 'object' : 'any');
+  }
+
+  function fieldRows(spec, rows) {
+    if (!rows.length) return '';
+    return `<div class="doc-table-wrap"><table class="doc-table"><thead><tr><th>Name</th><th>In · type</th><th>Description</th></tr></thead><tbody>${
+      rows.map((r) => {
+        const def = r.schema && r.schema.default !== undefined && r.schema.default !== null ? ` Default: <code>${esc(JSON.stringify(r.schema.default))}</code>.` : '';
+        return `<tr><td><code>${esc(r.name)}</code>${r.required ? '<span class="doc-req">required</span>' : ''}</td>` +
+          `<td class="doc-type">${esc(r.in)} · ${esc(typeOf(spec, r.schema || {}))}</td>` +
+          `<td>${md(r.description || resolve(spec, r.schema || {}).description || '').replace(/^<p>|<\/p>$/g, '')}${def}</td></tr>`;
+      }).join('')}</tbody></table></div>`;
+  }
+
+  function endpoint(spec, path, method, op) {
+    const id = `ep-${method}-${path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}`;
+    const params = (op.parameters || []).map((p) => ({ name: p.name, in: p.in, required: p.required, schema: p.schema, description: p.description }));
+    let bodyRows = [], bodyType = '';
+    const content = op.requestBody?.content || {};
+    const [ctype] = Object.keys(content);
+    if (ctype) {
+      bodyType = ctype;
+      const schema = resolve(spec, content[ctype].schema);
+      const required = new Set(schema.required || []);
+      const where = ctype.includes('multipart') ? 'form' : ctype.includes('json') ? 'json' : 'body';
+      bodyRows = Object.entries(schema.properties || {}).map(([name, s]) => ({ name, in: where, required: required.has(name), schema: s, description: s.description }));
+    }
+    const needsKey = !/^\/downloads\//.test(path) && path !== '/v1/health';
+    const responses = Object.entries(op.responses || {}).map(([code, r]) =>
+      `<tr><td><code>${esc(code)}</code></td><td>${esc(r.description || '')}${Object.keys(r.content || {}).length ? ` <span class="doc-type">(${esc(Object.keys(r.content).join(', '))})</span>` : ''}</td></tr>`).join('');
+    const text = `${method} ${path} ${op.summary || ''} ${(op.tags || []).join(' ')}`.toLowerCase();
+    return `<details class="doc-ep" id="${id}" data-search="${esc(text)}">
+      <summary><span class="ic-badge ${METHOD_BADGE[method] || ''} doc-method">${method.toUpperCase()}</span><code>${esc(path)}</code><span class="doc-ep-sum">${esc(op.summary || '')}</span></summary>
+      <div class="doc-ep-body doc-prose">
+        ${op.description ? md(op.description) : ''}
+        <p class="doc-note">${needsKey ? 'Needs <code>Authorization: Bearer &lt;key&gt;</code>.' : 'No API key needed.'}${bodyType ? ` Body: <code>${esc(bodyType)}</code>.` : ''}</p>
+        ${params.length ? `<h3>Parameters</h3>${fieldRows(spec, params)}` : ''}
+        ${bodyRows.length ? `<h3>${bodyType.includes('multipart') ? 'Form fields' : 'Body'}</h3>${fieldRows(spec, bodyRows)}` : ''}
+        ${responses ? `<h3>Responses</h3><div class="doc-table-wrap"><table class="doc-table"><tbody>${responses}</tbody></table></div>` : ''}
+      </div>
+    </details>`;
+  }
+
+  async function loadReference() {
+    const ref = $('#ref');
+    let spec;
+    try {
+      const res = await fetch('/openapi.json');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      spec = await res.json();
+    } catch (e) {
+      ref.innerHTML = `<p class="doc-note">The reference couldn't be loaded (${esc(e.message)}). Open <a href="/docs">Swagger</a> instead.</p>`;
+      return;
+    }
+    if (spec.info?.version) $('#badge-version').textContent = `v${spec.info.version}`;
+    const tagInfo = Object.fromEntries((spec.tags || []).map((t) => [t.name, t.description]));
+    const order = (spec.tags || []).map((t) => t.name);
+    const groups = {};
+    for (const [path, ops] of Object.entries(spec.paths || {})) {
+      for (const [method, op] of Object.entries(ops)) {
+        if (!METHOD_BADGE[method]) continue;
+        const tag = (op.tags || ['Other'])[0];
+        (groups[tag] ||= []).push(endpoint(spec, path, method, op));
+      }
+    }
+    const names = Object.keys(groups).sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+    ref.innerHTML = names.map((name) => `<div class="doc-ref-group-wrap" data-group>
+      <div class="doc-ref-group" id="tag-${esc(name.replace(/\W+/g, '-'))}">${esc(name)}</div>
+      ${tagInfo[name] ? `<div class="doc-ref-group-desc">${md(tagInfo[name]).replace(/^<p>|<\/p>$/g, '')}</div>` : ''}
+      ${groups[name].join('')}</div>`).join('');
+    $('#toc-ref').innerHTML = `<a href="#reference">Endpoints</a>` + names.map((n) => `<a href="#tag-${esc(n.replace(/\W+/g, '-'))}" style="padding-left:20px">${esc(n)}</a>`).join('');
+
+    // Deep links (#ep-post-v1-tabulate) open their endpoint
+    const target = location.hash && document.getElementById(location.hash.slice(1));
+    if (target?.classList.contains('doc-ep')) { target.open = true; target.scrollIntoView(); }
+  }
+
+  $('#ref-filter').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll('.doc-ep').forEach((ep) => { ep.hidden = q && !ep.dataset.search.includes(q); });
+    document.querySelectorAll('[data-group]').forEach((g) => { g.hidden = !g.querySelector('.doc-ep:not([hidden])'); });
+  });
+  $('#ref-expand').addEventListener('click', (e) => {
+    const open = e.target.textContent === 'Expand all';
+    document.querySelectorAll('.doc-ep').forEach((ep) => { ep.open = open; });
+    e.target.textContent = open ? 'Collapse all' : 'Expand all';
+  });
+
+  loadReference();
+})();
+</script>
+</body>
+</html>

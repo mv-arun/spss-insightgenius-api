@@ -61,7 +61,7 @@ async def _execute_operation(data, op: dict, op_id: str) -> dict:
 async def process(
     request: Request,
     file: UploadFile = File(None, description="Data file: .sav, .csv, .tsv, .xlsx, .xls (or use file_id)"),
-    file_id: str | None = Form(None, description="File session ID from /v1/library/upload"),
+    file_id: str | None = Form(None, description="File session ID from /v1/files/upload"),
     operations: str | None = Form(None, description="JSON array of operation specs"),
     ticket: UploadFile | None = File(None, description="Reporting Ticket .docx (optional)"),
     weight: str | None = Form(None, description="Default weight variable"),

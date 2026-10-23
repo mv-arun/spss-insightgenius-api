@@ -11,7 +11,7 @@ import logging
 import time
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 
 from auth import KeyConfig, require_scope
 from middleware.processing import run_in_executor
@@ -22,12 +22,15 @@ from services.quantipy_engine import QuantiProEngine
 from services.data_cache import load_data_cached
 from services.banner_workbook import preview_tables
 from services.tabulation_builder import TabulateSpec, build_tabulation, _build_excel, multiple_comparison_correction
+from shared.file_output import RESPONSE_FORMAT_HELP, check_response_format, file_response
 from shared.filenames import output_filename
 from shared.response import success_response
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Processing"])
+
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 # Max file size per plan (bytes)
 _MAX_FILE_SIZE = {
@@ -195,23 +198,30 @@ def _check_variables(tab_spec: TabulateSpec, data) -> None:
         "with `*` / `**`.\n\n"
         "Per-table columns: `table_specs: [{\"table\": \"Q1\", \"banners\": [\"Gender\"], \"filters\": [...], "
         "\"custom_groups\": false}]` (name the tables in `stubs` / the groups). Tables not listed use "
-        "`banners` / `filters` / `custom_groups`; each table is written with its own columns."
+        "`banners` / `filters` / `custom_groups`; each table is written with its own columns.\n\n"
+        "Layouts (`output_mode`): `multi_sheet` (default), `single_sheet`, `banner_sheets` (Total / By banner / "
+        "Stat sheets), `pages` (with `pages: [{\"name\": \"Page 1\", \"tables\": [\"Q1\", \"Q2\"]}]`, one sheet per page).\n\n"
+        "`response_format`: `file` (the .xlsx), `url` (JSON with a download link) or `base64` (JSON). "
+        "Every field of the spec: [/docs/api#spec](/docs/api#spec)."
     ),
-    response_class=StreamingResponse,
+    response_class=Response,
 )
 async def tabulate(
     request: Request,
-    file: UploadFile = File(None, description=".sav file to tabulate (or use file_id)"),
-    file_id: str | None = Form(None, description="File session ID from /v1/library/upload"),
+    file: UploadFile = File(None, description="Data file to tabulate: .sav, .csv, .tsv, .xlsx, .xls (or use file_id)"),
+    file_id: str | None = Form(None, description="File session ID from /v1/files/upload"),
     codebook: str | None = Form(None, description="Codebook JSON from /v1/codebook (edited coding); default: inferred, or saved for file_id"),
     spec: str = Form(..., description="JSON tabulation specification"),
     ticket: UploadFile | None = File(None, description="Optional .docx Reporting Ticket — Haiku parses it into a tab plan"),
-    webhook_url: str | None = Form(None, description="URL to POST job result when processing completes. If provided, returns 202 with job_id instead of blocking."),
+    webhook_url: str | None = Form(None, description="Run in the background: returns 202 with a job_id at once, and POSTs the "
+                                                     "job (with its download_url) here when done. Poll /v1/jobs/{job_id} either way."),
+    response_format: str = Form("file", description=RESPONSE_FORMAT_HELP),
     key: KeyConfig = Depends(require_scope("process")),
     _rl: None = Depends(check_rate_limit),
 ):
     start = time.perf_counter()
     request_id = getattr(request.state, "request_id", "")
+    response_format = check_response_format(response_format)
 
     file_bytes, filename = await resolve_file(file=file, file_id=file_id)
     cb = await resolve_codebook(codebook, file_id)
@@ -224,30 +234,29 @@ async def tabulate(
             "message": f"File exceeds {max_size // (1024*1024)}MB limit for {key.plan} plan",
         })
 
+    # ── Parse spec (checked before a job starts, so a bad spec is a 400 either way) ──
+    try:
+        spec_dict = json.loads(spec)
+    except json.JSONDecodeError as e:
+        raise HTTPException(400, detail={"code": "INVALID_SPEC", "message": f"Invalid JSON in spec: {e}"})
+    if not isinstance(spec_dict, dict):
+        raise HTTPException(400, detail={"code": "INVALID_SPEC", "message": "spec must be a JSON object"})
+    _tab_spec(spec_dict, cb)
+    ticket_bytes = await ticket.read() if ticket and ticket.filename and ticket.filename.lower().endswith(".docx") else None
+
     # ── Async mode: return 202 + job_id ──
     if webhook_url:
         from fastapi.responses import JSONResponse
         from shared.job_store import JobStore
-        from services.job_runner import run_tabulation_job
+        from services.job_runner import JOB_DOWNLOAD_TTL, run_tabulation_job
         from routers.downloads import store_download
 
         store = JobStore()
         job_id = store.create(user_id=key.name, endpoint="/v1/tabulate", webhook_url=webhook_url)
 
-        # Capture current args for background execution
-        _file_bytes, _filename, _spec, _ticket_bytes = file_bytes, filename, spec, None
-        if ticket and ticket.filename:
-            _ticket_bytes = await ticket.read()
-
         async def _do_tabulate():
-            data = await run_in_executor(load_data_cached, _file_bytes, _filename, cb)
-            spec_dict = json.loads(_spec)
-            if cb is not None:
-                spec_dict["nets"] = cb.table_nets(spec_dict.get("nets"))
-            spec_obj = TabulateSpec(**spec_dict)
-            result = await run_in_executor(build_tabulation, QuantiProEngine, data, spec_obj)
-            excel_bytes = await run_in_executor(_build_excel, result, spec_obj, data)
-            token, download_url = await store_download(excel_bytes, output_filename("tables", _filename))
+            excel_bytes, _, data, _ = await _run_tabulation(file_bytes, filename, cb, spec_dict, ticket_bytes, job_id)
+            _, download_url = await store_download(excel_bytes, output_filename("tables", data.file_name), ttl=JOB_DOWNLOAD_TTL)
             return excel_bytes, download_url
 
         asyncio.create_task(run_tabulation_job(job_id, _do_tabulate))
@@ -262,17 +271,34 @@ async def tabulate(
             },
         })
 
-    # ── Parse spec ──
-    try:
-        spec_dict = json.loads(spec)
-    except json.JSONDecodeError as e:
-        raise HTTPException(400, detail={"code": "INVALID_SPEC", "message": f"Invalid JSON in spec: {e}"})
+    excel_bytes, result, data, tab_spec = await _run_tabulation(file_bytes, filename, cb, spec_dict, ticket_bytes, request_id)
+
+    elapsed = int((time.perf_counter() - start) * 1000)
+    logger.info(
+        "[TABULATE] key=%s banners=%s stubs=%d success=%d failed=%d time_ms=%d",
+        key.name, "+".join(tab_spec.resolved_banners), result.total_stubs, result.successful, result.failed, elapsed,
+    )
+
+    return await file_response(
+        excel_bytes, output_filename("tables", data.file_name), XLSX_MIME, response_format,
+        headers={
+            "X-Request-Id": request_id,
+            "X-Stubs-Total": str(result.total_stubs),
+            "X-Stubs-Success": str(result.successful),
+            "X-Stubs-Failed": str(result.failed),
+        },
+        started=start,
+    )
+
+
+async def _run_tabulation(file_bytes: bytes, filename: str, cb, spec_dict: dict, ticket_bytes: bytes | None, request_id: str):
+    """Ticket (optional) → spec → load → tables → Excel. Returns (excel_bytes, result, data, tab_spec)."""
+    spec_dict = dict(spec_dict)
 
     # ── Ticket parsing (Haiku) — overrides spec with extracted tab plan ──
-    if ticket and ticket.filename and ticket.filename.lower().endswith(".docx"):
+    if ticket_bytes:
         try:
             from services.ticket_parser import TicketParser
-            ticket_bytes = await ticket.read()
             parser = TicketParser()
 
             # Load SPSS first for variable list context
@@ -360,29 +386,7 @@ async def tabulate(
         except Exception as e:
             logger.warning("[TABULATE] Executive summary failed: %s", e)
 
-    elapsed = int((time.perf_counter() - start) * 1000)
-    banners_str = "+".join(tab_spec.resolved_banners)
-    logger.info(
-        "[TABULATE] key=%s banners=%s stubs=%d success=%d failed=%d time_ms=%d",
-        key.name, banners_str, result.total_stubs, result.successful, result.failed, elapsed,
-    )
-
-    # ── Return Excel ──
-    import io
-    file_name = output_filename("tables", data.file_name)
-
-    return StreamingResponse(
-        io.BytesIO(result.excel_bytes),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": f'attachment; filename="{file_name}"',
-            "X-Request-Id": request_id,
-            "X-Processing-Time-Ms": str(elapsed),
-            "X-Stubs-Total": str(result.total_stubs),
-            "X-Stubs-Success": str(result.successful),
-            "X-Stubs-Failed": str(result.failed),
-        },
-    )
+    return result.excel_bytes, result, data, tab_spec
 
 
 MAX_PREVIEW_TABLES = 50  # a preview draws what's on screen; the export does the rest

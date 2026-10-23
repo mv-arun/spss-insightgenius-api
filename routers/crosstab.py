@@ -26,7 +26,7 @@ router = APIRouter(tags=["Analysis"])
 async def crosstab(
     request: Request,
     file: UploadFile = File(None, description="Data file: .sav, .csv, .tsv, .xlsx, .xls (or use file_id)"),
-    file_id: str | None = Form(None, description="File session ID from /v1/library/upload"),
+    file_id: str | None = Form(None, description="File session ID from /v1/files/upload"),
     codebook: str | None = Form(None, description="Codebook JSON from /v1/codebook (edited coding); default: inferred, or saved for file_id"),
     spec: str = Form(..., description='JSON object: {"row": "Q1", "col": "S2", "weight": null, "significance_level": 0.95, "significance_levels": [0.95, 0.90] (optional, lowercase letters at the 2nd level), "low_base_warn": 100, "low_base_flag": 30}. For a multi-select question pass "rows": [its 0/1 option variables] instead of "row": one table, % of respondents ticking each option (bases = people who answered the question).'),
     key: KeyConfig = Depends(require_scope("crosstab")),

@@ -5,11 +5,14 @@ import logging
 import time
 
 import httpx
+from fastapi import HTTPException
 
 from shared.job_store import JobStore, JobStatus
 
 logger = logging.getLogger(__name__)
 _store = JobStore()
+
+JOB_DOWNLOAD_TTL = 3600  # a job's file stays downloadable as long as the job is kept
 
 
 async def run_tabulation_job(
@@ -27,8 +30,15 @@ async def run_tabulation_job(
         result = await tabulate_fn(*args, **kwargs)
         # result is (excel_bytes, download_url)
         excel_bytes, download_url = result
-        _store.complete(job_id, download_url=download_url)
+        if not download_url:
+            raise RuntimeError("The file was built but couldn't be stored for download (Redis unavailable)")
+        _store.complete(job_id, download_url=download_url, size_bytes=len(excel_bytes),
+                        expires_at=time.time() + JOB_DOWNLOAD_TTL)
         logger.info("[JOB] %s completed → %s", job_id, download_url)
+    except HTTPException as e:  # the same errors a synchronous request would get
+        detail = e.detail if isinstance(e.detail, dict) else {"message": str(e.detail)}
+        _store.fail(job_id, error_code=detail.get("code", "PROCESSING_ERROR"), error_message=detail.get("message", ""))
+        logger.warning("[JOB] %s failed: %s", job_id, detail)
     except Exception as e:
         _store.fail(job_id, error_code="PROCESSING_ERROR", error_message=str(e))
         logger.error("[JOB] %s failed: %s", job_id, e, exc_info=True)

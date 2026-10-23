@@ -122,7 +122,7 @@ def _run_gap_analysis(file_bytes: bytes, filename: str, spec: dict):
 async def gap_analysis_endpoint(
     request: Request,
     file: UploadFile = File(None, description="Data file: .sav, .csv, .tsv, .xlsx, .xls (or use file_id)"),
-    file_id: str | None = Form(None, description="File session ID from /v1/library/upload"),
+    file_id: str | None = Form(None, description="File session ID from /v1/files/upload"),
     spec: str = Form(..., description='JSON: {"importance_vars": ["Q1_imp","Q2_imp"], "performance_vars": ["Q1_perf","Q2_perf"]}'),
     key: KeyConfig = Depends(require_scope("crosstab")),
     _rl: None = Depends(check_rate_limit),
