@@ -1,0 +1,86 @@
+﻿Group,Feature,Status,Where,Notes
+Flow and app,sign in with one account,have,app,set by ui_login_email and ui_login_password
+Flow and app,"one stepped flow: dataset, variables, crosstabs, options, generate",have,app,
+Flow and app,"top bar with the steps, the open file and back and next for the current view",have,app,
+Flow and app,buttons to jump to the top or bottom of the page,have,app,
+Flow and app,picks up where you left off after a refresh,have,browser,"kept 7 days, files up to 100 mb, cleared on sign out"
+Flow and app,"express, wizard and ai chat pages",have,app,"still there but not in the top bar, ai chat is off by default"
+Flow and app,"more than one user, sharing or comments",don't have,,one sign in for now
+Flow and app,a screen for comparing waves,don't have,,the api has /v1/wave-compare
+Flow and app,full keyboard use for arranging pages,don't have,,drag and drop has + menus as a fallback
+Dataset,"upload spss, excel or csv files",have,dataset step,"sav, por, zsav, xlsx, xls, csv, tsv"
+Dataset,saved datasets library,have,dataset step,"only when datasets is switched on, needs supabase"
+Dataset,reporting ticket and questionnaire uploads for an ai setup,have,dataset step,optional
+Dataset,one click auto analyze,have,dataset step,"rule based, see the ai group"
+Dataset,library tested against supabase on this branch,don't have,,datasets is off locally
+Dataset,file sessions in redis when running locally,don't have,,without redis the file is sent with each request
+Variables,"one row per variable with type, name, label, answers, left out codes and base",have,variables step,
+Variables,"change the type from the row, double click a label to rename it",have,variables step,
+Variables,"filter by type, search, select many rows to change type or hide them",have,variables step,
+Variables,undo,have,variables step,
+Variables,answers and nets panel for each row,have,variables step,
+Variables,"recode drawer: merge answers, relabel, missing codes, nets",have,variables step,
+Variables,"new variables from others: bands, groups, counts, one column per answer, combined multi selects, a question asked of different groups, grids item by item, priority groups, exact combinations",have,variables step,
+Variables,setups to reuse recodes on the next wave,have,variables step,
+Variables,respondent data sheets and codebook export,have,variables step,
+Crosstabs,choice at the start: a table for every question or start with none,have,crosstabs step,questions stay listed either way
+Crosstabs,tables list with new table and drag to reorder,have,crosstabs step,
+Crosstabs,"each table has its own question, columns, filter and title",have,crosstabs step,
+Crosstabs,copy one table's columns and filter to every table,have,crosstabs step,
+Crosstabs,"multi select sets and grids as one table, rename, switch or split them",have,crosstabs step,
+Crosstabs,custom groups as columns,have,crosstabs step,"e.g. pso, psa, uc and cd patients"
+Crosstabs,choose answers: hide answers or columns,have,crosstabs step,bases stay the same
+Crosstabs,"values for every table: column %, row %, counts, top and bottom 2 box, answer order, significance",have,crosstabs step,one or two significance levels
+Crosstabs,"live preview of the open table with letters, nets and small base marks",have,crosstabs step,same numbers as the excel
+Crosstabs,sheets: add pages and drop tables onto them,have,crosstabs step,
+Crosstabs,arrange pages board,have,crosstabs step,one column per sheet
+Crosstabs,review all tables before options,have,crosstabs step,grouped by sheet
+Crosstabs,the same question in more than one table,don't have,,one table per question for now
+Crosstabs,nested columns like age within gender,don't have,,"the engine supports it, there is no screen for it"
+Crosstabs,or filters and any of these codes,don't have,,conditions are and only
+Crosstabs,average tables for plain number questions,don't have,,built for job 4 on a branch that isn't merged
+Crosstabs,undo on the crosstabs step,don't have,,
+Crosstabs,weighting per table,don't have,,the weight applies to every table
+Crosstabs,reusing a set of tables on another file,don't have,,setups only carry recodes
+Crosstabs,preview of means and grid summary tables,don't have,,they are in the excel only
+Options and output,weight variable and a rim weight builder,have,options step,
+Options and output,bonferroni on or off,have,options step,
+Options and output,means with t test,have,options step,
+Options and output,report title,have,options step,
+Options and output,excel: one sheet per question,have,generate,
+Options and output,excel: all questions in one sheet,have,generate,
+Options and output,excel: total and banner sheets with stat and row % sheets,have,generate,
+Options and output,"excel: pages, one sheet per page",have,generate,
+Options and output,row % in layouts other than total and banner sheets,don't have,,
+Options and output,answer order and hidden answers in the two older layouts,don't have,,they work in total and banner sheets and in pages
+Options and output,charts or powerpoint,don't have,,
+Options and output,"excel styling choices like fonts, logo and colours",don't have,,
+Options and output,coding open ended answers,don't have,,"out of scope, as agreed"
+Engine and api,about 30 rest endpoints and 13 mcp tools,have,api,
+Engine and api,per table columns and filters in /v1/tabulate,have,api,table_specs
+Engine and api,/v1/tabulate/preview with the same calculation as the excel,have,api,
+Engine and api,parsed files cached per worker,have,api,"parsed_cache_mb, 512 by default"
+Engine and api,library file download for the dataset step,have,api,owner only
+Engine and api,287 automated tests,have,tests,
+Engine and api,job 3 matches the customer's tables,have,tests,"1312 of 1464 cells and 953 of 953 letters, every in scope cell"
+Engine and api,a tighter rule for automatic top and bottom 2 box,don't have,,any question with 5 or 7 answers gets them today
+AI,smart spec from the ticket and questionnaire,have,"dataset step, /v1/smart-spec","sonnet; confidence, decisions, questions for you, fixes cut labels"
+AI,reporting ticket parsing,have,"/v1/tabulate, /v1/process, /v1/parse-ticket",sonnet; matches names like s2 to q_10
+AI,executive summary sheet,have,api only,haiku; include_summary
+AI,ai chat about the data,have,/export-mcp page,sonnet; off by default
+AI,dataset summaries and search keywords,have,dataset library,haiku; only with datasets on
+AI,claude as the analyst through mcp,have,/mcp/sse,13 tools
+AI,"rule based helpers: auto analyze, suggested banners, group detection, automatic top and bottom 2 box",have,app,"not ai, fixed rules; some screens still call them ai"
+AI,the ai proposal filling in the crosstabs tables,don't have,,edit manually opens crosstabs without it
+AI,a switch for the executive summary in the app,don't have,,
+AI,current claude models,don't have,,pinned to sonnet 4 (2025-05-14) and haiku 4.5
+AI,building a table from a sentence,don't have,,"e.g. satisfaction by age and gender, completes only"
+AI,"suggested columns, tables, nets and page layout",don't have,,
+AI,explaining what is significant in a table,don't have,,
+AI,"ai help on the variables step: nets, recodes, types, labels",don't have,,
+AI,charts or powerpoint with ai commentary,don't have,,
+AI,measuring ai accuracy and per user cost limits,don't have,,
+Delivery,branch pushed with a pull request,don't have,,the work is on a local branch
+Delivery,deployed,don't have,,
+Delivery,latest round committed,don't have,,"pages, start choice, sheet board, top buttons"
+Delivery,old server on port 8000 restarted,don't have,,it still runs the old code
